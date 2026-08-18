@@ -1,4 +1,4 @@
-# Mealy Plan 🥕
+# Mealy 🥕
 
 A mobile-first cooking helper: store recipes, plan the week's dinners, and
 generate one consolidated shopping list with merged quantities.

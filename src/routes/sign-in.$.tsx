@@ -7,7 +7,7 @@ function Page() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-5 py-10 pt-safe">
       <Link to="/" className="text-lg font-bold text-emerald-700">
-        🥕 Mealy Plan
+        🥕 Mealy
       </Link>
       <SignIn />
     </main>

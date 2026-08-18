@@ -9,7 +9,7 @@ export function AppHeader({ title }: { title?: string }) {
           <h1 className="truncate text-lg font-bold text-stone-800">{title}</h1>
         ) : (
           <Link to="/recipes" className="text-lg font-bold text-emerald-700">
-            Mealy Plan
+            Mealy
           </Link>
         )}
         <UserButton />

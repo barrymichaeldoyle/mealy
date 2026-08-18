@@ -14,7 +14,7 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1, viewport-fit=cover',
       },
       { name: 'theme-color', content: '#059669' },
-      { title: 'Mealy Plan' },
+      { title: 'Mealy' },
       {
         name: 'description',
         content:

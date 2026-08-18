@@ -32,7 +32,7 @@ function Landing() {
           🥕
         </span>
         <h1 className="mt-4 text-3xl font-bold tracking-tight text-stone-900 sm:text-4xl">
-          Mealy Plan
+          Mealy
         </h1>
         <p className="mx-auto mt-3 max-w-md text-base text-stone-600">
           Save your recipes, plan the week’s dinners, and walk into the shop

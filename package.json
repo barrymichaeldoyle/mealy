@@ -1,5 +1,5 @@
 {
-  "name": "mealy-plan",
+  "name": "mealy",
   "private": true,
   "type": "module",
   "imports": {

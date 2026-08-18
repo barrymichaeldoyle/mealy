@@ -1,4 +1,4 @@
-# Mealy Plan — MVP Specification
+# Mealy — MVP Specification
 
 A mobile-first cooking helper app: store recipes, plan weekly dinners, and
 generate consolidated shopping lists.
@@ -7,7 +7,7 @@ generate consolidated shopping lists.
 
 ## 1. Overview
 
-**Elevator pitch:** Mealy Plan lets users save their recipes, schedule
+**Elevator pitch:** Mealy lets users save their recipes, schedule
 dinners onto a weekly plan, and auto-generate a smart shopping list with
 merged ingredient quantities (e.g. "tin tomatoes x2", "500g mince" instead
 of duplicates).

@@ -18,7 +18,7 @@ export function SetupNotice({
       </span>
       <h1 className="mt-4 text-2xl font-bold text-stone-900">Almost there</h1>
       <p className="mt-2 text-stone-600">
-        Mealy Plan needs{' '}
+        Mealy needs{' '}
         <code className="rounded bg-stone-200 px-1.5 py-0.5 text-sm">
           {missing}
         </code>{' '}
