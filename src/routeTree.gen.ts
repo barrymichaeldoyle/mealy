@@ -11,9 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as AppHouseholdRouteImport } from './routes/_app/household'
 import { Route as AppPlanRouteImport } from './routes/_app/plan'
 import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
 import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
+import { Route as AppJoinTokenRouteImport } from './routes/_app/join.$token'
 import { Route as AppListsIndexRouteImport } from './routes/_app/lists/index'
 import { Route as AppListsIdRouteImport } from './routes/_app/lists/$id'
 import { Route as AppRecipesIndexRouteImport } from './routes/_app/recipes/index'
@@ -30,6 +32,11 @@ const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppHouseholdRoute = AppHouseholdRouteImport.update({
+  id: '/household',
+  path: '/household',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPlanRoute = AppPlanRouteImport.update({
   id: '/plan',
   path: '/plan',
@@ -44,6 +51,11 @@ const SignUpSplatRoute = SignUpSplatRouteImport.update({
   id: '/sign-up/$',
   path: '/sign-up/$',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppJoinTokenRoute = AppJoinTokenRouteImport.update({
+  id: '/join/$token',
+  path: '/join/$token',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppListsIndexRoute = AppListsIndexRouteImport.update({
   id: '/lists/',
@@ -78,9 +90,11 @@ const AppRecipesIdEditRoute = AppRecipesIdEditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/household': typeof AppHouseholdRoute
   '/plan': typeof AppPlanRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/sign-up/$': typeof SignUpSplatRoute
+  '/join/$token': typeof AppJoinTokenRoute
   '/lists/$id': typeof AppListsIdRoute
   '/recipes/new': typeof AppRecipesNewRoute
   '/lists/': typeof AppListsIndexRoute
@@ -90,9 +104,11 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/household': typeof AppHouseholdRoute
   '/plan': typeof AppPlanRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/sign-up/$': typeof SignUpSplatRoute
+  '/join/$token': typeof AppJoinTokenRoute
   '/lists/$id': typeof AppListsIdRoute
   '/recipes/new': typeof AppRecipesNewRoute
   '/lists': typeof AppListsIndexRoute
@@ -104,9 +120,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/_app/household': typeof AppHouseholdRoute
   '/_app/plan': typeof AppPlanRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/sign-up/$': typeof SignUpSplatRoute
+  '/_app/join/$token': typeof AppJoinTokenRoute
   '/_app/lists/$id': typeof AppListsIdRoute
   '/_app/recipes/new': typeof AppRecipesNewRoute
   '/_app/lists/': typeof AppListsIndexRoute
@@ -118,9 +136,11 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/household'
     | '/plan'
     | '/sign-in/$'
     | '/sign-up/$'
+    | '/join/$token'
     | '/lists/$id'
     | '/recipes/new'
     | '/lists/'
@@ -130,9 +150,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/household'
     | '/plan'
     | '/sign-in/$'
     | '/sign-up/$'
+    | '/join/$token'
     | '/lists/$id'
     | '/recipes/new'
     | '/lists'
@@ -143,9 +165,11 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_app'
+    | '/_app/household'
     | '/_app/plan'
     | '/sign-in/$'
     | '/sign-up/$'
+    | '/_app/join/$token'
     | '/_app/lists/$id'
     | '/_app/recipes/new'
     | '/_app/lists/'
@@ -177,6 +201,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/household': {
+      id: '/_app/household'
+      path: '/household'
+      fullPath: '/household'
+      preLoaderRoute: typeof AppHouseholdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/plan': {
       id: '/_app/plan'
       path: '/plan'
@@ -197,6 +228,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/sign-up/$'
       preLoaderRoute: typeof SignUpSplatRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/join/$token': {
+      id: '/_app/join/$token'
+      path: '/join/$token'
+      fullPath: '/join/$token'
+      preLoaderRoute: typeof AppJoinTokenRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/lists/': {
       id: '/_app/lists/'
@@ -244,7 +282,9 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppHouseholdRoute: typeof AppHouseholdRoute
   AppPlanRoute: typeof AppPlanRoute
+  AppJoinTokenRoute: typeof AppJoinTokenRoute
   AppListsIdRoute: typeof AppListsIdRoute
   AppRecipesNewRoute: typeof AppRecipesNewRoute
   AppListsIndexRoute: typeof AppListsIndexRoute
@@ -254,7 +294,9 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppHouseholdRoute: AppHouseholdRoute,
   AppPlanRoute: AppPlanRoute,
+  AppJoinTokenRoute: AppJoinTokenRoute,
   AppListsIdRoute: AppListsIdRoute,
   AppRecipesNewRoute: AppRecipesNewRoute,
   AppListsIndexRoute: AppListsIndexRoute,

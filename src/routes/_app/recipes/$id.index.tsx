@@ -126,7 +126,7 @@ function RecipeDetail() {
                 <span className="text-base text-stone-800">
                   {ingredient.name}
                   {ingredient.note && (
-                    <span className="text-stone-500"> — {ingredient.note}</span>
+                    <span className="text-stone-500">, {ingredient.note}</span>
                   )}
                 </span>
                 <span className="shrink-0 font-semibold text-emerald-700 tabular-nums">

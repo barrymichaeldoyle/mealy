@@ -10,7 +10,7 @@ const FEATURES = [
   {
     icon: ChefHat,
     title: 'Keep your recipes',
-    body: 'Ingredients, steps and tags — readable while you cook.',
+    body: 'Ingredients, steps and tags. Readable while you cook.',
   },
   {
     icon: CalendarDays,
@@ -43,7 +43,7 @@ function Landing() {
           <Show when="signed-out">
             <SignUpButton mode="modal">
               <Button variant="accent" size="lg" className="w-full sm:w-auto">
-                Get started — it’s free
+                Get started, it’s free
               </Button>
             </SignUpButton>
             <SignInButton mode="modal">

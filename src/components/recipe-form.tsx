@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from './ui/button'
 import { Card } from './ui/card'
@@ -88,7 +88,7 @@ function optionalNumber(value: string): number | undefined {
 
 export type FormErrors = Partial<Record<'title' | 'servings' | 'form', string>>
 
-/** Client-side mirror of `validateRecipe` — fast feedback, not the gate. */
+/** Client-side mirror of `validateRecipe`: fast feedback, not the gate. */
 export function draftToPayload(draft: RecipeDraft): {
   payload?: RecipePayload
   errors: FormErrors
@@ -153,6 +153,21 @@ export function RecipeForm({
   const [draft, setDraft] = useState(initial)
   const [errors, setErrors] = useState<FormErrors>({})
   const [saving, setSaving] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
+
+  /*
+   * The action bar is sticky at the foot of a long form, so a failed submit
+   * would otherwise flag a field the user cannot see. Move them to it.
+   */
+  useEffect(() => {
+    if (Object.keys(errors).length === 0) return
+    const target = formRef.current?.querySelector<HTMLElement>(
+      '[aria-invalid="true"], [data-form-error]',
+    )
+    if (!target) return
+    target.focus({ preventScroll: true })
+    target.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, [errors])
 
   const patch = (changes: Partial<RecipeDraft>) =>
     setDraft((current) => ({ ...current, ...changes }))
@@ -183,7 +198,12 @@ export function RecipeForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit}
+      className="space-y-6"
+      noValidate
+    >
       <Card className="space-y-4 p-4">
         <Field label="Recipe name" error={errors.title}>
           {(id) => (
@@ -198,7 +218,7 @@ export function RecipeForm({
           )}
         </Field>
 
-        <Field label="Description" hint="Optional — one line is plenty.">
+        <Field label="Description" hint="Optional, one line is plenty.">
           {(id) => (
             <Textarea
               id={id}
@@ -446,6 +466,8 @@ export function RecipeForm({
 
       {errors.form && (
         <p
+          data-form-error
+          tabIndex={-1}
           role="alert"
           className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
         >

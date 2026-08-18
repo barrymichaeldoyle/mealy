@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { Clock, Plus, Search, Users } from 'lucide-react'
 import { AppHeader } from '../../../components/app-header'
@@ -20,23 +20,18 @@ function RecipeList() {
   const [search, setSearch] = useState('')
   const [activeTag, setActiveTag] = useState<string | null>(null)
 
-  const tags = useMemo(() => {
-    const all = new Set<string>()
-    for (const recipe of recipes ?? []) {
-      for (const tag of recipe.tags) all.add(tag)
-    }
-    return [...all].toSorted()
-  }, [recipes])
+  const allTags = new Set<string>()
+  for (const recipe of recipes ?? []) {
+    for (const tag of recipe.tags) allTags.add(tag)
+  }
+  const tags = [...allTags].toSorted()
 
-  const filtered = useMemo(() => {
-    const needle = search.trim().toLowerCase()
-    return (recipes ?? []).filter((recipe) => {
-      const matchesSearch =
-        !needle || recipe.title.toLowerCase().includes(needle)
-      const matchesTag = !activeTag || recipe.tags.includes(activeTag)
-      return matchesSearch && matchesTag
-    })
-  }, [recipes, search, activeTag])
+  const needle = search.trim().toLowerCase()
+  const filtered = (recipes ?? []).filter((recipe) => {
+    const matchesSearch = !needle || recipe.title.toLowerCase().includes(needle)
+    const matchesTag = !activeTag || recipe.tags.includes(activeTag)
+    return matchesSearch && matchesTag
+  })
 
   return (
     <>
@@ -101,7 +96,7 @@ function RecipeList() {
           ) : recipes.length === 0 ? (
             <EmptyState
               emoji="🥕"
-              title="No recipes yet — add your first!"
+              title="No recipes yet"
               body="Pop in a family favourite and it’s ready to plan and shop for."
               action={
                 <Link to="/recipes/new" className={buttonClass('accent', 'md')}>

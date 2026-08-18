@@ -22,7 +22,19 @@
     "react/react-in-jsx-scope": "off",
     "no-underscore-dangle": "off",
     "react/no-array-index-key": "off",
-    "typescript/no-explicit-any": "warn"
+    "typescript/no-explicit-any": "warn",
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "react",
+            "importNames": ["useMemo", "useCallback", "memo"],
+            "message": "The React Compiler memoises for us (see vite.config.ts). Write the plain computation."
+          }
+        ]
+      }
+    ]
   },
   "overrides": [
     {

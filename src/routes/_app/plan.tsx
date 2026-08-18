@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import {
   ChevronLeft,
@@ -44,7 +44,7 @@ function PlanScreen() {
   const [pickerDate, setPickerDate] = useState<IsoDate | null>(null)
   const [generating, setGenerating] = useState(false)
 
-  const days = useMemo(() => weekDates(weekStart), [weekStart])
+  const days = weekDates(weekStart)
   const start = days[0]
   const end = days[6]
 
@@ -55,16 +55,13 @@ function PlanScreen() {
   const removeMeal = useRemovePlannedMeal()
   const generateList = useGenerateListFromPlan()
 
-  const mealsByDate = useMemo(() => {
-    const grouped = new Map<IsoDate, NonNullable<typeof meals>>()
-    for (const meal of meals ?? []) {
-      if (meal.slot !== 'dinner') continue // MVP surfaces dinner only
-      const existing = grouped.get(meal.date) ?? []
-      existing.push(meal)
-      grouped.set(meal.date, existing)
-    }
-    return grouped
-  }, [meals])
+  const mealsByDate = new Map<IsoDate, NonNullable<typeof meals>>()
+  for (const meal of meals ?? []) {
+    if (meal.slot !== 'dinner') continue // MVP surfaces dinner only
+    const existing = mealsByDate.get(meal.date) ?? []
+    existing.push(meal)
+    mealsByDate.set(meal.date, existing)
+  }
 
   const plannedCount =
     meals?.filter((meal) => meal.slot === 'dinner').length ?? 0

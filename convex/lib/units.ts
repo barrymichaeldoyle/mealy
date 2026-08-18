@@ -1,7 +1,7 @@
 /**
  * Units, conversions and shopping-list consolidation.
  *
- * Pure module — no Convex, React or DOM dependencies — so it is shared by
+ * Pure module with no Convex, React or DOM dependencies, so it is shared by
  * Convex mutations (list generation) and the client (display formatting)
  * and can be unit tested in isolation.
  *
@@ -36,7 +36,7 @@ export type CanonicalUnit = Extract<
 
 /**
  * Two ingredients only merge when their unit families match. Countable units
- * each form their own family — 2 tins and 1 pack are not 3 of anything.
+ * each form their own family. 2 tins and 1 pack are not 3 of anything.
  */
 export type UnitFamily =
   | 'mass'
@@ -200,10 +200,12 @@ export function formatCanonicalQuantity(
         ? `${formatNumber(quantity / 1000, 1)}l`
         : `${formatNumber(quantity, 1)}ml`
     case 'item':
-      return `x${formatNumber(quantity, 2)}`
     case 'tin':
     case 'pack':
-      return `x${formatNumber(quantity, 2)}`
+      // "x2" reads as a multiplier, which only says anything above one.
+      return quantity === 1
+        ? formatNumber(quantity, 2)
+        : `x${formatNumber(quantity, 2)}`
     case 'none':
       return ''
   }
@@ -218,7 +220,7 @@ export type ShoppingListItemLike = {
 
 /**
  * Full display string for a shopping list line, e.g.
- * "mince — ≈480g", "tin tomatoes x2", "salt — to taste".
+ * "mince: ≈480g", "tin tomatoes x2", "salt: to taste".
  */
 export function formatListItem(item: ShoppingListItemLike): string {
   const family = unitFamily(item.unit)
@@ -273,7 +275,7 @@ export type ConsolidatedItem = {
  *
  * Ingredients merge when their normalized name AND unit family match.
  * Incompatible families for the same name (200g flour + 1 cup flour) stay as
- * separate lines — volume and mass are never guessed at.
+ * separate lines. Volume and mass are never guessed at.
  */
 export function consolidate(inputs: ConsolidationInput[]): ConsolidatedItem[] {
   type Bucket = {
@@ -326,7 +328,7 @@ export function consolidate(inputs: ConsolidationInput[]): ConsolidatedItem[] {
       }
     }
 
-    // Counts stay whole — you cannot buy 1.5 tins.
+    // Counts stay whole: you cannot buy 1.5 tins.
     const rounded = isCountFamily(bucket.family)
       ? Math.ceil(bucket.exactQuantity - EPSILON)
       : roundCanonical(bucket.exactQuantity)

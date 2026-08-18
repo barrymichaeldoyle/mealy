@@ -39,7 +39,10 @@ export function validateRecipe(input: RecipeInput): RecipeInput {
   assert(title.length <= 120, 'Title is too long')
 
   assert(Number.isFinite(input.servings), 'Servings must be a number')
-  assert(input.servings >= 1 && input.servings <= 100, 'Servings must be 1–100')
+  assert(
+    input.servings >= 1 && input.servings <= 100,
+    'Servings must be 1 to 100',
+  )
 
   positiveInt(input.prepTimeMinutes, 'Prep time')
   positiveInt(input.cookTimeMinutes, 'Cook time')
@@ -87,6 +90,6 @@ export function validateDate(date: string): string {
 
 export function validateServings(servings: number): number {
   assert(Number.isFinite(servings), 'Servings must be a number')
-  assert(servings >= 1 && servings <= 100, 'Servings must be 1–100')
+  assert(servings >= 1 && servings <= 100, 'Servings must be 1 to 100')
   return servings
 }

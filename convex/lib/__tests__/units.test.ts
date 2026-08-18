@@ -73,6 +73,8 @@ describe('formatCanonicalQuantity', () => {
   it('renders counts as multipliers', () => {
     expect(formatCanonicalQuantity(2, 'tin')).toBe('x2')
     expect(formatCanonicalQuantity(3, 'item')).toBe('x3')
+    expect(formatCanonicalQuantity(1, 'tin')).toBe('1')
+    expect(formatCanonicalQuantity(1, 'item')).toBe('1')
   })
 })
 
@@ -162,7 +164,7 @@ describe('consolidate', () => {
   })
 
   it('flags rounding introduced by scaling', () => {
-    // 200g × (3/2) = 300g — exact, no ≈
+    // 200g × (3/2) = 300g exactly, no ≈
     const [exact] = consolidate([
       { name: 'rice', quantity: 200, unit: 'g', scale: 1.5 },
     ])

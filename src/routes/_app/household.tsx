@@ -1,0 +1,246 @@
+import { useState } from 'react'
+import { createFileRoute } from '@tanstack/react-router'
+import { Check, Copy, Link2, UserPlus } from 'lucide-react'
+import { AppHeader } from '../../components/app-header'
+import { Button } from '../../components/ui/button'
+import { Card } from '../../components/ui/card'
+import { ConfirmButton } from '../../components/ui/confirm-button'
+import { Field, Input } from '../../components/ui/field'
+import { SkeletonList } from '../../components/ui/skeleton'
+import {
+  useCreateInvite,
+  useDisplayName,
+  useHousehold,
+  useLeaveHousehold,
+  useRemoveMember,
+  useRenameHousehold,
+  useRevokeInvite,
+} from '../../hooks/use-household'
+import type { Doc } from '../../../convex/_generated/dataModel'
+
+export const Route = createFileRoute('/_app/household')({
+  component: HouseholdScreen,
+})
+
+function inviteUrl(token: string): string {
+  const origin = typeof window === 'undefined' ? '' : window.location.origin
+  return `${origin}/join/${token}`
+}
+
+function HouseholdScreen() {
+  const household = useHousehold()
+
+  return (
+    <>
+      <AppHeader title="Household" />
+      <main className="mx-auto max-w-3xl space-y-4 px-4 pt-4 pb-nav">
+        {household === undefined || household === null ? (
+          <SkeletonList rows={2} />
+        ) : (
+          <>
+            <NameCard name={household.household.name} />
+            <MembersCard
+              members={household.members}
+              meId={household.userId}
+              isOwner={household.role === 'owner'}
+            />
+            <InviteCard
+              token={household.inviteToken}
+              expiresAt={household.inviteExpiresAt}
+              householdName={household.household.name}
+            />
+            {household.members.length > 1 && <LeaveCard />}
+          </>
+        )}
+      </main>
+    </>
+  )
+}
+
+function NameCard({ name }: { name: string }) {
+  const rename = useRenameHousehold()
+  const [draft, setDraft] = useState(name)
+  const dirty = draft.trim() !== name
+
+  return (
+    <Card className="p-5">
+      <Field label="Household name" hint="Everyone in it sees this name.">
+        {(id) => (
+          <div className="flex gap-2">
+            <Input
+              id={id}
+              value={draft}
+              maxLength={60}
+              onChange={(event) => setDraft(event.target.value)}
+            />
+            <Button
+              disabled={!dirty || !draft.trim()}
+              onClick={() => void rename({ name: draft })}
+            >
+              Save
+            </Button>
+          </div>
+        )}
+      </Field>
+    </Card>
+  )
+}
+
+function MembersCard({
+  members,
+  meId,
+  isOwner,
+}: {
+  members: Doc<'householdMembers'>[]
+  meId: string
+  isOwner: boolean
+}) {
+  const removeMember = useRemoveMember()
+
+  return (
+    <Card className="p-5">
+      <h2 className="font-semibold text-stone-900">
+        {members.length === 1 ? 'Just you so far' : `${members.length} people`}
+      </h2>
+      <ul className="mt-3 divide-y divide-stone-100">
+        {members.map((member) => (
+          <li
+            key={member._id}
+            className="flex items-center gap-3 py-3 first:pt-0"
+          >
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-50 font-semibold text-emerald-700">
+              {member.name.slice(0, 1).toUpperCase()}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-medium text-stone-800">
+                {member.name}
+                {member.userId === meId && (
+                  <span className="text-stone-400"> (you)</span>
+                )}
+              </span>
+              <span className="text-xs text-stone-500 capitalize">
+                {member.role}
+              </span>
+            </span>
+            {isOwner && member.userId !== meId && (
+              <ConfirmButton
+                size="sm"
+                onConfirm={() => void removeMember({ memberId: member._id })}
+              >
+                Remove
+              </ConfirmButton>
+            )}
+          </li>
+        ))}
+      </ul>
+    </Card>
+  )
+}
+
+/**
+ * The invite link is the whole sharing story: send it, they open it signed
+ * in, and from then on you both see the same kitchen.
+ */
+function InviteCard({
+  token,
+  expiresAt,
+  householdName,
+}: {
+  token: string | null
+  expiresAt: number | null
+  householdName: string
+}) {
+  const createInvite = useCreateInvite()
+  const revokeInvite = useRevokeInvite()
+  const [copied, setCopied] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  async function copy(url: string) {
+    await navigator.clipboard.writeText(url)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <Card className="p-5">
+      <h2 className="font-semibold text-stone-900">Invite someone</h2>
+      <p className="mt-1 text-sm text-stone-500">
+        Anyone who opens the link joins {householdName} and sees the same
+        recipes, plan and lists as you.
+      </p>
+
+      {token ? (
+        <div className="mt-4 space-y-3">
+          <p className="rounded-xl bg-stone-50 px-3 py-2.5 font-mono text-xs break-all text-stone-600">
+            {inviteUrl(token)}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="accent"
+              onClick={() => void copy(inviteUrl(token))}
+            >
+              {copied ? (
+                <Check className="size-4" aria-hidden="true" />
+              ) : (
+                <Copy className="size-4" aria-hidden="true" />
+              )}
+              {copied ? 'Copied' : 'Copy link'}
+            </Button>
+            <Button variant="secondary" onClick={() => void revokeInvite({})}>
+              Cancel invite
+            </Button>
+          </div>
+          {expiresAt && (
+            <p className="text-xs text-stone-500">
+              The link works once, and expires on{' '}
+              {new Date(expiresAt).toLocaleDateString('en-ZA', {
+                day: 'numeric',
+                month: 'long',
+              })}
+              .
+            </p>
+          )}
+        </div>
+      ) : (
+        <Button
+          className="mt-4"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true)
+            try {
+              await createInvite({})
+            } finally {
+              setBusy(false)
+            }
+          }}
+        >
+          <UserPlus className="size-4" aria-hidden="true" />
+          Create invite link
+        </Button>
+      )}
+    </Card>
+  )
+}
+
+function LeaveCard() {
+  const leave = useLeaveHousehold()
+  const name = useDisplayName()
+
+  return (
+    <Card className="p-5">
+      <h2 className="font-semibold text-stone-900">Leave this household</h2>
+      <p className="mt-1 text-sm text-stone-500">
+        You go back to a kitchen of your own. The recipes, plans and lists stay
+        here with everyone else.
+      </p>
+      <ConfirmButton
+        className="mt-4"
+        onConfirm={() => void leave({ name })}
+        confirmLabel="Tap again to leave"
+      >
+        <Link2 className="size-4" aria-hidden="true" />
+        Leave household
+      </ConfirmButton>
+    </Card>
+  )
+}

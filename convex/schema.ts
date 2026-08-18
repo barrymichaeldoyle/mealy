@@ -33,8 +33,41 @@ export const ingredientValidator = v.object({
 })
 
 export default defineSchema({
+  /**
+   * A household is the unit of ownership: every recipe, plan and list belongs
+   * to one, and every member of that household sees the same data. Everyone
+   * gets a household of one on first sign-in, so there is no unowned state.
+   */
+  households: defineTable({
+    name: v.string(),
+    createdAt: v.number(),
+  }),
+
+  householdMembers: defineTable({
+    householdId: v.id('households'),
+    userId: v.string(), // Clerk subject
+    name: v.string(), // display name, captured when they join
+    role: v.union(v.literal('owner'), v.literal('member')),
+    joinedAt: v.number(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_household', ['householdId']),
+
+  /** One invite link, single use, with an expiry. */
+  householdInvites: defineTable({
+    householdId: v.id('households'),
+    token: v.string(),
+    createdBy: v.string(),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    acceptedBy: v.optional(v.string()),
+    acceptedAt: v.optional(v.number()),
+  })
+    .index('by_token', ['token'])
+    .index('by_household', ['householdId']),
+
   recipes: defineTable({
-    userId: v.string(),
+    householdId: v.id('households'),
     title: v.string(),
     description: v.optional(v.string()),
     servings: v.number(),
@@ -43,26 +76,26 @@ export default defineSchema({
     tags: v.array(v.string()),
     ingredients: v.array(ingredientValidator),
     steps: v.array(v.string()),
-  }).index('by_user', ['userId']),
+  }).index('by_household', ['householdId']),
 
   plannedMeals: defineTable({
-    userId: v.string(),
+    householdId: v.id('households'),
     date: v.string(), // "YYYY-MM-DD"
     slot: slotValidator, // MVP UI surfaces "dinner" only
     recipeId: v.id('recipes'),
     servings: v.number(),
   })
-    .index('by_user', ['userId'])
-    .index('by_user_and_date', ['userId', 'date']),
+    .index('by_household', ['householdId'])
+    .index('by_household_and_date', ['householdId', 'date']),
 
   shoppingLists: defineTable({
-    userId: v.string(),
+    householdId: v.id('households'),
     name: v.string(),
     createdAt: v.number(),
-  }).index('by_user', ['userId']),
+  }).index('by_household', ['householdId']),
 
   shoppingListItems: defineTable({
-    userId: v.string(),
+    householdId: v.id('households'),
     listId: v.id('shoppingLists'),
     name: v.string(),
     // Canonical metric (g / ml) or a whole count, matching `unit`.
@@ -73,6 +106,6 @@ export default defineSchema({
     approximate: v.boolean(),
     sourceRecipeIds: v.array(v.id('recipes')),
   })
-    .index('by_user', ['userId'])
+    .index('by_household', ['householdId'])
     .index('by_list', ['listId']),
 })

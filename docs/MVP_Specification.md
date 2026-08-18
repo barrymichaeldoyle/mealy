@@ -1,4 +1,4 @@
-# Mealy — MVP Specification
+# Mealy MVP Specification
 
 A mobile-first cooking helper app: store recipes, plan weekly dinners, and
 generate consolidated shopping lists.
@@ -12,10 +12,15 @@ dinners onto a weekly plan, and auto-generate a smart shopping list with
 merged ingredient quantities (e.g. "tin tomatoes x2", "500g mince" instead
 of duplicates).
 
+**Sharing:** Cooking is a household activity, so a household, not a user,
+owns the data. Everyone in a household sees the same recipes, plan and
+lists, in real time. A new user starts in a household of one and grows it by
+sending an invite link.
+
 **Primary platform:** Mobile web (majority of users are on phones). Desktop
 should work but mobile is the design priority.
 
-**Locale:** Primary audience is South African — metric-first. Imperial
+**Locale:** Primary audience is South African, so metric-first. Imperial
 units are accepted as input and converted (see §3.5).
 
 ---
@@ -36,18 +41,32 @@ Conventions:
 
 - TypeScript everywhere, strict mode.
 - Convex functions in `convex/`, one file per domain (recipes, plans, lists).
-- Use Clerk's Convex integration (`ctx.auth.getUserIdentity()`) — all data is
-  scoped per user.
+- Use Clerk's Convex integration (`ctx.auth.getUserIdentity()`). Clerk
+  identifies the person, the `householdMembers` table says which household
+  they are in, and all data is scoped per household.
 - Print width 80.
 
 ---
 
 ## 3. Core Features (MVP Scope)
 
-### 3.1 Auth
+### 3.1 Auth & households
 
 - Sign up / sign in via Clerk (email + Google at minimum).
 - All app routes behind auth except a simple landing page.
+- Every signed-in user belongs to exactly one household, created for them
+  on first sign-in. There is no state where a signed-in user has nowhere
+  to write.
+- A household member creates an invite link and sends it however they like.
+  The link is single use, expires after 7 days, and creating a new one
+  retires the old one. Only one link is live at a time.
+- Opening the link while signed in shows whose household it is and asks
+  what to do with the data you already have: bring it across, or start
+  fresh and discard it. Bringing it across is the default, and is only
+  offered when your current household is yours alone.
+- Members can rename the household and leave it. The owner can remove
+  other members. Leaving puts you back in a household of your own and the
+  data stays behind with the people still in it.
 
 ### 3.2 Recipes (CRUD)
 
@@ -57,10 +76,10 @@ Conventions:
   - `description` (optional, short)
   - `servings` (number, default 2)
   - `prepTimeMinutes`, `cookTimeMinutes` (optional)
-  - `tags` (string array, freeform — e.g. "pasta", "chicken", "veggie")
+  - `tags` (string array, freeform, e.g. "pasta", "chicken", "veggie")
   - `ingredients[]`:
     - `name` (required, e.g. "tin tomatoes")
-    - `quantity` (number, optional — some items are "to taste")
+    - `quantity` (number, optional, since some items are "to taste")
     - `unit` (see §3.5 for supported units)
     - `note` (optional, e.g. "finely chopped")
   - `steps[]` (ordered strings)
@@ -93,14 +112,14 @@ Conventions:
   - Merge ingredients by normalized name (case-insensitive, trimmed) AND
     compatible unit family.
   - Same family: convert to canonical metric unit, sum, display in the
-    most readable unit → `mince — 500g` (from 2 × 250g; 1500g → 1.5kg).
+    most readable unit → `mince: 500g` (from 2 × 250g; 1500g → 1.5kg).
   - Countable units (`item`, `tin`, `pack`): sum count → `tin tomatoes x2`.
   - Incompatible families for the same name (e.g. "flour 200g" +
-    "flour 1 cup"): keep as separate line items — do NOT guess
+    "flour 1 cup"): keep as separate line items. Do NOT guess
     volume↔mass conversions.
   - Scale quantities by planned servings ÷ recipe servings.
 - List item fields: `name`, `quantity`, `unit`, `checked` (boolean),
-  `manuallyAdded` (boolean), `approximate` (boolean — see §3.5 rounding).
+  `manuallyAdded` (boolean), `approximate` (boolean, see §3.5 rounding).
 - Users can:
   - Tick items off (checked items move to bottom / greyed strikethrough).
   - Add manual items ("dish soap") not tied to any recipe.
@@ -120,7 +139,7 @@ Conventions:
 - **Conversion table (fixed constants, no external service):**
   - `1 kg = 1000 g`, `1 oz = 28.35 g`, `1 lb = 453.6 g`
   - `1 l = 1000 ml`, `1 tsp = 5 ml`, `1 tbsp = 15 ml`,
-    `1 cup = 250 ml` (metric cup — acceptable approximation for US 240ml
+    `1 cup = 250 ml` (metric cup, an acceptable approximation for US 240ml
     cups; do not build regional cup handling), `1 fl oz = 29.57 ml`,
     `1 pint = 473 ml` (US)
   - Implement as a single pure, well-tested utility module shared by
@@ -131,10 +150,8 @@ Conventions:
     (e.g. 477g → 480g; ≥1000g → kg with 1 decimal; ≥1000ml → l).
   - **Rounding transparency:** when a displayed quantity was rounded or
     involved an approximate conversion, prefix it with "≈"
-    (e.g. "mince — ≈480g"). Exact sums (250g + 250g = 500g) show no "≈".
-    A small one-line note on the list screen explains it, e.g.
-    "≈ means quantities are rounded for convenience."
-  - Never convert volume↔mass (density-dependent) — treat as
+    (e.g. "mince: ≈480g"). Exact sums (250g + 250g = 500g) show no "≈".
+  - Never convert volume↔mass (density-dependent). Treat them as
     incompatible families.
 - `tsp`/`tbsp` etc. remain valid in recipes but consolidate via ml.
 
@@ -143,9 +160,32 @@ Conventions:
 ## 4. Data Model (Convex Schema Sketch)
 
 ```ts
-// convex/schema.ts (sketch — agents may refine)
+// convex/schema.ts (sketch, agents may refine)
+households: {
+  name: string,
+  createdAt: number,
+}
+
+householdMembers: {
+  householdId: Id<"households">,
+  userId: string,            // Clerk subject
+  name: string,              // display name, captured on join
+  role: "owner" | "member",
+  joinedAt: number,
+}
+
+householdInvites: {
+  householdId: Id<"households">,
+  token: string,
+  createdBy: string,
+  createdAt: number,
+  expiresAt: number,
+  acceptedBy?: string,       // set once, the link is single use
+  acceptedAt?: number,
+}
+
 recipes: {
-  userId: string,
+  householdId: Id<"households">,
   title: string,
   description?: string,
   servings: number,
@@ -162,7 +202,7 @@ recipes: {
 }
 
 plannedMeals: {
-  userId: string,
+  householdId: Id<"households">,
   date: string,              // "YYYY-MM-DD"
   slot: "breakfast" | "lunch" | "dinner",  // MVP UI: dinner only
   recipeId: Id<"recipes">,
@@ -170,13 +210,13 @@ plannedMeals: {
 }
 
 shoppingLists: {
-  userId: string,
+  householdId: Id<"households">,
   name: string,
   createdAt: number,
 }
 
 shoppingListItems: {
-  userId: string,
+  householdId: Id<"households">,
   listId: Id<"shoppingLists">,
   name: string,
   quantity?: number,         // canonical metric where applicable
@@ -188,27 +228,31 @@ shoppingListItems: {
 }
 ```
 
-Indexes: by `userId` on all tables; `plannedMeals` by `(userId, date)`;
-`shoppingListItems` by `listId`.
+Indexes: by `householdId` on all data tables; `plannedMeals` by
+`(householdId, date)`; `shoppingListItems` by `listId`;
+`householdMembers` by `userId` and by `householdId`;
+`householdInvites` by `token` and by `householdId`.
 
 ---
 
 ## 5. Routes / Screens
 
-| Route               | Screen                                     |
-| ------------------- | ------------------------------------------ |
-| `/`                 | Landing (marketing-lite) → sign in         |
-| `/recipes`          | Recipe list (search, tag filter, FAB add)  |
-| `/recipes/new`      | Create recipe form                         |
-| `/recipes/:id`      | Recipe detail (cook mode friendly)         |
-| `/recipes/:id/edit` | Edit recipe                                |
-| `/plan`             | Weekly dinner plan (default: current week) |
-| `/lists`            | Shopping lists index                       |
-| `/lists/:id`        | Shopping list detail (check-off UI)        |
+| Route               | Screen                                             |
+| ------------------- | -------------------------------------------------- |
+| `/`                 | Landing (marketing-lite) → sign in                 |
+| `/recipes`          | Recipe list (search, tag filter, FAB add)          |
+| `/recipes/new`      | Create recipe form                                 |
+| `/recipes/:id`      | Recipe detail (cook mode friendly)                 |
+| `/recipes/:id/edit` | Edit recipe                                        |
+| `/plan`             | Weekly dinner plan (default: current week)         |
+| `/lists`            | Shopping lists index                               |
+| `/lists/:id`        | Shopping list detail (check-off UI)                |
+| `/household`        | Members, invite link, rename, leave                |
+| `/join/:token`      | Accept an invite, choose what happens to your data |
 
-**Mobile navigation:** bottom tab bar with 3 tabs — Recipes, Plan, Lists —
-plus profile/avatar (Clerk) in top bar. On desktop, tabs can become a
-sidebar or top nav.
+**Mobile navigation:** bottom tab bar with 3 tabs (Recipes, Plan, Lists)
+plus a household link and the profile/avatar (Clerk) in the top bar. On
+desktop, tabs can become a sidebar or top nav.
 
 ---
 
@@ -226,7 +270,7 @@ sidebar or top nav.
   touch targets (min 44px).
 - Checked shopping items: strikethrough + fade + slide to bottom.
 - Empty states with friendly copy & a clear CTA
-  ("No recipes yet — add your first! 🥕").
+  ("No recipes yet, add your first! 🥕").
 - Loading via skeletons, not spinners, where practical.
 - Respect safe areas (notches) on mobile; sticky bottom nav.
 
@@ -239,14 +283,17 @@ contrast (don't rely on green alone for state), keyboard navigable.
 
 - Optimistic updates for check-offs and plan changes (Convex handles
   reactivity; UI should feel instant).
-- All Convex functions validate ownership (`userId` match) — never trust
-  client-passed user IDs.
+- All Convex functions resolve the caller's household from the verified
+  Clerk identity and check every document against it. Never trust a
+  client-passed user or household id.
 - Input validation on both client and Convex mutations.
 - Unit conversion utility must have thorough unit tests (merging,
   rounding, "≈" flagging, incompatible families).
+- Household joining, leaving and member removal must have tests. They move
+  and delete data, so a regression there is not recoverable from the UI.
 - Works well on 360px-wide viewports.
 - Offline support is NOT in MVP, but it is the first post-MVP milestone
-  (see §8) — avoid architectural decisions that would block a PWA
+  (see §8). Avoid architectural decisions that would block a PWA
   (e.g. keep list rendering logic client-side and data access behind
   clean hooks).
 
@@ -259,8 +306,8 @@ contrast (don't rely on green alone for state), keyboard navigable.
 - Installable PWA (manifest, icons, service worker).
 - Shopping list view works offline: cached list data, check-offs queued
   locally and synced when back online.
-- Rationale: shopping happens in stores with bad signal — this is the
-  gap users will notice most.
+- Rationale: shopping happens in stores with bad signal, and this is
+  the gap users will notice most.
 
 **Later / Nice-to-Have:**
 
@@ -270,24 +317,28 @@ contrast (don't rely on green alone for state), keyboard navigable.
    model so imported recipes fit cleanly.
 2. **Balanced meal plan suggestions:** suggest weekly plans that vary
    cuisine/protein/carb base (e.g. avoid 4 pasta dinners in a row). Tags
-   on recipes are the foundation for this — keep tags flexible.
+   on recipes are the foundation for this, so keep tags flexible.
 3. **Breakfast/lunch slots in the UI** (data model already supports them).
 4. Recipe images (Convex file storage).
-5. Sharing lists/plans with household members.
-6. Pantry tracking (subtract what you already have).
-7. User-configurable unit preference (imperial display mode).
+5. Pantry tracking (subtract what you already have).
+6. User-configurable unit preference (imperial display mode).
 
 ---
 
 ## 9. Acceptance Criteria (MVP Done When…)
 
-- [ ] User can sign up/in with Clerk and only sees their own data.
+- [ ] User can sign up/in with Clerk and only sees their household's data.
+- [ ] A new user lands in a household of one without doing anything.
+- [ ] User can send an invite link, and the person who opens it joins the
+      household and sees the same recipes, plan and lists.
+- [ ] Joining asks what happens to the data you already have, and bringing
+      it across is the default.
 - [ ] User can create, edit, delete, search recipes with ingredients,
       quantities, units (metric + imperial), and steps.
 - [ ] User can assign recipes to days on a weekly dinner plan and navigate
       weeks.
 - [ ] User can generate a shopping list from the current week's plan.
-- [ ] Generated list merges duplicates: 2 × "250g mince" → "mince — 500g";
+- [ ] Generated list merges duplicates: 2 × "250g mince" → "mince: 500g";
       2 × "tin tomatoes" → "tin tomatoes x2".
 - [ ] Imperial inputs consolidate correctly into metric on lists
       (e.g. 250g + 8oz mince → "≈480g").

@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 /**
- * Mealy theme — fresh, healthy, friendly.
+ * Mealy theme: fresh, healthy, friendly.
  * Emerald for actions, warm orange for the big CTAs, amber for tags,
  * warm stone neutrals instead of cold grays.
  */
@@ -26,6 +26,18 @@
 
 * {
   box-sizing: border-box;
+}
+
+/*
+ * Tailwind v4 drops the UA `cursor: pointer` on buttons. Anything that reacts
+ * to a click should say so, including the tag filters and list checkboxes.
+ */
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']),
+label:has(input[type='checkbox']),
+input[type='checkbox'],
+summary {
+  cursor: pointer;
 }
 
 html,

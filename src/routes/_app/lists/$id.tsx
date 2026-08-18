@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Info, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { AppHeader } from '../../../components/app-header'
 import { Button, buttonClass } from '../../../components/ui/button'
 import { Card } from '../../../components/ui/card'
@@ -39,14 +39,9 @@ function ListDetail() {
   const [editing, setEditing] = useState<Item | null>(null)
 
   // Ticked items sink to the bottom so what's left to find stays on top.
-  const { pending, checked, hasApproximate } = useMemo(() => {
-    const items = list?.items ?? []
-    return {
-      pending: items.filter((item) => !item.checked),
-      checked: items.filter((item) => item.checked),
-      hasApproximate: items.some((item) => item.approximate),
-    }
-  }, [list])
+  const items = list?.items ?? []
+  const pending = items.filter((item) => !item.checked)
+  const checked = items.filter((item) => item.checked)
 
   if (list === undefined) {
     return (
@@ -95,19 +90,12 @@ function ListDetail() {
           </Button>
         </div>
 
-        {hasApproximate && (
-          <p className="mt-3 flex items-start gap-2 rounded-xl bg-amber-100 px-3 py-2 text-xs text-amber-900">
-            <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <span>≈ means quantities are rounded for convenience.</span>
-          </p>
-        )}
-
         {list.items.length === 0 ? (
           <div className="mt-4">
             <EmptyState
               emoji="🧺"
               title="This list is empty"
-              body="Add something you need — dish soap counts too."
+              body="Add something you need. Dish soap counts too."
               action={
                 <Button variant="accent" onClick={() => setAdding(true)}>
                   Add an item

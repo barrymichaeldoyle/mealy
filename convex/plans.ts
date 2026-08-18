@@ -1,7 +1,7 @@
 import { v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { slotValidator } from './schema'
-import { assertOwner, getUserId, requireUserId } from './lib/auth'
+import { assertHousehold, getHouseholdId, requireHousehold } from './lib/auth'
 import { validateDate, validateServings } from './lib/validation'
 
 /**
@@ -12,13 +12,16 @@ import { validateDate, validateServings } from './lib/validation'
 export const listRange = query({
   args: { start: v.string(), end: v.string() },
   handler: async (ctx, args) => {
-    const userId = await getUserId(ctx)
-    if (!userId) return []
+    const householdId = await getHouseholdId(ctx)
+    if (!householdId) return []
 
     const meals = await ctx.db
       .query('plannedMeals')
-      .withIndex('by_user_and_date', (q) =>
-        q.eq('userId', userId).gte('date', args.start).lte('date', args.end),
+      .withIndex('by_household_and_date', (q) =>
+        q
+          .eq('householdId', householdId)
+          .gte('date', args.start)
+          .lte('date', args.end),
       )
       .collect()
 
@@ -28,7 +31,7 @@ export const listRange = query({
         return {
           ...meal,
           recipe:
-            recipe && recipe.userId === userId
+            recipe && recipe.householdId === householdId
               ? {
                   _id: recipe._id,
                   title: recipe.title,
@@ -52,12 +55,12 @@ export const addMeal = mutation({
     servings: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx)
+    const { householdId } = await requireHousehold(ctx)
     const recipe = await ctx.db.get(args.recipeId)
-    assertOwner(recipe, userId)
+    assertHousehold(recipe, householdId)
 
     return await ctx.db.insert('plannedMeals', {
-      userId,
+      householdId,
       date: validateDate(args.date),
       slot: args.slot ?? 'dinner',
       recipeId: args.recipeId,
@@ -69,8 +72,8 @@ export const addMeal = mutation({
 export const setServings = mutation({
   args: { id: v.id('plannedMeals'), servings: v.number() },
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx)
-    assertOwner(await ctx.db.get(args.id), userId)
+    const { householdId } = await requireHousehold(ctx)
+    assertHousehold(await ctx.db.get(args.id), householdId)
     await ctx.db.patch(args.id, { servings: validateServings(args.servings) })
   },
 })
@@ -79,9 +82,9 @@ export const setServings = mutation({
 export const setRecipe = mutation({
   args: { id: v.id('plannedMeals'), recipeId: v.id('recipes') },
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx)
-    assertOwner(await ctx.db.get(args.id), userId)
-    assertOwner(await ctx.db.get(args.recipeId), userId)
+    const { householdId } = await requireHousehold(ctx)
+    assertHousehold(await ctx.db.get(args.id), householdId)
+    assertHousehold(await ctx.db.get(args.recipeId), householdId)
     await ctx.db.patch(args.id, { recipeId: args.recipeId })
   },
 })
@@ -89,8 +92,8 @@ export const setRecipe = mutation({
 export const moveMeal = mutation({
   args: { id: v.id('plannedMeals'), date: v.string() },
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx)
-    assertOwner(await ctx.db.get(args.id), userId)
+    const { householdId } = await requireHousehold(ctx)
+    assertHousehold(await ctx.db.get(args.id), householdId)
     await ctx.db.patch(args.id, { date: validateDate(args.date) })
   },
 })
@@ -98,8 +101,8 @@ export const moveMeal = mutation({
 export const removeMeal = mutation({
   args: { id: v.id('plannedMeals') },
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx)
-    assertOwner(await ctx.db.get(args.id), userId)
+    const { householdId } = await requireHousehold(ctx)
+    assertHousehold(await ctx.db.get(args.id), householdId)
     await ctx.db.delete(args.id)
   },
 })

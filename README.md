@@ -1,22 +1,25 @@
 # Mealy 🥕
 
 A mobile-first cooking helper: store recipes, plan the week's dinners, and
-generate one consolidated shopping list with merged quantities.
+generate one consolidated shopping list with merged quantities. Everything
+belongs to a household, so the people you cook with see the same recipes,
+plan and lists as you do.
 
 Built to `docs/MVP_Specification.md`.
 
 ## Stack
 
-| Concern    | Choice                                    |
-| ---------- | ----------------------------------------- |
-| Framework  | TanStack Start (React, file-based routes) |
-| Backend/DB | Convex                                    |
-| Auth       | Clerk (via Convex auth integration)       |
-| Styling    | Tailwind CSS v4                           |
-| Linting    | oxlint                                    |
-| Formatting | oxfmt (print width 80)                    |
-| Tests      | Vitest                                    |
-| Hosting    | Cloudflare Workers (Nitro preset)         |
+| Concern    | Choice                                 |
+| ---------- | -------------------------------------- |
+| Framework  | TanStack Start (React 19, file routes) |
+| Backend/DB | Convex                                 |
+| Auth       | Clerk (via Convex auth integration)    |
+| Styling    | Tailwind CSS v4                        |
+| Linting    | oxlint                                 |
+| Formatting | oxfmt (print width 80)                 |
+| Tests      | Vitest (+ convex-test)                 |
+| Hosting    | Cloudflare Workers (Nitro preset)      |
+| Memoising  | React Compiler, no manual useMemo      |
 
 ## Getting started
 
@@ -32,7 +35,7 @@ npx convex dev
 
 The first run logs you in, creates a deployment, writes `CONVEX_DEPLOYMENT`
 and `VITE_CONVEX_URL` into `.env.local`, and regenerates `convex/_generated`.
-Leave it running while you develop — it pushes schema and function changes.
+Leave it running while you develop. It pushes schema and function changes.
 
 ### 2. Clerk
 
@@ -71,6 +74,14 @@ pnpm dev          # app on http://localhost:3000
 pnpm dev:convex   # in a second terminal
 ```
 
+## React Compiler
+
+The compiler is enabled in `vite.config.ts` through
+`@rolldown/plugin-babel` and `reactCompilerPreset`, so components do not
+hand-memoise. `useMemo`, `useCallback` and `memo` are blocked by
+`no-restricted-imports` in `.oxlintrc.json`. Write the plain computation
+and let the compiler cache it.
+
 ## Commands
 
 ```bash
@@ -90,7 +101,7 @@ The Nitro `cloudflare_module` preset is configured in `vite.config.ts`, so
 `pnpm build` emits a Worker bundle plus a generated
 `.output/server/wrangler.json` (compatibility date `2024-09-19`,
 `nodejs_compat` on, static assets bound as `ASSETS`). Don't hand-edit that
-file — it is regenerated every build. To add bindings, put them under
+file. It is regenerated every build. To add bindings, put them under
 `cloudflare.wrangler` in the `nitro()` options, or commit your own
 `wrangler.json` at the project root for Nitro to merge.
 
@@ -108,7 +119,7 @@ and must be a Worker secret:
 npx wrangler secret put CLERK_SECRET_KEY
 ```
 
-Convex needs no Worker configuration — the browser connects to it directly,
+Convex needs no Worker configuration. The browser connects to it directly,
 and nothing in this app queries Convex during SSR.
 
 ## Layout
@@ -116,18 +127,46 @@ and nothing in this app queries Convex during SSR.
 ```
 convex/
   schema.ts          tables, indexes, shared validators
+  households.ts      membership, invite links, joining and leaving
   recipes.ts         recipe CRUD
   plans.ts           weekly planned meals
   lists.ts           shopping lists + generation
+  migrations.ts      one-off backfill for pre-household data
   lib/units.ts       units, conversions, consolidation (pure, tested)
   lib/validation.ts  server-side input rules
-  lib/auth.ts        identity + ownership guards
+  lib/auth.ts        identity + household guards
+  __tests__/         household join/leave paths, run against convex-test
 src/
   routes/            file-based routes; everything under _app needs auth
   components/        UI primitives and shared pieces
   hooks/             data access (Convex queries/mutations) behind hooks
   lib/               dates, class names, units re-export
 ```
+
+## Households
+
+Every table is scoped by `householdId`, never by Clerk user id. Signing in
+for the first time creates a household of one, so no query has to cope with
+a user who owns nothing.
+
+To share a kitchen, open `/household`, create an invite link, and send it.
+The link works once, expires after a week, and creating a new one retires
+the old. Whoever opens it while signed in picks what happens to the data
+they already have: bring it into the household, or discard it and start
+fresh. Bringing it across is offered only when their current household is
+theirs alone, since data in a shared household is not one person's to take.
+
+Leaving a household puts you back in one of your own. The recipes, plans
+and lists stay behind with the people still there.
+
+The join, leave and remove paths are covered by `convex/__tests__/`, which
+runs the real Convex functions under `convex-test`. Those tests are a
+separate vitest project (`--project convex`) because they need the
+`edge-runtime` environment. `pnpm test` runs both projects.
+
+If you have a deployment holding data written before households existed,
+`convex/migrations.ts` backfills it. The steps are in the comment at the
+top of that file.
 
 ## How consolidation works
 

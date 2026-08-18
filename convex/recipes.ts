@@ -1,7 +1,7 @@
 import { v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { ingredientValidator } from './schema'
-import { assertOwner, getUserId, requireUserId } from './lib/auth'
+import { assertHousehold, getHouseholdId, requireHousehold } from './lib/auth'
 import { validateRecipe } from './lib/validation'
 
 const recipeFields = {
@@ -18,11 +18,11 @@ const recipeFields = {
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getUserId(ctx)
-    if (!userId) return []
+    const householdId = await getHouseholdId(ctx)
+    if (!householdId) return []
     const recipes = await ctx.db
       .query('recipes')
-      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .withIndex('by_household', (q) => q.eq('householdId', householdId))
       .collect()
     return recipes.toSorted((a, b) => a.title.localeCompare(b.title))
   },
@@ -31,10 +31,10 @@ export const list = query({
 export const get = query({
   args: { id: v.id('recipes') },
   handler: async (ctx, args) => {
-    const userId = await getUserId(ctx)
-    if (!userId) return null
+    const householdId = await getHouseholdId(ctx)
+    if (!householdId) return null
     const recipe = await ctx.db.get(args.id)
-    if (!recipe || recipe.userId !== userId) return null
+    if (!recipe || recipe.householdId !== householdId) return null
     return recipe
   },
 })
@@ -42,9 +42,9 @@ export const get = query({
 export const create = mutation({
   args: recipeFields,
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx)
+    const { householdId } = await requireHousehold(ctx)
     return await ctx.db.insert('recipes', {
-      userId,
+      householdId,
       ...validateRecipe(args),
     })
   },
@@ -53,9 +53,9 @@ export const create = mutation({
 export const update = mutation({
   args: { id: v.id('recipes'), ...recipeFields },
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx)
+    const { householdId } = await requireHousehold(ctx)
     const { id, ...fields } = args
-    assertOwner(await ctx.db.get(id), userId)
+    assertHousehold(await ctx.db.get(id), householdId)
     await ctx.db.patch(id, validateRecipe(fields))
     return id
   },
@@ -64,14 +64,14 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id('recipes') },
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx)
-    assertOwner(await ctx.db.get(args.id), userId)
+    const { householdId } = await requireHousehold(ctx)
+    assertHousehold(await ctx.db.get(args.id), householdId)
 
     // Planned meals point at this recipe, so they go with it. Shopping list
     // items are snapshots and deliberately survive.
     const planned = await ctx.db
       .query('plannedMeals')
-      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .withIndex('by_household', (q) => q.eq('householdId', householdId))
       .collect()
     for (const meal of planned) {
       if (meal.recipeId === args.id) await ctx.db.delete(meal._id)

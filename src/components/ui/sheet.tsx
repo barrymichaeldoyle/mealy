@@ -2,7 +2,7 @@
  * Backdrop clicks land on the <dialog> element itself, which is the only way
  * to catch them. Keyboard users close with Escape (native to <dialog>) or the
  * close button, so the click handler is an extra affordance, never the only
- * way out — hence the two a11y rules below are not applicable here.
+ * way out, hence the two a11y rules below are not applicable here.
  */
 /* oxlint-disable jsx-a11y/click-events-have-key-events */
 /* oxlint-disable jsx-a11y/no-noninteractive-element-interactions */
@@ -48,7 +48,7 @@ export function Sheet({
       className={cn(
         'w-full max-w-lg rounded-t-3xl bg-white p-0 backdrop:bg-stone-900/40',
         'sm:rounded-3xl',
-        'mt-auto mb-0 sm:my-auto',
+        'mx-auto mt-auto mb-0 sm:my-auto',
         'open:animate-none',
         className,
       )}

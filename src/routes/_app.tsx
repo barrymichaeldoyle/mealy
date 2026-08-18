@@ -5,6 +5,7 @@ import {
   Show,
 } from '@clerk/tanstack-react-start'
 import { AppNav } from '../components/bottom-nav'
+import { useHouseholdBootstrap } from '../hooks/use-household'
 
 export const Route = createFileRoute('/_app')({ component: AppLayout })
 
@@ -19,6 +20,7 @@ function AppLayout() {
         <RedirectToSignIn />
       </Show>
       <Show when="signed-in">
+        <HouseholdBootstrap />
         <div className="md:pl-56">
           <Outlet />
         </div>
@@ -26,4 +28,10 @@ function AppLayout() {
       </Show>
     </ClerkLoaded>
   )
+}
+
+/** Renders nothing: it exists to make sure the user has a household. */
+function HouseholdBootstrap() {
+  useHouseholdBootstrap()
+  return null
 }

@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { UserButton } from '@clerk/tanstack-react-start'
+import { Users } from 'lucide-react'
 
 export function AppHeader({ title }: { title?: string }) {
   return (
@@ -12,7 +13,16 @@ export function AppHeader({ title }: { title?: string }) {
             Mealy
           </Link>
         )}
-        <UserButton />
+        <div className="flex items-center gap-1">
+          <Link
+            to="/household"
+            aria-label="Household"
+            className="flex size-9 items-center justify-center rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+          >
+            <Users className="size-5" aria-hidden="true" />
+          </Link>
+          <UserButton />
+        </div>
       </div>
     </header>
   )

@@ -57,10 +57,10 @@ export function dayMonthLabel(iso: IsoDate): string {
   return DAY_MONTH.format(fromIsoDate(iso))
 }
 
-/** "18 – 24 Aug" style label for the week header. */
+/** "18-24 Aug" style label for the week header. */
 export function weekRangeLabel(weekStart: Date): string {
   const end = addDays(weekStart, 6)
-  return `${DAY_MONTH.format(weekStart)} – ${DAY_MONTH.format(end)}`
+  return `${DAY_MONTH.format(weekStart)}-${DAY_MONTH.format(end)}`
 }
 
 export function isToday(iso: IsoDate): boolean {

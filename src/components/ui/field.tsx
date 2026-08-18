@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { cloneElement, isValidElement, useId } from 'react'
 import { cn } from '../../lib/cn'
 
 const CONTROL = cn(
@@ -22,15 +22,31 @@ export function Field({
   className?: string
 }) {
   const id = useId()
+  const errorId = `${id}-error`
+  const control = children(id)
   return (
     <div className={cn('space-y-1.5', className)}>
       <label htmlFor={id} className="block text-sm font-medium text-stone-700">
         {label}
       </label>
-      {children(id)}
+      {/*
+       * The control comes back from a render prop, so the invalid state is
+       * stitched on here. Assistive tech needs both halves: the flag on the
+       * control and a pointer to the message that explains it.
+       */}
+      {error && isValidElement<Record<string, unknown>>(control)
+        ? cloneElement(control, {
+            'aria-invalid': true,
+            'aria-describedby': errorId,
+          })
+        : control}
       {hint && !error && <p className="text-xs text-stone-500">{hint}</p>}
       {error && (
-        <p className="text-xs font-medium text-red-600" role="alert">
+        <p
+          id={errorId}
+          className="text-xs font-medium text-red-600"
+          role="alert"
+        >
           {error}
         </p>
       )}
