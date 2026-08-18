@@ -1,0 +1,35 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "unicorn", "jsx-a11y"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "env": {
+    "browser": true,
+    "es2024": true
+  },
+  "ignorePatterns": [
+    "convex/_generated",
+    "src/routeTree.gen.ts",
+    ".output",
+    ".nitro",
+    "dist"
+  ],
+  "rules": {
+    "no-console": "off",
+    "react/react-in-jsx-scope": "off",
+    "no-underscore-dangle": "off",
+    "react/no-array-index-key": "off",
+    "typescript/no-explicit-any": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["convex/**/*.ts"],
+      "rules": {
+        "no-await-in-loop": "off"
+      }
+    }
+  ]
+}

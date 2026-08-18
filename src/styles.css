@@ -1,0 +1,73 @@
+@import 'tailwindcss';
+
+/**
+ * Mealy Plan theme — fresh, healthy, friendly.
+ * Emerald for actions, warm orange for the big CTAs, amber for tags,
+ * warm stone neutrals instead of cold grays.
+ */
+@theme {
+  --color-brand-50: var(--color-emerald-50);
+  --color-brand-100: var(--color-emerald-100);
+  --color-brand-200: var(--color-emerald-200);
+  --color-brand-500: var(--color-emerald-500);
+  --color-brand-600: var(--color-emerald-600);
+  --color-brand-700: var(--color-emerald-700);
+  --color-brand-900: var(--color-emerald-900);
+
+  --color-accent-100: var(--color-orange-100);
+  --color-accent-500: var(--color-orange-500);
+  --color-accent-600: var(--color-orange-600);
+
+  --color-surface: var(--color-stone-50);
+  --color-ink: var(--color-stone-800);
+  --color-ink-muted: var(--color-stone-500);
+  --color-hairline: var(--color-stone-200);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  /* Never let a horizontal overflow scroll the whole phone screen. */
+  overflow-x: hidden;
+}
+
+/* Bottom nav sits above the home indicator on notched phones. */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Room for the sticky bottom tab bar plus the safe area. */
+.pb-nav {
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

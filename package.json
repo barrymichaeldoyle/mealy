@@ -1,0 +1,60 @@
+{
+  "name": "mealy-plan",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#/*": "./src/*"
+  },
+  "scripts": {
+    "dev": "vite dev --port 3000",
+    "dev:convex": "convex dev",
+    "generate-routes": "tsr generate",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node .output/server/index.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "check": "oxlint && oxfmt --check . && tsc --noEmit && vitest run"
+  },
+  "dependencies": {
+    "@clerk/tanstack-react-start": "^1.4.21",
+    "@convex-dev/react-query": "0.1.0",
+    "@tailwindcss/vite": "^4.1.18",
+    "@tanstack/react-devtools": "latest",
+    "@tanstack/react-router": "latest",
+    "@tanstack/react-router-devtools": "latest",
+    "@tanstack/react-start": "latest",
+    "clsx": "^2.1.1",
+    "convex": "^1.32.0",
+    "lucide-react": "^0.577.0",
+    "nitro": "3.0.260610-beta",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^4.1.18"
+  },
+  "devDependencies": {
+    "@tanstack/devtools-vite": "latest",
+    "@tanstack/router-cli": "^1.132.0",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.0.1",
+    "oxfmt": "^0.63.0",
+    "oxlint": "^1.78.0",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.0",
+    "vitest": "^4.1.10"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "lightningcss"
+    ]
+  }
+}
