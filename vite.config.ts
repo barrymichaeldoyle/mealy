@@ -11,7 +11,17 @@ const config = defineConfig({
   resolve: { tsconfigPaths: true },
   plugins: [
     devtools(),
-    nitro({ rollupConfig: { external: [/^@sentry\//] } }),
+    nitro({
+      preset: 'cloudflare_module',
+      // Required at 2024-09-19 or later for Workers with static assets.
+      compatibilityDate: '2024-09-19',
+      cloudflare: {
+        // Generates wrangler.json at build time, wired to the build output.
+        deployConfig: true,
+        nodeCompat: true,
+      },
+      rollupConfig: { external: [/^@sentry\//] },
+    }),
     tailwindcss(),
     tanstackStart(),
     viteReact(),

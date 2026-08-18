@@ -16,6 +16,7 @@ Built to `docs/MVP_Specification.md`.
 | Linting    | oxlint                                    |
 | Formatting | oxfmt (print width 80)                    |
 | Tests      | Vitest                                    |
+| Hosting    | Cloudflare Workers (Nitro preset)         |
 
 ## Getting started
 
@@ -70,8 +71,36 @@ pnpm lint           # oxlint
 pnpm format         # oxfmt, in place
 pnpm typecheck      # tsc --noEmit
 pnpm build          # production build into .output/
-pnpm start          # serve the production build
+pnpm preview        # run the built worker locally
+pnpm deploy         # build, then deploy to Cloudflare Workers
 ```
+
+## Deployment (Cloudflare Workers)
+
+The Nitro `cloudflare_module` preset is configured in `vite.config.ts`, so
+`pnpm build` emits a Worker bundle plus a generated
+`.output/server/wrangler.json` (compatibility date `2024-09-19`,
+`nodejs_compat` on, static assets bound as `ASSETS`). Don't hand-edit that
+file — it is regenerated every build. To add bindings, put them under
+`cloudflare.wrangler` in the `nitro()` options, or commit your own
+`wrangler.json` at the project root for Nitro to merge.
+
+```bash
+npx wrangler login
+pnpm deploy
+```
+
+**Environment variables split two ways.** `VITE_`-prefixed values are
+inlined at build time, so they must be present when `pnpm build` runs (in
+CI, set them on the build step). `CLERK_SECRET_KEY` is read at request time
+and must be a Worker secret:
+
+```bash
+npx wrangler secret put CLERK_SECRET_KEY
+```
+
+Convex needs no Worker configuration — the browser connects to it directly,
+and nothing in this app queries Convex during SSR.
 
 ## Layout
 
