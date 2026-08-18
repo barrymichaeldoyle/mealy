@@ -151,6 +151,7 @@ Conventions:
   - **Rounding transparency:** when a displayed quantity was rounded or
     involved an approximate conversion, prefix it with "≈"
     (e.g. "mince: ≈480g"). Exact sums (250g + 250g = 500g) show no "≈".
+    The symbol carries the meaning by itself. No legend on the list.
   - Never convert volume↔mass (density-dependent). Treat them as
     incompatible families.
 - `tsp`/`tbsp` etc. remain valid in recipes but consolidate via ml.
@@ -342,8 +343,7 @@ contrast (don't rely on green alone for state), keyboard navigable.
       2 × "tin tomatoes" → "tin tomatoes x2".
 - [ ] Imperial inputs consolidate correctly into metric on lists
       (e.g. 250g + 8oz mince → "≈480g").
-- [ ] Rounded/converted quantities display "≈" with an explanatory note;
-      exact sums do not.
+- [ ] Rounded/converted quantities display "≈"; exact sums do not.
 - [ ] Volume↔mass never auto-converted; incompatible units stay as
       separate lines.
 - [ ] User can check off, add, edit, and remove list items; checked state

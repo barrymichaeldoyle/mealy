@@ -183,7 +183,8 @@ top of that file.
 - Displayed amounts are rounded into shopper-friendly bands (477g → 480g,
   ≥1000g → kg). When a value was rounded, or came through an approximate
   conversion (`oz`, `lb`, `fl oz`, `pint`, `cup`), it displays with a
-  leading **≈** and the list screen explains what that means.
+  leading **≈**. The symbol stands on its own, there is no legend on the
+  list screen.
 
 ## Not in the MVP
 
