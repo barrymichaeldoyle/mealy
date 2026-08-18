@@ -44,13 +44,22 @@ VITE_CLERK_PUBLISHABLE_KEY=pk_test_…
 CLERK_SECRET_KEY=sk_test_…
 ```
 
-Tell Convex who issues the tokens (the Frontend API URL from Clerk, e.g.
-`https://your-app.clerk.accounts.dev`), and add a JWT template named
-`convex` in Clerk → **JWT Templates**:
+Or let the CLI do it: `clerk init --app <app-id>` writes both keys into
+`.env.local` and adds `/sign-in` and `/sign-up` routes.
+
+Convex then needs to know who issues the tokens. This requires a JWT
+template named `convex` in Clerk (claims `{"aud": "convex"}`, matching
+`applicationID` in `convex/auth.config.ts`) and the issuer domain set as a
+Convex environment variable:
 
 ```bash
-npx convex env set CLERK_JWT_ISSUER_DOMAIN https://your-app.clerk.accounts.dev
+clerk api /jwt_templates -X POST -d '{"name":"convex","claims":{"aud":"convex"},"lifetime":3600}'
+npx convex env set CLERK_JWT_ISSUER_DOMAIN https://<your-app>.clerk.accounts.dev
 ```
+
+The issuer domain is the Frontend API URL shown in the Clerk dashboard.
+Skip either step and sign-in works but every query returns empty, because
+`ctx.auth.getUserIdentity()` stays null.
 
 Without a publishable key the dev server falls back to Clerk's keyless mode,
 which is fine for a first look but not for real accounts.

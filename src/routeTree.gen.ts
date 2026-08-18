@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppPlanRouteImport } from './routes/_app/plan'
+import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
+import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
 import { Route as AppListsIndexRouteImport } from './routes/_app/lists/index'
 import { Route as AppListsIdRouteImport } from './routes/_app/lists/$id'
 import { Route as AppRecipesIndexRouteImport } from './routes/_app/recipes/index'
@@ -32,6 +34,16 @@ const AppPlanRoute = AppPlanRouteImport.update({
   id: '/plan',
   path: '/plan',
   getParentRoute: () => AppRoute,
+} as any)
+const SignInSplatRoute = SignInSplatRouteImport.update({
+  id: '/sign-in/$',
+  path: '/sign-in/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignUpSplatRoute = SignUpSplatRouteImport.update({
+  id: '/sign-up/$',
+  path: '/sign-up/$',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppListsIndexRoute = AppListsIndexRouteImport.update({
   id: '/lists/',
@@ -67,6 +79,8 @@ const AppRecipesIdEditRoute = AppRecipesIdEditRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/plan': typeof AppPlanRoute
+  '/sign-in/$': typeof SignInSplatRoute
+  '/sign-up/$': typeof SignUpSplatRoute
   '/lists/$id': typeof AppListsIdRoute
   '/recipes/new': typeof AppRecipesNewRoute
   '/lists/': typeof AppListsIndexRoute
@@ -77,6 +91,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/plan': typeof AppPlanRoute
+  '/sign-in/$': typeof SignInSplatRoute
+  '/sign-up/$': typeof SignUpSplatRoute
   '/lists/$id': typeof AppListsIdRoute
   '/recipes/new': typeof AppRecipesNewRoute
   '/lists': typeof AppListsIndexRoute
@@ -89,6 +105,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/_app/plan': typeof AppPlanRoute
+  '/sign-in/$': typeof SignInSplatRoute
+  '/sign-up/$': typeof SignUpSplatRoute
   '/_app/lists/$id': typeof AppListsIdRoute
   '/_app/recipes/new': typeof AppRecipesNewRoute
   '/_app/lists/': typeof AppListsIndexRoute
@@ -101,6 +119,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/plan'
+    | '/sign-in/$'
+    | '/sign-up/$'
     | '/lists/$id'
     | '/recipes/new'
     | '/lists/'
@@ -111,6 +131,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/plan'
+    | '/sign-in/$'
+    | '/sign-up/$'
     | '/lists/$id'
     | '/recipes/new'
     | '/lists'
@@ -122,6 +144,8 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/_app/plan'
+    | '/sign-in/$'
+    | '/sign-up/$'
     | '/_app/lists/$id'
     | '/_app/recipes/new'
     | '/_app/lists/'
@@ -133,6 +157,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  SignInSplatRoute: typeof SignInSplatRoute
+  SignUpSplatRoute: typeof SignUpSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -157,6 +183,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/plan'
       preLoaderRoute: typeof AppPlanRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/sign-in/$': {
+      id: '/sign-in/$'
+      path: '/sign-in/$'
+      fullPath: '/sign-in/$'
+      preLoaderRoute: typeof SignInSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-up/$': {
+      id: '/sign-up/$'
+      path: '/sign-up/$'
+      fullPath: '/sign-up/$'
+      preLoaderRoute: typeof SignUpSplatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/lists/': {
       id: '/_app/lists/'
@@ -228,6 +268,8 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  SignInSplatRoute: SignInSplatRoute,
+  SignUpSplatRoute: SignUpSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
