@@ -5,6 +5,7 @@ import { SkeletonList } from '../../../components/ui/skeleton'
 import { EmptyState } from '../../../components/ui/empty-state'
 import { useRecipe, useUpdateRecipe } from '../../../hooks/use-recipes'
 import type { Id } from '../../../../convex/_generated/dataModel'
+import { defined } from '../../../../convex/lib/optional'
 
 export const Route = createFileRoute('/_app/recipes/$id/edit')({
   component: EditRecipe,
@@ -66,7 +67,7 @@ function EditRecipe() {
             navigate({ to: '/recipes/$id', params: { id: recipe._id } })
           }
           onSubmit={async (payload) => {
-            await updateRecipe({ id: recipe._id, ...payload })
+            await updateRecipe({ id: recipe._id, ...defined(payload) })
             await navigate({ to: '/recipes/$id', params: { id: recipe._id } })
           }}
         />

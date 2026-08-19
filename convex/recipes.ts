@@ -3,6 +3,7 @@ import { mutation, query } from './_generated/server'
 import { ingredientValidator } from './schema'
 import { assertHousehold, getHouseholdId, requireHousehold } from './lib/auth'
 import { validateRecipe } from './lib/validation'
+import { defined } from './lib/optional'
 
 const recipeFields = {
   title: v.string(),
@@ -19,7 +20,9 @@ export const list = query({
   args: {},
   handler: async (ctx) => {
     const householdId = await getHouseholdId(ctx)
-    if (!householdId) return []
+    if (!householdId) {
+      return []
+    }
     const recipes = await ctx.db
       .query('recipes')
       .withIndex('by_household', (q) => q.eq('householdId', householdId))
@@ -32,9 +35,13 @@ export const get = query({
   args: { id: v.id('recipes') },
   handler: async (ctx, args) => {
     const householdId = await getHouseholdId(ctx)
-    if (!householdId) return null
+    if (!householdId) {
+      return null
+    }
     const recipe = await ctx.db.get(args.id)
-    if (!recipe || recipe.householdId !== householdId) return null
+    if (!recipe || recipe.householdId !== householdId) {
+      return null
+    }
     return recipe
   },
 })
@@ -45,7 +52,7 @@ export const create = mutation({
     const { householdId } = await requireHousehold(ctx)
     return await ctx.db.insert('recipes', {
       householdId,
-      ...validateRecipe(args),
+      ...defined(validateRecipe(args)),
     })
   },
 })
@@ -56,7 +63,7 @@ export const update = mutation({
     const { householdId } = await requireHousehold(ctx)
     const { id, ...fields } = args
     assertHousehold(await ctx.db.get(id), householdId)
-    await ctx.db.patch(id, validateRecipe(fields))
+    await ctx.db.patch(id, defined(validateRecipe(fields)))
     return id
   },
 })
@@ -74,7 +81,9 @@ export const remove = mutation({
       .withIndex('by_household', (q) => q.eq('householdId', householdId))
       .collect()
     for (const meal of planned) {
-      if (meal.recipeId === args.id) await ctx.db.delete(meal._id)
+      if (meal.recipeId === args.id) {
+        await ctx.db.delete(meal._id)
+      }
     }
 
     await ctx.db.delete(args.id)

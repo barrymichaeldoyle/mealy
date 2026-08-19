@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useMutation, useQuery } from 'convex/react'
 import { useUser } from '@clerk/tanstack-react-start'
 import { api } from '../../convex/_generated/api'
+import { defined } from '../../convex/lib/optional'
 
 export function useHousehold() {
   return useQuery(api.households.current)
@@ -60,18 +61,24 @@ export function useHouseholdBootstrap(): void {
   const sent = useRef<string | null>(null)
 
   useEffect(() => {
-    if (!isSignedIn || household === undefined) return
+    if (!isSignedIn || household === undefined) {
+      return
+    }
 
     const me = household?.members.find(
       (member) => member.userId === household.userId,
     )
     const needsWrite = !household || (name !== undefined && me?.name !== name)
-    if (!needsWrite) return
+    if (!needsWrite) {
+      return
+    }
 
     // One attempt per name, so a failure cannot spin.
     const attempt = name ?? ''
-    if (sent.current === attempt) return
+    if (sent.current === attempt) {
+      return
+    }
     sent.current = attempt
-    void ensure({ name })
+    void ensure(defined({ name }))
   }, [ensure, household, isSignedIn, name])
 }

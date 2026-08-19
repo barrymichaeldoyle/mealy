@@ -21,6 +21,7 @@ import {
 import { UNITS, formatListItem, type Unit } from '../../../lib/units'
 import { cn } from '../../../lib/cn'
 import type { Doc, Id } from '../../../../convex/_generated/dataModel'
+import { defined } from '../../../../convex/lib/optional'
 
 export const Route = createFileRoute('/_app/lists/$id')({
   component: ListDetail,
@@ -242,13 +243,17 @@ function AddItemSheet({
         className="space-y-4"
         onSubmit={async (event) => {
           event.preventDefault()
-          if (!name.trim()) return
+          if (!name.trim()) {
+            return
+          }
           const parsed = Number(quantity)
           await addItem({
+            ...defined({
+              quantity:
+                quantity.trim() && Number.isFinite(parsed) ? parsed : undefined,
+            }),
             listId,
             name,
-            quantity:
-              quantity.trim() && Number.isFinite(parsed) ? parsed : undefined,
             unit,
           })
           setName('')
@@ -374,7 +379,9 @@ function EditItemForm({
       className="space-y-4"
       onSubmit={async (event) => {
         event.preventDefault()
-        if (!name.trim()) return
+        if (!name.trim()) {
+          return
+        }
         const parsed = Number(quantity)
         await onSave({
           name,

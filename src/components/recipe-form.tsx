@@ -4,6 +4,7 @@ import { Button } from './ui/button'
 import { Card } from './ui/card'
 import { Field, Input, Select, Textarea } from './ui/field'
 import { UNITS, type Unit } from '../lib/units'
+import { defined, type Defined } from '../../convex/lib/optional'
 import { cn } from '../lib/cn'
 
 export type IngredientDraft = {
@@ -27,28 +28,28 @@ export type RecipeDraft = {
 
 export type RecipePayload = {
   title: string
-  description?: string
+  description?: string | undefined
   servings: number
-  prepTimeMinutes?: number
-  cookTimeMinutes?: number
+  prepTimeMinutes?: number | undefined
+  cookTimeMinutes?: number | undefined
   tags: string[]
-  ingredients: {
+  ingredients: Defined<{
     name: string
-    quantity?: number
+    quantity?: number | undefined
     unit: Unit
-    note?: string
-  }[]
+    note?: string | undefined
+  }>[]
   steps: string[]
 }
 
 let keySeed = 0
 const nextKey = () => `k${keySeed++}`
 
-export function emptyIngredient(): IngredientDraft {
+function emptyIngredient(): IngredientDraft {
   return { key: nextKey(), name: '', quantity: '', unit: 'g', note: '' }
 }
 
-export function emptyStep() {
+function emptyStep() {
   return { key: nextKey(), text: '' }
 }
 
@@ -81,7 +82,9 @@ const UNIT_OPTIONS: { value: Unit; label: string }[] = UNITS.map((unit) => ({
 
 function optionalNumber(value: string): number | undefined {
   const trimmed = value.trim()
-  if (!trimmed) return undefined
+  if (!trimmed) {
+    return undefined
+  }
   const parsed = Number(trimmed)
   return Number.isFinite(parsed) ? parsed : undefined
 }
@@ -89,14 +92,16 @@ function optionalNumber(value: string): number | undefined {
 export type FormErrors = Partial<Record<'title' | 'servings' | 'form', string>>
 
 /** Client-side mirror of `validateRecipe`: fast feedback, not the gate. */
-export function draftToPayload(draft: RecipeDraft): {
+function draftToPayload(draft: RecipeDraft): {
   payload?: RecipePayload
   errors: FormErrors
 } {
   const errors: FormErrors = {}
 
   const title = draft.title.trim()
-  if (!title) errors.title = 'Give your recipe a name'
+  if (!title) {
+    errors.title = 'Give your recipe a name'
+  }
 
   const servings = Number(draft.servings)
   if (!Number.isFinite(servings) || servings < 1 || servings > 100) {
@@ -105,21 +110,25 @@ export function draftToPayload(draft: RecipeDraft): {
 
   const ingredients = draft.ingredients
     .filter((ingredient) => ingredient.name.trim())
-    .map((ingredient) => ({
-      name: ingredient.name.trim(),
-      quantity:
-        ingredient.unit === 'none'
-          ? undefined
-          : optionalNumber(ingredient.quantity),
-      unit: ingredient.unit,
-      note: ingredient.note.trim() || undefined,
-    }))
+    .map((ingredient) =>
+      defined({
+        name: ingredient.name.trim(),
+        quantity:
+          ingredient.unit === 'none'
+            ? undefined
+            : optionalNumber(ingredient.quantity),
+        unit: ingredient.unit,
+        note: ingredient.note.trim() || undefined,
+      }),
+    )
 
   if (ingredients.some((i) => i.quantity !== undefined && i.quantity <= 0)) {
     errors.form = 'Quantities must be greater than zero'
   }
 
-  if (Object.keys(errors).length > 0) return { errors }
+  if (Object.keys(errors).length > 0) {
+    return { errors }
+  }
 
   return {
     errors,
@@ -160,11 +169,15 @@ export function RecipeForm({
    * would otherwise flag a field the user cannot see. Move them to it.
    */
   useEffect(() => {
-    if (Object.keys(errors).length === 0) return
+    if (Object.keys(errors).length === 0) {
+      return
+    }
     const target = formRef.current?.querySelector<HTMLElement>(
       '[aria-invalid="true"], [data-form-error]',
     )
-    if (!target) return
+    if (!target) {
+      return
+    }
     target.focus({ preventScroll: true })
     target.scrollIntoView({ block: 'center', behavior: 'smooth' })
   }, [errors])
@@ -183,7 +196,9 @@ export function RecipeForm({
     event.preventDefault()
     const { payload, errors: found } = draftToPayload(draft)
     setErrors(found)
-    if (!payload) return
+    if (!payload) {
+      return
+    }
 
     setSaving(true)
     try {

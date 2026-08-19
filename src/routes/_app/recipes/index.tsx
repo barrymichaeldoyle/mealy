@@ -22,7 +22,9 @@ function RecipeList() {
 
   const allTags = new Set<string>()
   for (const recipe of recipes ?? []) {
-    for (const tag of recipe.tags) allTags.add(tag)
+    for (const tag of recipe.tags) {
+      allTags.add(tag)
+    }
   }
   const tags = [...allTags].toSorted()
 

@@ -37,7 +37,9 @@ export const backfillHouseholds = internalMutation({
           householdId?: Id<'households'>
           userId?: string
         }
-        if (legacy.householdId || !legacy.userId) continue
+        if (legacy.householdId || !legacy.userId) {
+          continue
+        }
 
         const householdId =
           households.get(legacy.userId) ??
@@ -65,6 +67,8 @@ async function claimHousehold(
     .query('householdMembers')
     .withIndex('by_user', (q) => q.eq('userId', userId))
     .unique()
-  if (membership) return membership.householdId
+  if (membership) {
+    return membership.householdId
+  }
   return await createHousehold(ctx, userId, 'Me', 'Our kitchen')
 }

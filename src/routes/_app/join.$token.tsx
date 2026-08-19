@@ -12,6 +12,7 @@ import {
   useInvitePreview,
 } from '../../hooks/use-household'
 import { cn } from '../../lib/cn'
+import { defined } from '../../../convex/lib/optional'
 
 export const Route = createFileRoute('/_app/join/$token')({
   component: JoinScreen,
@@ -166,9 +167,9 @@ function JoinForm({
             setError(null)
             try {
               await accept({
+                ...defined({ name }),
                 token,
                 moveData: canChoose ? moveData : false,
-                name,
               })
               await navigate({ to: '/recipes' })
             } catch (thrown) {
@@ -207,12 +208,16 @@ function describe(counts: {
     plural(counts.plannedMeals, 'planned meal'),
     plural(counts.lists, 'shopping list'),
   ].filter(Boolean)
-  if (parts.length === 1) return parts[0]!
+  if (parts.length === 1) {
+    return parts[0]!
+  }
   return `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`
 }
 
 function plural(count: number, noun: string): string {
-  if (count === 0) return ''
+  if (count === 0) {
+    return ''
+  }
   return `${count} ${noun}${count === 1 ? '' : 's'}`
 }
 

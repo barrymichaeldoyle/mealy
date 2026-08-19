@@ -21,7 +21,9 @@ export function useSetPlannedServings() {
       for (const { args: queryArgs, value } of localStore.getAllQueries(
         api.plans.listRange,
       )) {
-        if (!value) continue
+        if (!value) {
+          continue
+        }
         localStore.setQuery(
           api.plans.listRange,
           queryArgs,
@@ -36,8 +38,4 @@ export function useSetPlannedServings() {
 
 export function useRemovePlannedMeal() {
   return useMutation(api.plans.removeMeal)
-}
-
-export function useMovePlannedMeal() {
-  return useMutation(api.plans.moveMeal)
 }

@@ -11,6 +11,7 @@
 import type * as households from "../households.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_dates from "../lib/dates.js";
+import type * as lib_optional from "../lib/optional.js";
 import type * as lib_units from "../lib/units.js";
 import type * as lib_validation from "../lib/validation.js";
 import type * as lists from "../lists.js";
@@ -28,6 +29,7 @@ declare const fullApi: ApiFromModules<{
   households: typeof households;
   "lib/auth": typeof lib_auth;
   "lib/dates": typeof lib_dates;
+  "lib/optional": typeof lib_optional;
   "lib/units": typeof lib_units;
   "lib/validation": typeof lib_validation;
   lists: typeof lists;

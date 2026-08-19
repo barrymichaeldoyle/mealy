@@ -17,6 +17,7 @@ import {
   useRevokeInvite,
 } from '../../hooks/use-household'
 import type { Doc } from '../../../convex/_generated/dataModel'
+import { defined } from '../../../convex/lib/optional'
 
 export const Route = createFileRoute('/_app/household')({
   component: HouseholdScreen,
@@ -235,7 +236,7 @@ function LeaveCard() {
       </p>
       <ConfirmButton
         className="mt-4"
-        onConfirm={() => void leave({ name })}
+        onConfirm={() => void leave(defined({ name }))}
         confirmLabel="Tap again to leave"
       >
         <Link2 className="size-4" aria-hidden="true" />

@@ -1,7 +1,7 @@
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 
-import ClerkProvider from '../integrations/clerk/provider'
-import ConvexProvider from '../integrations/convex/provider'
+import { AppClerkProvider } from '../integrations/clerk/provider'
+import { AppConvexProvider } from '../integrations/convex/provider'
 
 import appCss from '../styles.css?url'
 
@@ -35,9 +35,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {/* Clerk wraps Convex: the Convex client reads Clerk's auth token. */}
-        <ClerkProvider>
-          <ConvexProvider>{children}</ConvexProvider>
-        </ClerkProvider>
+        <AppClerkProvider>
+          <AppConvexProvider>{children}</AppConvexProvider>
+        </AppClerkProvider>
         <Scripts />
       </body>
     </html>

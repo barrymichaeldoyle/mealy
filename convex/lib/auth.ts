@@ -25,7 +25,9 @@ export async function getMembership(
   ctx: QueryCtx,
 ): Promise<Doc<'householdMembers'> | null> {
   const userId = await getUserId(ctx)
-  if (!userId) return null
+  if (!userId) {
+    return null
+  }
   return await ctx.db
     .query('householdMembers')
     .withIndex('by_user', (q) => q.eq('userId', userId))
@@ -49,14 +51,18 @@ export async function requireHousehold(
   ctx: MutationCtx,
 ): Promise<{ userId: string; householdId: Id<'households'> }> {
   const identity = await ctx.auth.getUserIdentity()
-  if (!identity) throw new ConvexError('Not signed in')
+  if (!identity) {
+    throw new ConvexError('Not signed in')
+  }
   const userId = identity.subject
 
   const existing = await ctx.db
     .query('householdMembers')
     .withIndex('by_user', (q) => q.eq('userId', userId))
     .unique()
-  if (existing) return { userId, householdId: existing.householdId }
+  if (existing) {
+    return { userId, householdId: existing.householdId }
+  }
 
   const name = identity.name ?? identity.nickname ?? 'Me'
   const householdId = await createHousehold(ctx, userId, name)

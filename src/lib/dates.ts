@@ -4,19 +4,21 @@ export type IsoDate = string // "YYYY-MM-DD"
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-export function toIsoDate(date: Date): IsoDate {
+function toIsoDate(date: Date): IsoDate {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
 
-export function fromIsoDate(iso: IsoDate): Date {
-  const [year, month, day] = iso.split('-').map(Number)
-  return new Date(year, month - 1, day)
+function fromIsoDate(iso: IsoDate): Date {
+  // Indexing is unchecked, so a malformed string yields NaN parts and an
+  // Invalid Date, which surfaces the problem instead of silently shifting it.
+  const parts = iso.split('-')
+  return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
 }
 
-export function todayIso(): IsoDate {
+function todayIso(): IsoDate {
   return toIsoDate(new Date())
 }
 
@@ -32,22 +34,28 @@ export function addDays(date: Date, days: number): Date {
   return new Date(date.getTime() + days * DAY_MS)
 }
 
-export function weekDates(weekStart: Date): IsoDate[] {
+/** Monday to Sunday. Typed as a 7-tuple so callers can index it safely. */
+export type WeekDates = [
+  IsoDate,
+  IsoDate,
+  IsoDate,
+  IsoDate,
+  IsoDate,
+  IsoDate,
+  IsoDate,
+]
+
+export function weekDates(weekStart: Date): WeekDates {
   return Array.from({ length: 7 }, (_, index) =>
     toIsoDate(addDays(weekStart, index)),
-  )
+  ) as WeekDates
 }
 
-const WEEKDAY = new Intl.DateTimeFormat('en-ZA', { weekday: 'short' })
 const WEEKDAY_LONG = new Intl.DateTimeFormat('en-ZA', { weekday: 'long' })
 const DAY_MONTH = new Intl.DateTimeFormat('en-ZA', {
   day: 'numeric',
   month: 'short',
 })
-
-export function weekdayLabel(iso: IsoDate): string {
-  return WEEKDAY.format(fromIsoDate(iso))
-}
 
 export function weekdayLongLabel(iso: IsoDate): string {
   return WEEKDAY_LONG.format(fromIsoDate(iso))

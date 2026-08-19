@@ -35,6 +35,7 @@ units are accepted as input and converted (see §3.5).
 | Styling      | Tailwind CSS                                      |
 | Linting      | oxlint (NOT eslint)                               |
 | Formatting   | oxfmt (NOT prettier)                              |
+| Fonts        | Fraunces + Inter, self-hosted via Fontsource      |
 | Deployment   | Any Node/edge-friendly host (e.g. Netlify/Vercel) |
 
 Conventions:
@@ -91,7 +92,9 @@ Conventions:
 ### 3.3 Meal Plan (weekly dinner schedule)
 
 - **Dinner-first:** the weekly view is 7 days, each day showing its dinner.
-  This is the core, polished experience.
+  This is the core, polished experience. On mobile it is a vertical list
+  of 7 day rows with a left day rail, not a grid (see the design spec
+  §5).
 - **Slot extensibility (cheap, non-invasive):** the data model includes a
   `slot` field (`"breakfast" | "lunch" | "dinner"`), defaulting to
   `"dinner"`. The MVP UI only surfaces dinner; adding other slots later is
@@ -259,21 +262,43 @@ desktop, tabs can become a sidebar or top nav.
 
 ## 6. UX / Design
 
-**Vibe:** fresh, healthy, friendly.
+The [design specification](./DESIGN_Specification.md) is the authority on
+look and feel. It carries the full token set, type scale and component
+rules. This section is the summary.
 
-- **Palette:**
-  - Primary: greens (e.g. Tailwind `emerald-600` for actions,
-    `emerald-50` for tinted backgrounds).
-  - Accents: warm orange (`orange-500`) for highlights/CTAs like
-    "Generate list", soft yellow (`amber-100/400`) for tags & badges.
-  - Neutrals: warm grays / off-white (`stone-*`) rather than cold gray.
-- Rounded corners (`rounded-2xl` on cards), soft shadows, generous
-  touch targets (min 44px).
-- Checked shopping items: strikethrough + fade + slide to bottom.
-- Empty states with friendly copy & a clear CTA
-  ("No recipes yet, add your first! 🥕").
+**Vibe:** warm, edible, unfussy. A paper notebook that happens to be an
+app, not a SaaS dashboard.
+
+- **Palette:** paper neutrals, one green, one tomato accent.
+  - Surfaces: warm cream paper tones (`--paper-50` background,
+    `--paper-100` cards).
+  - Text: warm near-black ink (`--ink-900`, `--ink-600`, `--ink-400`).
+  - Primary: basil green (`--basil-700`) for primary actions and "done"
+    states only.
+  - Accent: tomato (`--tomato-600`) for the single loud CTA per screen
+    (e.g. "Generate list") and for destructive actions.
+  - Tags and badges are quiet bordered chips, not coloured pills.
+- Tokens live in `@theme` or the Tailwind config. No raw hex in
+  components.
+- Depth comes from a 1px border plus a tone shift, not shadows. Radius is
+  10px on cards and inputs, 8px on buttons, full on the FAB and
+  checkboxes. Shadows are reserved for things that float: the FAB, bottom
+  sheets, the sticky bottom bar.
+- Typography: Fraunces for headings and recipe titles, Inter for UI and
+  body, tabular-nums for quantities.
+- Touch targets at least 44px, list rows at least 52px.
+- Checked shopping items: strikethrough + tint + slide to a collapsed
+  "Done" section at the bottom.
+- Empty states: an icon, one line, one sentence, one button. Calm and
+  specific copy ("Nothing planned this week"), no exclamation marks, at
+  most one emoji anywhere.
 - Loading via skeletons, not spinners, where practical.
+- Motion is restrained: 150ms to 250ms, ease-out, and honour
+  `prefers-reduced-motion`.
 - Respect safe areas (notches) on mobile; sticky bottom nav.
+- **Dark mode is out of MVP scope.** The tokens are structured so it
+  becomes a swap later, but do not half-implement it now. A half-themed
+  app is worse than a light-only one.
 
 Accessibility: semantic HTML, labels on all form inputs, sufficient color
 contrast (don't rely on green alone for state), keyboard navigable.
@@ -323,6 +348,7 @@ contrast (don't rely on green alone for state), keyboard navigable.
 4. Recipe images (Convex file storage).
 5. Pantry tracking (subtract what you already have).
 6. User-configurable unit preference (imperial display mode).
+7. Dark mode, by swapping the token values the MVP already ships.
 
 ---
 
@@ -349,5 +375,7 @@ contrast (don't rely on green alone for state), keyboard navigable.
 - [ ] User can check off, add, edit, and remove list items; checked state
       persists across reloads.
 - [ ] Fully usable on a 360px-wide phone with bottom tab navigation.
-- [ ] Green/orange/yellow "healthy" visual theme applied consistently.
+- [ ] The paper/basil/tomato theme from the design spec is applied
+      consistently, with every colour coming from a token rather than a
+      raw hex value.
 - [ ] Codebase lints clean with oxlint and is formatted with oxfmt.

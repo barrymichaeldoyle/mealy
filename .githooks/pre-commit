@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# Runs the checks that CI runs, minus the browser suite, before every commit.
+# Enabled by `git config core.hooksPath .githooks`, which `pnpm install` does
+# through the `prepare` script. Skip a single commit with `git commit -n`.
+#
+set -e
+
+echo "pre-commit: running checks"
+pnpm precommit

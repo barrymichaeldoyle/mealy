@@ -77,13 +77,49 @@ bodies:
 ## Code
 
 - oxfmt owns formatting: no semicolons, single quotes, 80 columns,
-  trailing commas. Run `pnpm check` (oxlint, oxfmt, tsc, vitest) before
-  calling work done.
+  trailing commas. Run `pnpm check` before calling work done.
+- A pre-commit hook (`.githooks/pre-commit`) runs `pnpm precommit`: lint,
+  format check, typecheck, knip and unit tests, about five seconds. It is
+  wired up by `pnpm install` through the `prepare` script. The browser a11y
+  suite is deliberately left out, since it needs a dev server. Use
+  `git commit -n` to skip the hook, and say so in the message when you do.
+- CI (`.github/workflows/ci.yml`) runs the same `pnpm precommit` command, plus
+  the a11y suite in a second job. That job needs the repository variable
+  `VITE_CLERK_PUBLISHABLE_KEY` and skips itself when it is unset.
 - Comments explain why. Delete a comment that restates the line below it.
 - Data access lives behind the hooks in `src/hooks/`. Components do not
   call Convex directly.
 - Pure logic (units, dates, validation) lives in `lib/` and gets tests.
   `convex/lib/units.ts` is the reference for how much coverage that means.
+- `exactOptionalPropertyTypes` is on, and Convex spells optional fields as
+  `x?: T` with no `undefined`. Pass form values through `defined()` from
+  `convex/lib/optional.ts` so an empty field is absent rather than explicitly
+  undefined, instead of widening the Convex types to accept it.
+- `noUncheckedIndexedAccess` is on. Handle the `undefined` an index can
+  return: narrow it, or reach for a helper that throws on a miss. Do not
+  reach for `!`.
+- Named exports everywhere. `import/no-default-export` is on. The only
+  exemptions are files whose loader demands a default export: root
+  `*.config.ts`, `convex/schema.ts`, `convex/auth.config.ts` and
+  `convex/http.ts`. Add to the override in `.oxlintrc.json` only when a
+  tool genuinely requires it.
+- Braces on every `if`, `else`, `for` and `while` body, even a single
+  statement. oxlint's `curly` rule enforces this, and `oxlint --fix`
+  applies it.
 - No `useMemo`, `useCallback` or `memo`. The React Compiler is on (see
   `vite.config.ts`) and memoises for us, so write the plain computation.
   oxlint blocks the imports.
+
+<!-- convex-ai-start -->
+
+This project uses [Convex](https://convex.dev) as its backend.
+
+When working on Convex code, **always read
+`convex/_generated/ai/guidelines.md` first** for important guidelines on
+how to correctly use Convex APIs and patterns. The file contains rules that
+override what you may have learned about Convex from training data.
+
+Convex agent skills for common tasks can be installed by running
+`npx convex ai-files install`.
+
+<!-- convex-ai-end -->

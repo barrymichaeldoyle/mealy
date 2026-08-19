@@ -213,7 +213,7 @@ export function formatCanonicalQuantity(
 
 export type ShoppingListItemLike = {
   name: string
-  quantity?: number
+  quantity?: number | undefined
   unit: Unit
   approximate: boolean
 }
@@ -231,7 +231,9 @@ export function formatListItem(item: ShoppingListItemLike): string {
     item.quantity,
     canonicalUnitFor(family),
   )
-  if (!amount) return 'to taste'
+  if (!amount) {
+    return 'to taste'
+  }
   return item.approximate ? `≈${amount}` : amount
 }
 
@@ -240,10 +242,14 @@ export function formatRecipeQuantity(
   quantity: number | undefined,
   unit: Unit,
 ): string {
-  if (quantity === undefined) return 'to taste'
+  if (quantity === undefined) {
+    return 'to taste'
+  }
   const label = UNIT_LABELS[unit]
   const amount = formatNumber(quantity, 2)
-  if (!label) return amount
+  if (!label) {
+    return amount
+  }
   // Spaced for word-like units, tight for metric symbols.
   return unit === 'g' || unit === 'kg' || unit === 'ml' || unit === 'l'
     ? `${amount}${label}`
@@ -252,12 +258,12 @@ export function formatRecipeQuantity(
 
 export type ConsolidationInput = {
   name: string
-  quantity?: number
+  quantity?: number | undefined
   unit: Unit
-  note?: string
+  note?: string | undefined
   /** Multiplier from planned servings ÷ recipe servings. */
-  scale?: number
-  recipeId?: string
+  scale?: number | undefined
+  recipeId?: string | undefined
 }
 
 export type ConsolidatedItem = {
@@ -309,13 +315,17 @@ export function consolidate(inputs: ConsolidationInput[]): ConsolidatedItem[] {
       bucket.sourceRecipeIds.push(input.recipeId)
     }
 
-    if (input.quantity === undefined || family === 'none') continue
+    if (input.quantity === undefined || family === 'none') {
+      continue
+    }
 
     const scale = input.scale ?? 1
     const canonical = toCanonical(input.quantity * scale, input.unit)
     bucket.exactQuantity += canonical.quantity
     bucket.hasQuantity = true
-    if (canonical.approximate) bucket.approximate = true
+    if (canonical.approximate) {
+      bucket.approximate = true
+    }
   }
 
   return [...buckets.values()].map((bucket) => {

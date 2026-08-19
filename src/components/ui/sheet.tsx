@@ -31,9 +31,15 @@ export function Sheet({
 
   useEffect(() => {
     const dialog = ref.current
-    if (!dialog) return
-    if (open && !dialog.open) dialog.showModal()
-    if (!open && dialog.open) dialog.close()
+    if (!dialog) {
+      return
+    }
+    if (open && !dialog.open) {
+      dialog.showModal()
+    }
+    if (!open && dialog.open) {
+      dialog.close()
+    }
   }, [open])
 
   return (
@@ -42,7 +48,9 @@ export function Sheet({
       onClose={onClose}
       onClick={(event) => {
         // Clicks land on the dialog itself only when they hit the backdrop.
-        if (event.target === ref.current) onClose()
+        if (event.target === ref.current) {
+          onClose()
+        }
       }}
       aria-label={title}
       className={cn(

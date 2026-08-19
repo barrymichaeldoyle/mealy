@@ -13,7 +13,9 @@ export const listRange = query({
   args: { start: v.string(), end: v.string() },
   handler: async (ctx, args) => {
     const householdId = await getHouseholdId(ctx)
-    if (!householdId) return []
+    if (!householdId) {
+      return []
+    }
 
     const meals = await ctx.db
       .query('plannedMeals')

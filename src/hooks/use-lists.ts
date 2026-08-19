@@ -48,7 +48,9 @@ export function useToggleListItem() {
       for (const { args: queryArgs, value } of localStore.getAllQueries(
         api.lists.get,
       )) {
-        if (!value) continue
+        if (!value) {
+          continue
+        }
         const items = value.items.map((item: Doc<'shoppingListItems'>) =>
           item._id === args.id ? { ...item, checked: args.checked } : item,
         )

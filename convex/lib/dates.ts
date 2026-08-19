@@ -22,8 +22,12 @@ const MONTHS = [
 /** "2026-08-17" becomes "17 Aug". Falls back to the input if it is not a date. */
 export function formatShortDate(iso: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
-  if (!match) return iso
+  if (!match) {
+    return iso
+  }
   const month = MONTHS[Number(match[2]) - 1]
-  if (!month) return iso
+  if (!month) {
+    return iso
+  }
   return `${Number(match[3])} ${month}`
 }

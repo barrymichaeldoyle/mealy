@@ -1,6 +1,14 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "unicorn", "jsx-a11y"],
+  "plugins": [
+    "react",
+    "typescript",
+    "unicorn",
+    "jsx-a11y",
+    "import",
+    "promise",
+    "vitest"
+  ],
   "categories": {
     "correctness": "error",
     "suspicious": "warn",
@@ -18,9 +26,12 @@
     "dist"
   ],
   "rules": {
+    "react-hooks/rules-of-hooks": "error",
     "no-console": "off",
     "react/react-in-jsx-scope": "off",
     "no-underscore-dangle": "off",
+    "curly": ["error", "all"],
+    "import/no-default-export": "error",
     "react/no-array-index-key": "off",
     "typescript/no-explicit-any": "warn",
     "no-restricted-imports": [
@@ -41,6 +52,17 @@
       "files": ["convex/**/*.ts"],
       "rules": {
         "no-await-in-loop": "off"
+      }
+    },
+    {
+      "files": [
+        "*.config.ts",
+        "convex/auth.config.ts",
+        "convex/schema.ts",
+        "convex/http.ts"
+      ],
+      "rules": {
+        "import/no-default-export": "off"
       }
     }
   ]

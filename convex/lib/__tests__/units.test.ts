@@ -10,6 +10,20 @@ import {
   unitFamily,
 } from '../units'
 
+/** Return an indexed item or fail the test with a useful bounds error. */
+function at<T>(items: T[], index: number): T {
+  const item = items[index]
+  if (item === undefined) {
+    throw new Error(`Expected item ${index}, received ${items.length}`)
+  }
+  return item
+}
+
+function single<T>(items: T[]): T {
+  expect(items).toHaveLength(1)
+  return at(items, 0)
+}
+
 describe('toCanonical', () => {
   it('converts mass to grams', () => {
     expect(toCanonical(1, 'kg').quantity).toBe(1000)
@@ -80,10 +94,12 @@ describe('formatCanonicalQuantity', () => {
 
 describe('consolidate', () => {
   it('merges identical mass ingredients exactly', () => {
-    const [item] = consolidate([
-      { name: 'mince', quantity: 250, unit: 'g' },
-      { name: 'Mince', quantity: 250, unit: 'g' },
-    ])
+    const item = single(
+      consolidate([
+        { name: 'mince', quantity: 250, unit: 'g' },
+        { name: 'Mince', quantity: 250, unit: 'g' },
+      ]),
+    )
     expect(item.name).toBe('mince')
     expect(item.quantity).toBe(500)
     expect(item.unit).toBe('g')
@@ -92,10 +108,12 @@ describe('consolidate', () => {
   })
 
   it('sums countable units', () => {
-    const [item] = consolidate([
-      { name: 'tin tomatoes', quantity: 1, unit: 'tin' },
-      { name: 'tin tomatoes', quantity: 1, unit: 'tin' },
-    ])
+    const item = single(
+      consolidate([
+        { name: 'tin tomatoes', quantity: 1, unit: 'tin' },
+        { name: 'tin tomatoes', quantity: 1, unit: 'tin' },
+      ]),
+    )
     expect(item.quantity).toBe(2)
     expect(item.unit).toBe('tin')
     expect(formatListItem({ ...item, unit: 'tin' })).toBe('x2')
@@ -103,20 +121,24 @@ describe('consolidate', () => {
 
   it('consolidates imperial into metric with an approximate flag', () => {
     // 250g + 8oz (226.8g) = 476.8g → ≈480g
-    const [item] = consolidate([
-      { name: 'mince', quantity: 250, unit: 'g' },
-      { name: 'mince', quantity: 8, unit: 'oz' },
-    ])
+    const item = single(
+      consolidate([
+        { name: 'mince', quantity: 250, unit: 'g' },
+        { name: 'mince', quantity: 8, unit: 'oz' },
+      ]),
+    )
     expect(item.quantity).toBe(480)
     expect(item.approximate).toBe(true)
     expect(formatListItem({ ...item, unit: 'g' })).toBe('≈480g')
   })
 
   it('promotes large masses to kg on display', () => {
-    const [item] = consolidate([
-      { name: 'flour', quantity: 1, unit: 'kg' },
-      { name: 'flour', quantity: 500, unit: 'g' },
-    ])
+    const item = single(
+      consolidate([
+        { name: 'flour', quantity: 1, unit: 'kg' },
+        { name: 'flour', quantity: 500, unit: 'g' },
+      ]),
+    )
     expect(item.quantity).toBe(1500)
     expect(item.approximate).toBe(false)
     expect(formatListItem({ ...item, unit: 'g' })).toBe('1.5kg')
@@ -128,11 +150,11 @@ describe('consolidate', () => {
       { name: 'flour', quantity: 1, unit: 'cup' },
     ])
     expect(items).toHaveLength(2)
-    expect(items[0].unit).toBe('g')
-    expect(items[0].quantity).toBe(200)
-    expect(items[1].unit).toBe('ml')
-    expect(items[1].quantity).toBe(250)
-    expect(items[1].approximate).toBe(true)
+    expect(items[0]?.unit).toBe('g')
+    expect(items[0]?.quantity).toBe(200)
+    expect(items[1]?.unit).toBe('ml')
+    expect(items[1]?.quantity).toBe(250)
+    expect(items[1]?.approximate).toBe(true)
   })
 
   it('does not merge different countable units', () => {
@@ -144,11 +166,13 @@ describe('consolidate', () => {
   })
 
   it('merges compatible volume units', () => {
-    const [item] = consolidate([
-      { name: 'milk', quantity: 1, unit: 'l' },
-      { name: 'milk', quantity: 500, unit: 'ml' },
-      { name: 'milk', quantity: 2, unit: 'tbsp' },
-    ])
+    const item = single(
+      consolidate([
+        { name: 'milk', quantity: 1, unit: 'l' },
+        { name: 'milk', quantity: 500, unit: 'ml' },
+        { name: 'milk', quantity: 2, unit: 'tbsp' },
+      ]),
+    )
     // 1000 + 500 + 30 = 1530 → banded to 1500ml
     expect(item.quantity).toBe(1500)
     expect(item.approximate).toBe(true)
@@ -156,53 +180,59 @@ describe('consolidate', () => {
   })
 
   it('scales by planned servings', () => {
-    const [item] = consolidate([
-      { name: 'rice', quantity: 200, unit: 'g', scale: 2 },
-    ])
+    const item = single(
+      consolidate([{ name: 'rice', quantity: 200, unit: 'g', scale: 2 }]),
+    )
     expect(item.quantity).toBe(400)
     expect(item.approximate).toBe(false)
   })
 
   it('flags rounding introduced by scaling', () => {
     // 200g × (3/2) = 300g exactly, no ≈
-    const [exact] = consolidate([
-      { name: 'rice', quantity: 200, unit: 'g', scale: 1.5 },
-    ])
+    const exact = single(
+      consolidate([{ name: 'rice', quantity: 200, unit: 'g', scale: 1.5 }]),
+    )
     expect(exact.quantity).toBe(300)
     expect(exact.approximate).toBe(false)
 
     // 100g × (1/3) = 33.33g → 33g, rounded
-    const [rounded] = consolidate([
-      { name: 'rice', quantity: 100, unit: 'g', scale: 1 / 3 },
-    ])
+    const rounded = single(
+      consolidate([{ name: 'rice', quantity: 100, unit: 'g', scale: 1 / 3 }]),
+    )
     expect(rounded.quantity).toBe(33)
     expect(rounded.approximate).toBe(true)
   })
 
   it('rounds fractional counts up to whole units', () => {
-    const [item] = consolidate([
-      { name: 'tin tomatoes', quantity: 1, unit: 'tin', scale: 1.5 },
-    ])
+    const item = single(
+      consolidate([
+        { name: 'tin tomatoes', quantity: 1, unit: 'tin', scale: 1.5 },
+      ]),
+    )
     expect(item.quantity).toBe(2)
     expect(item.approximate).toBe(true)
   })
 
   it('keeps "to taste" ingredients without a quantity', () => {
-    const [item] = consolidate([
-      { name: 'salt', unit: 'none' },
-      { name: 'salt', unit: 'none' },
-    ])
+    const item = single(
+      consolidate([
+        { name: 'salt', unit: 'none' },
+        { name: 'salt', unit: 'none' },
+      ]),
+    )
     expect(item.quantity).toBeUndefined()
     expect(item.approximate).toBe(false)
     expect(formatListItem({ ...item, unit: 'none' })).toBe('to taste')
   })
 
   it('tracks source recipes for traceability', () => {
-    const [item] = consolidate([
-      { name: 'mince', quantity: 250, unit: 'g', recipeId: 'a' },
-      { name: 'mince', quantity: 250, unit: 'g', recipeId: 'b' },
-      { name: 'mince', quantity: 100, unit: 'g', recipeId: 'a' },
-    ])
+    const item = single(
+      consolidate([
+        { name: 'mince', quantity: 250, unit: 'g', recipeId: 'a' },
+        { name: 'mince', quantity: 250, unit: 'g', recipeId: 'b' },
+        { name: 'mince', quantity: 100, unit: 'g', recipeId: 'a' },
+      ]),
+    )
     expect(item.sourceRecipeIds).toEqual(['a', 'b'])
   })
 })

@@ -7,12 +7,15 @@ import { assertHousehold, getHouseholdId, requireHousehold } from './lib/auth'
 import { validateDate } from './lib/validation'
 import { consolidate, type ConsolidationInput } from './lib/units'
 import { formatShortDate } from './lib/dates'
+import { defined } from './lib/optional'
 
 export const list = query({
   args: {},
   handler: async (ctx) => {
     const householdId = await getHouseholdId(ctx)
-    if (!householdId) return []
+    if (!householdId) {
+      return []
+    }
 
     const lists = await ctx.db
       .query('shoppingLists')
@@ -41,9 +44,13 @@ export const get = query({
   args: { id: v.id('shoppingLists') },
   handler: async (ctx, args) => {
     const householdId = await getHouseholdId(ctx)
-    if (!householdId) return null
+    if (!householdId) {
+      return null
+    }
     const shoppingList = await ctx.db.get(args.id)
-    if (!shoppingList || shoppingList.householdId !== householdId) return null
+    if (!shoppingList || shoppingList.householdId !== householdId) {
+      return null
+    }
 
     const items = await ctx.db
       .query('shoppingListItems')
@@ -76,10 +83,14 @@ async function uniqueListName(
     .collect()
 
   const taken = new Set(existing.map((shoppingList) => shoppingList.name))
-  if (!taken.has(wanted)) return wanted
+  if (!taken.has(wanted)) {
+    return wanted
+  }
 
   let suffix = 2
-  while (taken.has(`${wanted} (${suffix})`)) suffix += 1
+  while (taken.has(`${wanted} (${suffix})`)) {
+    suffix += 1
+  }
   return `${wanted} (${suffix})`
 }
 
@@ -97,10 +108,10 @@ async function insertConsolidated(
 
   for (const item of consolidate(inputs)) {
     await ctx.db.insert('shoppingListItems', {
+      ...defined({ quantity: item.quantity }),
       householdId,
       listId,
       name: item.name,
-      quantity: item.quantity,
       unit: item.unit,
       checked: false,
       manuallyAdded: false,
@@ -148,7 +159,9 @@ export const generateFromPlan = mutation({
     const inputs: ConsolidationInput[] = []
     for (const meal of meals) {
       const recipe = await ctx.db.get(meal.recipeId)
-      if (!recipe || recipe.householdId !== householdId) continue
+      if (!recipe || recipe.householdId !== householdId) {
+        continue
+      }
       inputs.push(...ingredientInputs(recipe, meal.servings))
     }
 
@@ -193,7 +206,9 @@ export const rename = mutation({
     const { householdId } = await requireHousehold(ctx)
     assertHousehold(await ctx.db.get(args.id), householdId)
     const name = args.name.trim()
-    if (name) await ctx.db.patch(args.id, { name })
+    if (name) {
+      await ctx.db.patch(args.id, { name })
+    }
   },
 })
 
@@ -207,7 +222,9 @@ export const remove = mutation({
       .query('shoppingListItems')
       .withIndex('by_list', (q) => q.eq('listId', args.id))
       .collect()
-    for (const item of items) await ctx.db.delete(item._id)
+    for (const item of items) {
+      await ctx.db.delete(item._id)
+    }
 
     await ctx.db.delete(args.id)
   },
@@ -234,13 +251,15 @@ export const addItem = mutation({
     assertHousehold(await ctx.db.get(args.listId), householdId)
 
     const name = args.name.trim()
-    if (!name) throw new Error('Item name is required')
+    if (!name) {
+      throw new Error('Item name is required')
+    }
 
     return await ctx.db.insert('shoppingListItems', {
+      ...defined({ quantity: args.quantity }),
       householdId,
       listId: args.listId,
       name,
-      quantity: args.quantity,
       unit: args.unit ?? 'none',
       checked: false,
       manuallyAdded: true,
@@ -261,18 +280,29 @@ export const updateItem = mutation({
     const { householdId } = await requireHousehold(ctx)
     assertHousehold(await ctx.db.get(args.id), householdId)
 
-    const patch: Partial<Doc<'shoppingListItems'>> = {}
+    const patch: {
+      name?: string
+      quantity?: number | undefined
+      unit?: Doc<'shoppingListItems'>['unit']
+      approximate?: boolean
+    } = {}
     if (args.name !== undefined) {
       const name = args.name.trim()
-      if (!name) throw new Error('Item name is required')
+      if (!name) {
+        throw new Error('Item name is required')
+      }
       patch.name = name
     }
     if (args.quantity !== undefined) {
+      // `null` from the client means "clear the amount", which Convex spells
+      // as an explicit undefined in the patch.
       patch.quantity = args.quantity ?? undefined
       // A hand-edited amount is exactly what the user asked for.
       patch.approximate = false
     }
-    if (args.unit !== undefined) patch.unit = args.unit
+    if (args.unit !== undefined) {
+      patch.unit = args.unit
+    }
 
     await ctx.db.patch(args.id, patch)
   },
@@ -299,7 +329,9 @@ export const clearChecked = mutation({
       .withIndex('by_list', (q) => q.eq('listId', args.listId))
       .collect()
     for (const item of items) {
-      if (item.checked) await ctx.db.delete(item._id)
+      if (item.checked) {
+        await ctx.db.delete(item._id)
+      }
     }
   },
 })

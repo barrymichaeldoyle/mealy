@@ -1,15 +1,11 @@
 import { ClerkProvider } from '@clerk/tanstack-react-start'
 import { SetupNotice } from '../../components/setup-notice'
 
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as
+const PUBLISHABLE_KEY = import.meta.env['VITE_CLERK_PUBLISHABLE_KEY'] as
   | string
   | undefined
 
-export default function AppClerkProvider({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export function AppClerkProvider({ children }: { children: React.ReactNode }) {
   // In development Clerk falls back to keyless mode, which is a genuinely
   // useful way to try the app before creating an account. A production build
   // with no key would fail silently, so that case gets a clear notice.
@@ -25,7 +21,8 @@ export default function AppClerkProvider({
 
   return (
     <ClerkProvider
-      publishableKey={PUBLISHABLE_KEY || undefined}
+      // Spread rather than pass undefined: keyless mode wants the prop absent.
+      {...(PUBLISHABLE_KEY ? { publishableKey: PUBLISHABLE_KEY } : {})}
       appearance={{
         variables: {
           colorPrimary: '#059669', // emerald-600

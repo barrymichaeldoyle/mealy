@@ -16,10 +16,10 @@ export function Field({
   className,
 }: {
   label: string
-  hint?: string
-  error?: string
+  hint?: string | undefined
+  error?: string | undefined
   children: (id: string) => React.ReactNode
-  className?: string
+  className?: string | undefined
 }) {
   const id = useId()
   const errorId = `${id}-error`

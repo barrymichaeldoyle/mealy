@@ -1,0 +1,30 @@
+{
+  "version": "0.2",
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "language": "en,en-GB",
+  "words": [
+    "Bobotie",
+    "Mealy",
+    "memoises",
+    "Memoising",
+    "noninteractive",
+    "strikethrough",
+    "WCAG",
+    "nums",
+    "oxfmt",
+    "oxlint",
+    "sams",
+    "tanstack",
+    "Typesafe",
+    "wrangler"
+  ],
+  "ignorePaths": [
+    "pnpm-lock.yaml",
+    "convex/_generated/**",
+    "src/routeTree.gen.ts",
+    ".output/**",
+    ".nitro/**",
+    "dist/**",
+    "node_modules/**"
+  ]
+}

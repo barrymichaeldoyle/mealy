@@ -17,7 +17,9 @@ export function ConfirmButton({
   const [armed, setArmed] = useState(false)
 
   useEffect(() => {
-    if (!armed) return
+    if (!armed) {
+      return
+    }
     const timer = setTimeout(() => setArmed(false), 4000)
     return () => clearTimeout(timer)
   }, [armed])

@@ -57,7 +57,9 @@ function PlanScreen() {
 
   const mealsByDate = new Map<IsoDate, NonNullable<typeof meals>>()
   for (const meal of meals ?? []) {
-    if (meal.slot !== 'dinner') continue // MVP surfaces dinner only
+    if (meal.slot !== 'dinner') {
+      continue
+    } // MVP surfaces dinner only
     const existing = mealsByDate.get(meal.date) ?? []
     existing.push(meal)
     mealsByDate.set(meal.date, existing)
@@ -237,7 +239,9 @@ function PlanScreen() {
         recipes={recipes}
         onClose={() => setPickerDate(null)}
         onPick={async (recipeId) => {
-          if (!pickerDate) return
+          if (!pickerDate) {
+            return
+          }
           await addMeal({ date: pickerDate, recipeId })
           setPickerDate(null)
         }}

@@ -44,10 +44,14 @@ export const current = query({
   args: {},
   handler: async (ctx) => {
     const membership = await getMembership(ctx)
-    if (!membership) return null
+    if (!membership) {
+      return null
+    }
 
     const household = await ctx.db.get(membership.householdId)
-    if (!household) return null
+    if (!household) {
+      return null
+    }
 
     const invite = await ctx.db
       .query('householdInvites')
@@ -82,7 +86,9 @@ export const ensureCurrent = mutation({
   args: { name: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new ConvexError('Not signed in')
+    if (!identity) {
+      throw new ConvexError('Not signed in')
+    }
 
     const name = args.name?.trim() || identity.name || 'Me'
     const existing = await ctx.db
@@ -91,7 +97,9 @@ export const ensureCurrent = mutation({
       .unique()
 
     if (existing) {
-      if (existing.name !== name) await ctx.db.patch(existing._id, { name })
+      if (existing.name !== name) {
+        await ctx.db.patch(existing._id, { name })
+      }
       return existing.householdId
     }
 
@@ -104,8 +112,12 @@ export const rename = mutation({
   handler: async (ctx, args) => {
     const { householdId } = await requireHousehold(ctx)
     const name = args.name.trim()
-    if (!name) throw new ConvexError('Household name is required')
-    if (name.length > 60) throw new ConvexError('Household name is too long')
+    if (!name) {
+      throw new ConvexError('Household name is required')
+    }
+    if (name.length > 60) {
+      throw new ConvexError('Household name is too long')
+    }
     await ctx.db.patch(householdId, { name })
   },
 })
@@ -124,7 +136,9 @@ export const createInvite = mutation({
       .withIndex('by_household', (q) => q.eq('householdId', householdId))
       .collect()
     for (const invite of existing) {
-      if (!invite.acceptedBy) await ctx.db.delete(invite._id)
+      if (!invite.acceptedBy) {
+        await ctx.db.delete(invite._id)
+      }
     }
 
     const token = crypto.randomUUID().replaceAll('-', '')
@@ -148,7 +162,9 @@ export const revokeInvite = mutation({
       .withIndex('by_household', (q) => q.eq('householdId', householdId))
       .collect()
     for (const invite of invites) {
-      if (!invite.acceptedBy) await ctx.db.delete(invite._id)
+      if (!invite.acceptedBy) {
+        await ctx.db.delete(invite._id)
+      }
     }
   },
 })
@@ -168,7 +184,9 @@ export const invite = query({
   args: { token: v.string() },
   handler: async (ctx, args) => {
     const userId = await getUserId(ctx)
-    if (!userId) return null
+    if (!userId) {
+      return null
+    }
 
     const found = await ctx.db
       .query('householdInvites')
@@ -191,11 +209,14 @@ export const invite = query({
           ? 'expired'
           : 'valid'
 
-    if (!found || status !== 'valid') return { status, household: null }
+    if (!found || status !== 'valid') {
+      return { status, household: null }
+    }
 
     const household = await ctx.db.get(found.householdId)
-    if (!household)
+    if (!household) {
       return { status: 'unknown' as InviteStatus, household: null }
+    }
 
     const mine = membership
       ? {
@@ -236,7 +257,9 @@ async function moveHouseholdData(
       .query(table)
       .withIndex('by_household', (q) => q.eq('householdId', from))
       .collect()
-    for (const row of rows) await ctx.db.patch(row._id, { householdId: to })
+    for (const row of rows) {
+      await ctx.db.patch(row._id, { householdId: to })
+    }
   }
 }
 
@@ -258,7 +281,9 @@ async function discardHousehold(
       .query(table)
       .withIndex('by_household', (q) => q.eq('householdId', householdId))
       .collect()
-    for (const row of rows) await ctx.db.delete(row._id)
+    for (const row of rows) {
+      await ctx.db.delete(row._id)
+    }
   }
   await ctx.db.delete(householdId)
 }
@@ -271,14 +296,18 @@ export const acceptInvite = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new ConvexError('Not signed in')
+    if (!identity) {
+      throw new ConvexError('Not signed in')
+    }
     const userId = identity.subject
 
     const found = await ctx.db
       .query('householdInvites')
       .withIndex('by_token', (q) => q.eq('token', args.token))
       .unique()
-    if (!found) throw new ConvexError('That invite link is not valid')
+    if (!found) {
+      throw new ConvexError('That invite link is not valid')
+    }
 
     const membership = await ctx.db
       .query('householdMembers')
@@ -286,15 +315,21 @@ export const acceptInvite = mutation({
       .unique()
     // Already in: a second tap on Join should do nothing, not report an
     // error about the link it just consumed.
-    if (membership?.householdId === found.householdId) return found.householdId
+    if (membership?.householdId === found.householdId) {
+      return found.householdId
+    }
 
-    if (found.acceptedBy) throw new ConvexError('That invite has been used')
+    if (found.acceptedBy) {
+      throw new ConvexError('That invite has been used')
+    }
     if (found.expiresAt < Date.now()) {
       throw new ConvexError('That invite has expired')
     }
 
     const target = await ctx.db.get(found.householdId)
-    if (!target) throw new ConvexError('That household no longer exists')
+    if (!target) {
+      throw new ConvexError('That household no longer exists')
+    }
 
     if (membership) {
       const previous = membership.householdId
@@ -312,7 +347,9 @@ export const acceptInvite = mutation({
       }
 
       await ctx.db.delete(membership._id)
-      if (alone) await discardHousehold(ctx, previous)
+      if (alone) {
+        await discardHousehold(ctx, previous)
+      }
     }
 
     await ctx.db.insert('householdMembers', {
@@ -339,13 +376,17 @@ export const leave = mutation({
   args: { name: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new ConvexError('Not signed in')
+    if (!identity) {
+      throw new ConvexError('Not signed in')
+    }
 
     const membership = await ctx.db
       .query('householdMembers')
       .withIndex('by_user', (q) => q.eq('userId', identity.subject))
       .unique()
-    if (!membership) throw new ConvexError('You are not in a household')
+    if (!membership) {
+      throw new ConvexError('You are not in a household')
+    }
 
     const remaining = await members(ctx, membership.householdId)
     if (remaining.length === 1) {

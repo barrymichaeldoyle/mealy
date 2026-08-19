@@ -11,6 +11,8 @@
     "src/routeTree.gen.ts",
     ".output/**",
     ".nitro/**",
+    ".agents/**",
+    ".claude/**",
     "pnpm-lock.yaml",
     "docs/**"
   ]

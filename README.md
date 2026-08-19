@@ -18,6 +18,7 @@ Built to `docs/MVP_Specification.md`.
 | Linting    | oxlint                                 |
 | Formatting | oxfmt (print width 80)                 |
 | Tests      | Vitest (+ convex-test)                 |
+| A11y       | oxlint jsx-a11y + Playwright Axe       |
 | Hosting    | Cloudflare Workers (Nitro preset)      |
 | Memoising  | React Compiler, no manual useMemo      |
 
@@ -70,9 +71,12 @@ which is fine for a first look but not for real accounts.
 ### 3. Run it
 
 ```bash
-pnpm dev          # app on http://localhost:3000
-pnpm dev:convex   # in a second terminal
+pnpm dev          # Convex plus the app on http://localhost:3000
 ```
+
+`pnpm dev` runs `convex dev --start`, so the backend comes up first and the
+Vite server starts once the first push succeeds. Both share the terminal and
+stop together. To run one on its own, use `pnpm dev:convex` or `pnpm dev:web`.
 
 ## React Compiler
 
@@ -85,15 +89,29 @@ and let the compiler cache it.
 ## Commands
 
 ```bash
-pnpm check          # lint + format check + typecheck + tests
+pnpm check          # lint + format + types + Knip + Vitest + Axe
 pnpm test           # vitest
+pnpm test:a11y      # Axe on public pages, desktop and mobile
 pnpm lint           # oxlint
+pnpm knip           # unused files, exports and dependencies
 pnpm format         # oxfmt, in place
 pnpm typecheck      # tsc --noEmit
 pnpm build          # production build into .output/
 pnpm preview        # run the built worker locally
 pnpm deploy         # build, then deploy to Cloudflare Workers
 ```
+
+Install Chromium once before the first accessibility run:
+
+```bash
+pnpm exec playwright install chromium
+```
+
+The JSX accessibility rules fail lint for invalid ARIA, missing labels,
+keyboard-inaccessible controls and related structural problems. Playwright
+runs Axe against the rendered home and authentication pages at desktop and
+mobile sizes. Automated checks catch common WCAG failures, but they do not
+replace manual keyboard and screen-reader testing.
 
 ## Deployment (Cloudflare Workers)
 
