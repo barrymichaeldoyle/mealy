@@ -45,12 +45,13 @@ jobs:
   a11y:
     name: Accessibility
     runs-on: ubuntu-latest
-    # The pages under test render Clerk's hosted components, so the build needs
-    # the publishable key. Without it the job would test a setup notice.
+    # The pages under test need Clerk and Convex configuration. Without either
+    # value the job would test a setup notice.
     if: ${{ vars.VITE_CLERK_PUBLISHABLE_KEY != '' }}
     env:
       CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
       VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.VITE_CLERK_PUBLISHABLE_KEY }}
+      VITE_CONVEX_URL: ${{ vars.VITE_CONVEX_URL }}
     steps:
       - uses: actions/checkout@v4
 
