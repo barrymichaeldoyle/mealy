@@ -5,7 +5,9 @@ generate one consolidated shopping list with merged quantities. Everything
 belongs to a household, so the people you cook with see the same recipes,
 plan and lists as you do.
 
-Built to `docs/MVP_Specification.md`.
+Built to the specs in `docs/`: `MVP_Specification.md` for scope,
+`DESIGN_Specification.md` for the visual language and
+`LOGO_Specification.md` for the mark.
 
 ## Stack
 
@@ -15,10 +17,12 @@ Built to `docs/MVP_Specification.md`.
 | Backend/DB | Convex                                 |
 | Auth       | Clerk (via Convex auth integration)    |
 | Styling    | Tailwind CSS v4                        |
+| Fonts      | Inter and Fraunces (Fontsource)        |
 | Linting    | oxlint                                 |
 | Formatting | oxfmt (print width 80)                 |
 | Tests      | Vitest (+ convex-test)                 |
 | A11y       | oxlint jsx-a11y + Playwright Axe       |
+| CI         | GitHub Actions, plus a pre-commit hook |
 | Hosting    | Cloudflare Workers (Nitro preset)      |
 | Memoising  | React Compiler, no manual useMemo      |
 
@@ -48,8 +52,9 @@ VITE_CLERK_PUBLISHABLE_KEY=pk_test_…
 CLERK_SECRET_KEY=sk_test_…
 ```
 
-Or let the CLI do it: `clerk init --app <app-id>` writes both keys into
-`.env.local` and adds `/sign-in` and `/sign-up` routes.
+Or let the CLI do it. Install it with `pnpm add -g clerk`, then
+`clerk init --app <app-id>` writes both keys into `.env.local` and adds
+`/sign-in` and `/sign-up` routes.
 
 Convex then needs to know who issues the tokens. This requires a JWT
 template named `convex` in Clerk (claims `{"aud": "convex"}`, matching
@@ -89,16 +94,22 @@ and let the compiler cache it.
 ## Commands
 
 ```bash
-pnpm check          # lint + format + types + Knip + Vitest + Axe
-pnpm test           # vitest
-pnpm test:a11y      # Axe on public pages, desktop and mobile
-pnpm lint           # oxlint
-pnpm knip           # unused files, exports and dependencies
-pnpm format         # oxfmt, in place
-pnpm typecheck      # tsc --noEmit
-pnpm build          # production build into .output/
-pnpm preview        # run the built worker locally
-pnpm deploy         # build, then deploy to Cloudflare Workers
+pnpm check           # lint + format + types + Knip + Vitest + Axe
+pnpm precommit       # the same without Axe, what the hook runs
+pnpm test            # vitest, both projects
+pnpm test:watch      # vitest in watch mode
+pnpm test:a11y       # Axe on public pages, desktop and mobile
+pnpm lint            # oxlint
+pnpm lint:fix        # oxlint --fix
+pnpm knip            # unused files, exports and dependencies
+pnpm format          # oxfmt, in place
+pnpm format:check    # oxfmt, report only
+pnpm typecheck       # tsc --noEmit
+pnpm icons           # redraw public/ favicons from the mark
+pnpm generate-routes # tsr generate, when the route tree drifts
+pnpm build           # production build into .output/
+pnpm preview         # wrangler dev against the build output
+pnpm deploy          # build, then deploy to Cloudflare Workers
 ```
 
 Install Chromium once before the first accessibility run:
@@ -112,6 +123,25 @@ keyboard-inaccessible controls and related structural problems. Playwright
 runs Axe against the rendered home and authentication pages at desktop and
 mobile sizes. Automated checks catch common WCAG failures, but they do not
 replace manual keyboard and screen-reader testing.
+
+## Checks
+
+`pnpm install` points `core.hooksPath` at `.githooks` through the `prepare`
+script, so `.githooks/pre-commit` runs `pnpm precommit` before every commit:
+lint, format check, types, Knip and the unit tests, about five seconds. The
+browser suite is left out because it needs a dev server. Use `git commit -n`
+to skip the hook, and say so in the message when you do.
+
+`.github/workflows/ci.yml` runs those same checks as separate steps, so a red
+run names the one that failed and one run reports every failure. The
+accessibility suite is a second job. It needs the repository variable
+`VITE_CLERK_PUBLISHABLE_KEY`, because the pages under test render Clerk's
+hosted components, and it skips itself when that variable is unset. Add a
+check to `pnpm precommit` and add it to the workflow too.
+
+`AGENTS.md` holds the conventions for this repo: prose and UI copy, commit
+messages, and the code rules the linter cannot express. `CLAUDE.md` is a
+symlink to it. Read it before writing anything here.
 
 ## Deployment (Cloudflare Workers)
 
@@ -153,12 +183,20 @@ convex/
   lib/units.ts       units, conversions, consolidation (pure, tested)
   lib/validation.ts  server-side input rules
   lib/auth.ts        identity + household guards
+  lib/dates.ts       short date names for generated lists
+  lib/optional.ts    defined(), for exactOptionalPropertyTypes
   __tests__/         household join/leave paths, run against convex-test
 src/
   routes/            file-based routes; everything under _app needs auth
-  components/        UI primitives and shared pieces
+    _app/            household, join, plan, recipes, lists
+  components/        shared pieces, with the primitives in components/ui
   hooks/             data access (Convex queries/mutations) behind hooks
-  lib/               dates, class names, units re-export
+  integrations/      the Clerk and Convex providers
+  lib/               dates, class names, logo geometry, units re-export
+docs/                MVP, design and logo specs
+scripts/             generate-icons.ts, run by pnpm icons
+public/              the icons it writes
+tests/a11y/          Playwright Axe specs
 ```
 
 ## Households
@@ -204,8 +242,20 @@ top of that file.
   leading **≈**. The symbol stands on its own, there is no legend on the
   list screen.
 
+## The mark
+
+The basil-sprig checkmark is specified in `docs/LOGO_Specification.md` and
+authored once, as path data in `src/lib/logo.ts`. `<Logo>` in
+`src/components/ui/logo.tsx` draws it in the app, and
+`scripts/generate-icons.ts` rasterises the same geometry through headless
+Chromium into `public/`. Change the geometry, run `pnpm icons`, then commit
+what lands in `public/`. The favicon drops the tip leaf, since it disappears
+below 24px.
+
 ## Not in the MVP
 
-Offline/PWA support is the first post-MVP milestone. Data access already
-sits behind the hooks in `src/hooks/`, and list rendering is client-side, so
-adding a service worker and a local queue does not require restructuring.
+Offline/PWA support is the first post-MVP milestone. The icons are already
+there, `apple-touch-icon.png` and a maskable 512, but there is no web app
+manifest and no service worker. Data access sits behind the hooks in
+`src/hooks/` and list rendering is client-side, so adding them does not
+require restructuring.
