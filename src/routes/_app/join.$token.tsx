@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ConvexError } from 'convex/values'
+import { CheckCheck, Hourglass, House, Unlink } from 'lucide-react'
 import { AppHeader } from '../../components/app-header'
 import { Button, buttonClass } from '../../components/ui/button'
 import { Card } from '../../components/ui/card'
@@ -20,22 +21,22 @@ export const Route = createFileRoute('/_app/join/$token')({
 
 const DEAD_ENDS = {
   unknown: {
-    emoji: '🔗',
+    icon: Unlink,
     title: 'That link is not valid',
     body: 'Ask for a fresh invite link and try again.',
   },
   expired: {
-    emoji: '⌛',
+    icon: Hourglass,
     title: 'That link has expired',
     body: 'Invite links last a week. Ask for a new one.',
   },
   used: {
-    emoji: '✅',
+    icon: CheckCheck,
     title: 'That link has already been used',
     body: 'Each invite works once. Ask for a new one.',
   },
   'own-household': {
-    emoji: '🏡',
+    icon: House,
     title: 'You are already in this household',
     body: 'Nothing to do. Your recipes are where you left them.',
   },
@@ -102,8 +103,10 @@ function JoinForm({
   return (
     <div className="space-y-4">
       <Card className="p-5">
-        <h1 className="text-xl font-bold text-stone-900">{household.name}</h1>
-        <p className="mt-1 text-sm text-stone-500">
+        <h1 className="font-serif text-display font-semibold text-ink-900">
+          {household.name}
+        </h1>
+        <p className="mt-1 text-body text-ink-600">
           {household.memberNames.join(' and ')} invited you. Join and you both
           see the same recipes, plan and lists.
         </p>
@@ -111,10 +114,10 @@ function JoinForm({
 
       {canChoose && (
         <Card className="p-5">
-          <h2 className="font-semibold text-stone-900">
+          <h2 className="font-serif text-title font-medium text-ink-900">
             What about your own recipes?
           </h2>
-          <p className="mt-1 text-sm text-stone-500">
+          <p className="mt-1 text-body text-ink-600">
             You have {describe(counts)}.
           </p>
           <div className="mt-3 space-y-2">
@@ -138,14 +141,14 @@ function JoinForm({
       )}
 
       {total > 0 && mine && !mine.canMove && (
-        <Card className="p-5 text-sm text-stone-600">
+        <Card className="p-5 text-body text-ink-600">
           You already share a household with someone else, so your recipes stay
           with them. Leave that household first if you want to bring them here.
         </Card>
       )}
 
       {error && (
-        <p className="text-sm font-medium text-red-600" role="alert">
+        <p className="text-body font-medium text-danger-text" role="alert">
           {error}
         </p>
       )}
@@ -236,8 +239,11 @@ function Choice({
     <label
       aria-label={title}
       className={cn(
-        'flex cursor-pointer gap-3 rounded-xl border px-4 py-3',
-        checked ? 'border-emerald-500 bg-emerald-50' : 'border-stone-200',
+        'flex gap-3 rounded-card border px-4 py-3',
+        'transition-colors duration-150 ease-out',
+        checked
+          ? 'border-basil-700 bg-basil-100'
+          : 'border-paper-200 bg-paper-50',
       )}
     >
       <input
@@ -245,11 +251,11 @@ function Choice({
         name="move-data"
         checked={checked}
         onChange={onSelect}
-        className="mt-1 size-4 accent-emerald-600"
+        className="mt-1.5 size-4 accent-basil-700"
       />
       <span className="min-w-0">
-        <span className="block font-medium text-stone-800">{title}</span>
-        <span className="block text-sm text-stone-500">{body}</span>
+        <span className="block font-medium text-ink-900">{title}</span>
+        <span className="block text-body text-ink-600">{body}</span>
       </span>
     </label>
   )

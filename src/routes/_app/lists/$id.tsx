@@ -1,12 +1,21 @@
 import { useState } from 'react'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import {
+  ChevronRight,
+  Pencil,
+  Plus,
+  ShoppingBasket,
+  Trash2,
+} from 'lucide-react'
 import { AppHeader } from '../../../components/app-header'
 import { Button, buttonClass } from '../../../components/ui/button'
 import { Card } from '../../../components/ui/card'
+import { Checkbox } from '../../../components/ui/checkbox'
 import { ConfirmButton } from '../../../components/ui/confirm-button'
 import { EmptyState } from '../../../components/ui/empty-state'
 import { Field, Input, Select } from '../../../components/ui/field'
+import { ListRow, ListRows } from '../../../components/ui/list-row'
+import { PageHeader } from '../../../components/ui/page-header'
 import { Sheet } from '../../../components/ui/sheet'
 import { SkeletonList } from '../../../components/ui/skeleton'
 import {
@@ -28,6 +37,17 @@ export const Route = createFileRoute('/_app/lists/$id')({
 })
 
 type Item = Doc<'shoppingListItems'>
+type ItemId = Id<'shoppingListItems'>
+
+/** How long a ticked row stays where it is before it joins the done pile. */
+const SETTLE_MS = 300
+
+function wantsMotion(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
+}
 
 function ListDetail() {
   const { id } = Route.useParams()
@@ -39,10 +59,28 @@ function ListDetail() {
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<Item | null>(null)
 
-  // Ticked items sink to the bottom so what's left to find stays on top.
+  /*
+   * A row you have just ticked holds its place for a moment before dropping
+   * into the done pile. Without the pause, ticking three things in a row
+   * makes the list jump under your thumb and you mis-tap the next one.
+   */
+  const [settling, setSettling] = useState<ItemId[]>([])
+
+  function handleToggle(itemId: ItemId, checked: boolean) {
+    if (checked && wantsMotion()) {
+      setSettling((current) => [...current, itemId])
+      setTimeout(() => {
+        setSettling((current) => current.filter((value) => value !== itemId))
+      }, SETTLE_MS)
+    }
+    void toggleItem({ id: itemId, checked })
+  }
+
   const items = list?.items ?? []
-  const pending = items.filter((item) => !item.checked)
-  const checked = items.filter((item) => item.checked)
+  const held = new Set(settling)
+  const pending = items.filter((item) => !item.checked || held.has(item._id))
+  const done = items.filter((item) => item.checked && !held.has(item._id))
+  const checkedCount = items.filter((item) => item.checked).length
 
   if (list === undefined) {
     return (
@@ -61,8 +99,9 @@ function ListDetail() {
         <AppHeader />
         <main className="mx-auto max-w-3xl px-4 pt-4 pb-nav">
           <EmptyState
-            emoji="🤔"
+            icon={ShoppingBasket}
             title="That list isn’t here"
+            body="It may have been deleted."
             action={
               <Link to="/lists" className={buttonClass('secondary', 'md')}>
                 Back to lists
@@ -78,23 +117,21 @@ function ListDetail() {
     <>
       <AppHeader />
       <main className="mx-auto max-w-3xl px-4 pt-4 pb-nav">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-stone-900">{list.name}</h1>
-            <p className="mt-0.5 text-sm text-stone-500">
-              {checked.length} of {list.items.length} ticked
-            </p>
-          </div>
-          <Button onClick={() => setAdding(true)}>
-            <Plus className="size-4" aria-hidden="true" />
-            Add
-          </Button>
-        </div>
+        <PageHeader
+          title={list.name}
+          meta={`${checkedCount} of ${items.length} ticked`}
+          action={
+            <Button onClick={() => setAdding(true)}>
+              <Plus className="size-4" aria-hidden="true" />
+              Add
+            </Button>
+          }
+        />
 
-        {list.items.length === 0 ? (
+        {items.length === 0 ? (
           <div className="mt-4">
             <EmptyState
-              emoji="🧺"
+              icon={ShoppingBasket}
               title="This list is empty"
               body="Add something you need. Dish soap counts too."
               action={
@@ -105,40 +142,57 @@ function ListDetail() {
             />
           </div>
         ) : (
-          <Card className="mt-4 divide-y divide-stone-100 overflow-hidden">
-            {pending.map((item) => (
-              <ItemRow
-                key={item._id}
-                item={item}
-                onToggle={toggleItem}
-                onEdit={() => setEditing(item)}
-              />
-            ))}
-            {checked.length > 0 && (
-              <div className="bg-stone-50/60 px-4 py-2 text-xs font-medium text-stone-400 uppercase">
-                In the basket
-              </div>
+          <div className="mt-4 space-y-3">
+            {pending.length > 0 && (
+              <Card className="overflow-hidden">
+                <ListRows>
+                  {pending.map((item) => (
+                    <ItemRow
+                      key={item._id}
+                      item={item}
+                      onToggle={handleToggle}
+                      onEdit={() => setEditing(item)}
+                    />
+                  ))}
+                </ListRows>
+              </Card>
             )}
-            {checked.map((item) => (
-              <ItemRow
-                key={item._id}
-                item={item}
-                onToggle={toggleItem}
-                onEdit={() => setEditing(item)}
-              />
-            ))}
-          </Card>
+
+            {done.length > 0 && (
+              <Card className="overflow-hidden">
+                <details className="group">
+                  <summary className="flex min-h-[52px] list-none items-center gap-2 px-4 text-meta font-semibold text-ink-600 marker:content-none [&::-webkit-details-marker]:hidden">
+                    <ChevronRight
+                      className="size-4 transition-transform duration-150 ease-out group-open:rotate-90"
+                      aria-hidden="true"
+                    />
+                    Done ({done.length})
+                  </summary>
+                  <ListRows className="border-t border-paper-200">
+                    {done.map((item) => (
+                      <ItemRow
+                        key={item._id}
+                        item={item}
+                        onToggle={handleToggle}
+                        onEdit={() => setEditing(item)}
+                      />
+                    ))}
+                  </ListRows>
+                </details>
+              </Card>
+            )}
+          </div>
         )}
 
         <div className="mt-8 space-y-3">
-          {checked.length > 0 && (
+          {checkedCount > 0 && (
             <Button
               variant="secondary"
               className="w-full"
               onClick={() => clearChecked({ listId: list._id })}
             >
-              Clear {checked.length} ticked item
-              {checked.length === 1 ? '' : 's'}
+              Clear {checkedCount} ticked item
+              {checkedCount === 1 ? '' : 's'}
             </Button>
           )}
           <ConfirmButton
@@ -163,58 +217,68 @@ function ListDetail() {
   )
 }
 
+/**
+ * `[ ○ ]  name                    ≈480g`
+ *
+ * The ≈ is set a shade quieter than the number it qualifies, so it reads as
+ * a caveat rather than part of the amount. Ticking strikes the row through
+ * as well as tinting it: green alone would not survive a colour-blind eye.
+ */
 function ItemRow({
   item,
   onToggle,
   onEdit,
 }: {
   item: Item
-  onToggle: ReturnType<typeof useToggleListItem>
+  onToggle: (id: ItemId, checked: boolean) => void
   onEdit: () => void
 }) {
   const amount = formatListItem(item)
+  const approximate = amount.startsWith('≈')
 
   return (
-    <div className="flex items-center gap-3 px-4 py-1">
-      <label className="flex min-h-[52px] flex-1 cursor-pointer items-center gap-3">
-        <input
-          type="checkbox"
+    <ListRow
+      className={cn(
+        'gap-0 py-0 pr-2 transition-colors duration-150 ease-out',
+        item.checked && 'bg-basil-100',
+      )}
+    >
+      <label
+        htmlFor={`item-${item._id}`}
+        className="flex min-h-[52px] flex-1 items-center gap-3 py-2"
+      >
+        <Checkbox
+          id={`item-${item._id}`}
           checked={item.checked}
-          onChange={(event) =>
-            onToggle({ id: item._id, checked: event.target.checked })
-          }
-          className="size-5 shrink-0 accent-emerald-600"
+          onChange={(event) => onToggle(item._id, event.target.checked)}
         />
         <span
           className={cn(
-            'min-w-0 flex-1 transition-opacity',
-            item.checked && 'text-stone-400 line-through opacity-60',
+            'min-w-0 flex-1 truncate text-body',
+            item.checked ? 'text-ink-400 line-through' : 'text-ink-900',
           )}
         >
-          <span className="block truncate text-base text-stone-800">
-            {item.name}
-          </span>
+          {item.name}
         </span>
-        {amount && (
-          <span
-            className={cn(
-              'shrink-0 text-sm font-semibold tabular-nums',
-              item.checked ? 'text-stone-400 line-through' : 'text-emerald-700',
-            )}
-          >
-            {amount}
-          </span>
-        )}
+        <span
+          className={cn(
+            'shrink-0 pl-3 text-body font-semibold tabular-nums',
+            item.checked ? 'text-ink-400 line-through' : 'text-ink-600',
+          )}
+        >
+          {approximate && <span className="font-normal text-ink-400">≈</span>}
+          {approximate ? amount.slice(1) : amount}
+        </span>
       </label>
       <button
         type="button"
         onClick={onEdit}
         aria-label={`Edit ${item.name}`}
-        className="rounded-lg p-2 text-stone-400 hover:bg-stone-100 hover:text-stone-600"
+        className="rounded-btn p-2 text-ink-400 hover:bg-paper-200 hover:text-ink-600"
       >
         <Pencil className="size-4" aria-hidden="true" />
       </button>
-    </div>
+    </ListRow>
   )
 }
 

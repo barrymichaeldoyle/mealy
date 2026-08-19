@@ -42,6 +42,18 @@ The first run logs you in, creates a deployment, writes `CONVEX_DEPLOYMENT`
 and `VITE_CONVEX_URL` into `.env.local`, and regenerates `convex/_generated`.
 Leave it running while you develop. It pushes schema and function changes.
 
+Pick a cloud deployment, not a local one. A local deployment listens on
+`127.0.0.1`, so you cannot open the app from your phone, and this is a
+mobile-first app. To move an existing setup across:
+
+```bash
+npx convex dev --once --configure existing \
+  --team <team> --project <project>
+```
+
+Environment variables belong to one deployment, so set
+`CLERK_JWT_ISSUER_DOMAIN` again on the new one.
+
 ### 2. Clerk
 
 Create an application at [dashboard.clerk.com](https://dashboard.clerk.com)
@@ -57,18 +69,43 @@ Or let the CLI do it. Install it with `pnpm add -g clerk`, then
 `/sign-in` and `/sign-up` routes.
 
 Convex then needs to know who issues the tokens. This requires a JWT
-template named `convex` in Clerk (claims `{"aud": "convex"}`, matching
-`applicationID` in `convex/auth.config.ts`) and the issuer domain set as a
-Convex environment variable:
+template named `convex` in Clerk, whose `aud` claim matches `applicationID`
+in `convex/auth.config.ts`, and the issuer domain set as a Convex
+environment variable:
 
 ```bash
-clerk api /jwt_templates -X POST -d '{"name":"convex","claims":{"aud":"convex"},"lifetime":3600}'
+clerk api /jwt_templates -X POST -d '{
+  "name": "convex",
+  "lifetime": 3600,
+  "claims": {
+    "aud": "convex",
+    "name": "{{user.full_name}}",
+    "nickname": "{{user.username}}",
+    "email": "{{user.primary_email_address}}",
+    "picture": "{{user.image_url}}"
+  }
+}'
 npx convex env set CLERK_JWT_ISSUER_DOMAIN https://<your-app>.clerk.accounts.dev
 ```
+
+The claims past `aud` are not decoration. Convex reads them into
+`ctx.auth.getUserIdentity()`, and `convex/lib/auth.ts` names a new household
+after `identity.name`. A template carrying only `aud` still signs everyone
+in, but every household comes out called “Me’s kitchen” and every member
+renders as “Me” on `/household`. You only notice once two people share a
+kitchen.
 
 The issuer domain is the Frontend API URL shown in the Clerk dashboard.
 Skip either step and sign-in works but every query returns empty, because
 `ctx.auth.getUserIdentity()` stays null.
+
+To check the wiring rather than trust it, mint a token and call a mutation
+that requires one. Signed out it must refuse:
+
+```bash
+curl -s $VITE_CONVEX_URL/api/mutation -H 'Content-Type: application/json' \
+  -d '{"path":"households:ensureCurrent","args":{},"format":"json"}'
+```
 
 Without a publishable key the dev server falls back to Clerk's keyless mode,
 which is fine for a first look but not for real accounts.

@@ -43,17 +43,22 @@ matches the microcopy voice. The mark sits left of the wordmark, or alone.
     stroke-linecap="round"
     stroke-linejoin="round"
   />
-  <!-- leaves along the upstroke -->
+  <!-- leaves rooted on the upstroke, fanned rather than parallel -->
   <path
-    d="M19.5 10.5 C16.5 9.5 15.5 6.5 16.5 4.5 C19 4.8 21 6.8 20.8 9.6 Z"
+    d="M20.97 10.78 C21.98 8.37 19.71 5.27 17.03 5.74 C15.93 8.22 18.39
+       11.18 20.97 10.78 Z"
     fill="#2d5a3d"
   />
   <path
-    d="M17 15.5 C13.8 15.3 12 12.8 12.3 10.5 C15 10.3 17.5 12 17.8 14.8 Z"
+    d="M17.57 15.26 C17.27 12.48 13.65 10.87 11.45 12.79 C11.7 15.69 15.42
+       17.06 17.57 15.26 Z"
     fill="#2d5a3d"
   />
+  <!-- tip leaf: points up, so it ends the sprig instead of thickening the
+       end of the stroke -->
   <path
-    d="M25 7 C25.5 4.5 27.5 3 29.5 3 C29.8 5.5 28.3 7.8 25.8 8.2 Z"
+    d="M24.9 7 C27.38 6.59 28.57 3.31 26.69 1.48 C24.1 1.86 23.14 5.21 24.9
+       7 Z"
     fill="#3f7a53"
   />
 </svg>
@@ -66,9 +71,16 @@ Notes on the construction:
 - The tip leaf is a lighter green, `#3f7a53`. It adds a little life without
   introducing a new hue. At 16px it just reads as brightness, which is fine.
 - Round caps everywhere, matching the round checkboxes in the shopping list.
-- Nudge the leaf bezier handles by eye in Figma or Inkscape. Hand-written SVG
-  gets you 90% of the way. The last 10% is making the leaves feel plump
-  rather than pointy.
+- Each leaf is an ovate almond: a point where it meets the stem, widest
+  about 40% along, a soft point at the tip. Widths run 4.6 to 5.2 units in
+  the 32 viewBox. Thinner than that and they read as thorns.
+- The three leaves fan rather than sit parallel. Measured off the stem's
+  outward normal, the lower leaf points 158°, the upper 128° and the tip
+  leaf 72°. Give them the same angle and the mark reads as an antler. Take
+  the tip leaf much past 90° and it detaches into a bud floating beside the
+  end of the stroke.
+- The leaf bases sit on the stem centreline, not beside it, so each leaf
+  grows out of the stroke instead of floating next to it.
 
 ---
 
@@ -112,11 +124,13 @@ and dark browser tabs.
     fill="none"
   />
   <path
-    d="M20 11.5 C17 10.5 16 7.5 17 5.5 C19.5 5.8 21.5 7.8 21.3 10.6 Z"
+    d="M20.89 11.54 C22.06 9.11 19.9 5.93 17.13 6.36 C15.86 8.87 18.22 11.9
+       20.89 11.54 Z"
     fill="#faf7f0"
   />
   <path
-    d="M17 16.5 C14 16.3 12.3 13.8 12.6 11.5 C15.2 11.3 17.6 13 17.9 15.8 Z"
+    d="M17.78 15.88 C17.57 13 13.97 11.33 11.7 13.3 C11.86 16.3 15.56 17.73
+       17.78 15.88 Z"
     fill="#faf7f0"
   />
 </svg>
@@ -126,12 +140,13 @@ The tile is `basil-700` with `rx="7"`, about 22%, the same proportional
 radius family as the 10px cards. A paper-cream mark on green is findable in
 a row of 40 tabs, and it is the inverted lockup, so it stays on-system.
 
-File set:
+File set, all of it written by `pnpm icons` from the geometry in
+`src/lib/logo.ts`. Rerun it after changing the mark, and commit the result.
 
 ```text
 public/
   favicon.svg            ← the SVG above (modern browsers)
-  favicon.ico            ← 32px fallback, generated from the SVG
+  favicon.ico            ← 16, 32 and 48px fallback, from the same SVG
   apple-touch-icon.png   ← 180×180, tile WITHOUT rounded corners
                             (iOS applies its own mask, so bake in ~12%
                             padding)

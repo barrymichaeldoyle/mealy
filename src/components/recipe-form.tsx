@@ -305,7 +305,7 @@ export function RecipeForm({
       <section aria-labelledby="ingredients-heading" className="space-y-3">
         <h2
           id="ingredients-heading"
-          className="text-lg font-semibold text-stone-900"
+          className="font-serif text-title font-medium text-ink-900"
         >
           Ingredients
         </h2>
@@ -315,7 +315,7 @@ export function RecipeForm({
             <li key={ingredient.key}>
               <Card className="space-y-3 p-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-stone-400">
+                  <span className="text-meta font-medium text-ink-400">
                     Ingredient {index + 1}
                   </span>
                   <button
@@ -328,7 +328,7 @@ export function RecipeForm({
                       })
                     }
                     aria-label={`Remove ingredient ${index + 1}`}
-                    className="rounded-lg p-2 text-stone-400 hover:bg-red-50 hover:text-red-600"
+                    className="rounded-btn p-2 text-ink-400 hover:bg-paper-200 hover:text-danger-text"
                   >
                     <Trash2 className="size-4" aria-hidden="true" />
                   </button>
@@ -423,7 +423,10 @@ export function RecipeForm({
       </section>
 
       <section aria-labelledby="steps-heading" className="space-y-3">
-        <h2 id="steps-heading" className="text-lg font-semibold text-stone-900">
+        <h2
+          id="steps-heading"
+          className="font-serif text-title font-medium text-ink-900"
+        >
           Method
         </h2>
 
@@ -432,7 +435,7 @@ export function RecipeForm({
             <li key={step.key}>
               <Card className="flex items-start gap-2 p-3">
                 <span
-                  className="mt-2.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-sm font-semibold text-emerald-700"
+                  className="mt-3 shrink-0 font-serif text-title font-medium text-basil-700 tabular-nums"
                   aria-hidden="true"
                 >
                   {index + 1}
@@ -460,7 +463,7 @@ export function RecipeForm({
                     })
                   }
                   aria-label={`Remove step ${index + 1}`}
-                  className="mt-1.5 rounded-lg p-2 text-stone-400 hover:bg-red-50 hover:text-red-600"
+                  className="mt-1.5 rounded-btn p-2 text-ink-400 hover:bg-paper-200 hover:text-danger-text"
                 >
                   <Trash2 className="size-4" aria-hidden="true" />
                 </button>
@@ -484,7 +487,7 @@ export function RecipeForm({
           data-form-error
           tabIndex={-1}
           role="alert"
-          className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+          className="rounded-card border border-tomato-600 px-4 py-3 text-body font-medium text-danger-text"
         >
           {errors.form}
         </p>
@@ -492,8 +495,8 @@ export function RecipeForm({
 
       <div
         className={cn(
-          'sticky bottom-0 -mx-4 flex gap-3 border-t border-stone-200',
-          'bg-stone-50/95 px-4 py-3 backdrop-blur',
+          'sticky bottom-0 -mx-4 flex gap-3 bg-paper-50/95 px-4 py-3',
+          'shadow-[0_-1px_0_var(--color-paper-200)] backdrop-blur',
         )}
       >
         {onCancel && (

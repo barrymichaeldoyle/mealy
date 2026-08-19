@@ -5,20 +5,24 @@ type Size = 'sm' | 'md' | 'lg'
 
 // Every target clears 44px so it stays thumb-friendly on a phone.
 const SIZES: Record<Size, string> = {
-  sm: 'min-h-[36px] px-3 text-sm gap-1.5',
-  md: 'min-h-[44px] px-4 text-sm gap-2',
-  lg: 'min-h-[52px] px-5 text-base gap-2',
+  sm: 'min-h-[36px] px-3 text-meta gap-1.5',
+  md: 'min-h-[44px] px-4 text-body gap-2',
+  lg: 'min-h-[52px] px-5 text-body gap-2',
 }
 
+/*
+ * Three shapes, not five: a filled action, a bordered one, and plain text.
+ * `accent` is the same shape as `primary` in tomato, and a screen gets at
+ * most one of it. Pressed states darken the fill rather than move anything.
+ */
 const VARIANTS: Record<Variant, string> = {
-  primary:
-    'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 active:bg-emerald-800',
+  primary: 'bg-basil-700 text-paper-50 hover:bg-basil-800 active:bg-basil-800',
   accent:
-    'bg-orange-700 text-white shadow-sm hover:bg-orange-800 active:bg-orange-900',
+    'bg-tomato-600 text-paper-50 hover:bg-tomato-700 active:bg-tomato-700',
   secondary:
-    'bg-white text-stone-700 border border-stone-200 shadow-sm hover:bg-stone-50',
-  ghost: 'text-stone-600 hover:bg-stone-100',
-  danger: 'bg-white text-red-600 border border-red-200 hover:bg-red-50',
+    'bg-paper-100 text-ink-900 border border-paper-300 hover:bg-paper-200',
+  ghost: 'text-ink-600 hover:bg-paper-100',
+  danger: 'text-danger-text hover:bg-paper-100',
 }
 
 export function buttonClass(
@@ -27,9 +31,10 @@ export function buttonClass(
   className?: string,
 ): string {
   return cn(
-    'inline-flex items-center justify-center rounded-2xl font-semibold',
-    'transition-colors focus-visible:outline-2 focus-visible:outline-offset-2',
-    'focus-visible:outline-emerald-600 disabled:opacity-50',
+    'inline-flex items-center justify-center rounded-btn font-semibold',
+    'transition-colors duration-150 ease-out',
+    'focus-visible:outline-2 focus-visible:outline-offset-2',
+    'focus-visible:outline-basil-700 disabled:opacity-50',
     'disabled:pointer-events-none',
     SIZES[size],
     VARIANTS[variant],

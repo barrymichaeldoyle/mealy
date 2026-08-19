@@ -1,15 +1,15 @@
 import { useState } from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { Clock, Plus, Search, Users } from 'lucide-react'
+import { BookOpen, Plus, Search, SearchX } from 'lucide-react'
 import { AppHeader } from '../../../components/app-header'
 import { Card } from '../../../components/ui/card'
+import { Chip, chipClass } from '../../../components/ui/chip'
 import { EmptyState } from '../../../components/ui/empty-state'
 import { Input } from '../../../components/ui/field'
+import { PageHeader } from '../../../components/ui/page-header'
 import { SkeletonList } from '../../../components/ui/skeleton'
-import { Tag } from '../../../components/ui/tag'
 import { buttonClass } from '../../../components/ui/button'
 import { useRecipes } from '../../../hooks/use-recipes'
-import { cn } from '../../../lib/cn'
 
 export const Route = createFileRoute('/_app/recipes/')({
   component: RecipeList,
@@ -39,21 +39,23 @@ function RecipeList() {
     <>
       <AppHeader />
       <main className="mx-auto max-w-3xl px-4 pt-4 pb-nav">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold text-stone-900">Recipes</h1>
-          <Link
-            to="/recipes/new"
-            className={buttonClass('primary', 'md')}
-            aria-label="Add a recipe"
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            Add
-          </Link>
-        </div>
+        <PageHeader
+          title="Recipes"
+          action={
+            <Link
+              to="/recipes/new"
+              className={buttonClass('primary', 'md')}
+              aria-label="Add a recipe"
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              Add
+            </Link>
+          }
+        />
 
         <div className="relative mt-4">
           <Search
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-stone-400"
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-400"
             aria-hidden="true"
           />
           <Input
@@ -77,13 +79,7 @@ function RecipeList() {
                   type="button"
                   aria-pressed={isActive}
                   onClick={() => setActiveTag(isActive ? null : tag)}
-                  className={cn(
-                    'shrink-0 rounded-full px-3 py-1.5 text-sm font-medium',
-                    'transition-colors',
-                    isActive
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-amber-100 text-amber-900 hover:bg-amber-200',
-                  )}
+                  className={chipClass(isActive, 'shrink-0')}
                 >
                   {tag}
                 </button>
@@ -97,7 +93,7 @@ function RecipeList() {
             <SkeletonList />
           ) : recipes.length === 0 ? (
             <EmptyState
-              emoji="🥕"
+              icon={BookOpen}
               title="No recipes yet"
               body="Pop in a family favourite and it’s ready to plan and shop for."
               action={
@@ -108,55 +104,71 @@ function RecipeList() {
             />
           ) : filtered.length === 0 ? (
             <EmptyState
-              emoji="🔍"
+              icon={SearchX}
               title="Nothing matches that"
-              body="Try a different search or clear the tag filter."
+              body="Try a different search, or clear the tag filter."
             />
           ) : (
             <ul className="space-y-3">
-              {filtered.map((recipe) => {
-                const totalTime =
-                  (recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0)
-                return (
-                  <li key={recipe._id}>
-                    <Link
-                      to="/recipes/$id"
-                      params={{ id: recipe._id }}
-                      className="block rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-                    >
-                      <Card className="p-4 transition-shadow hover:shadow-md">
-                        <h2 className="font-semibold text-stone-900">
-                          {recipe.title}
-                        </h2>
-                        {recipe.description && (
-                          <p className="mt-1 line-clamp-2 text-sm text-stone-500">
-                            {recipe.description}
-                          </p>
-                        )}
-                        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-stone-500">
-                          <span className="inline-flex items-center gap-1">
-                            <Users className="size-3.5" aria-hidden="true" />
-                            Serves {recipe.servings}
-                          </span>
-                          {totalTime > 0 && (
-                            <span className="inline-flex items-center gap-1">
-                              <Clock className="size-3.5" aria-hidden="true" />
-                              {totalTime} min
-                            </span>
-                          )}
-                          {recipe.tags.map((tag) => (
-                            <Tag key={tag}>{tag}</Tag>
-                          ))}
-                        </div>
-                      </Card>
-                    </Link>
-                  </li>
-                )
-              })}
+              {filtered.map((recipe) => (
+                <li key={recipe._id}>
+                  <Link
+                    to="/recipes/$id"
+                    params={{ id: recipe._id }}
+                    className="block rounded-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-basil-700"
+                  >
+                    <RecipeCard recipe={recipe} />
+                  </Link>
+                </li>
+              ))}
             </ul>
           )}
         </div>
       </main>
     </>
+  )
+}
+
+/**
+ * Title-forward, with no thumbnail slot. The MVP has no images, so the card
+ * is built to look complete rather than to look like something is missing.
+ */
+function RecipeCard({
+  recipe,
+}: {
+  recipe: NonNullable<ReturnType<typeof useRecipes>>[number]
+}) {
+  const totalTime =
+    (recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0)
+  const meta = [
+    totalTime > 0 ? `${totalTime} min` : null,
+    `serves ${recipe.servings}`,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+  return (
+    <Card className="px-5 py-4 transition-colors duration-150 ease-out hover:border-paper-300">
+      <h2 className="font-serif text-title font-medium text-ink-900">
+        {recipe.title}
+      </h2>
+      <p className="mt-1 text-meta font-medium text-ink-400 tabular-nums">
+        {meta}
+      </p>
+      {recipe.description && (
+        <p className="mt-2 line-clamp-2 text-body text-ink-600">
+          {recipe.description}
+        </p>
+      )}
+      {recipe.tags.length > 0 && (
+        <ul className="mt-3 flex flex-wrap gap-2">
+          {recipe.tags.map((tag) => (
+            <li key={tag}>
+              <Chip>{tag}</Chip>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
   )
 }

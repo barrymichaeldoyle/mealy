@@ -1,27 +1,24 @@
 import { useState } from 'react'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Plus, ShoppingBasket } from 'lucide-react'
+import { BookOpen, Plus, ShoppingBasket } from 'lucide-react'
 import { AppHeader } from '../../../components/app-header'
-import { Button } from '../../../components/ui/button'
+import { Button, buttonClass } from '../../../components/ui/button'
 import { Card } from '../../../components/ui/card'
+import { Checkbox } from '../../../components/ui/checkbox'
 import { EmptyState } from '../../../components/ui/empty-state'
+import { PageHeader } from '../../../components/ui/page-header'
 import { Sheet } from '../../../components/ui/sheet'
 import { SkeletonList } from '../../../components/ui/skeleton'
-import { buttonClass } from '../../../components/ui/button'
 import {
   useGenerateListFromRecipes,
   useShoppingLists,
 } from '../../../hooks/use-lists'
 import { useRecipes } from '../../../hooks/use-recipes'
+import { shortDateLabel } from '../../../lib/dates'
 import { cn } from '../../../lib/cn'
 import type { Id } from '../../../../convex/_generated/dataModel'
 
 export const Route = createFileRoute('/_app/lists/')({ component: ListsScreen })
-
-const DATE_FORMAT = new Intl.DateTimeFormat('en-ZA', {
-  day: 'numeric',
-  month: 'short',
-})
 
 function ListsScreen() {
   const lists = useShoppingLists()
@@ -31,20 +28,22 @@ function ListsScreen() {
     <>
       <AppHeader />
       <main className="mx-auto max-w-3xl px-4 pt-4 pb-nav">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold text-stone-900">Lists</h1>
-          <Button onClick={() => setPicking(true)}>
-            <Plus className="size-4" aria-hidden="true" />
-            New list
-          </Button>
-        </div>
+        <PageHeader
+          title="Lists"
+          action={
+            <Button onClick={() => setPicking(true)}>
+              <Plus className="size-4" aria-hidden="true" />
+              New list
+            </Button>
+          }
+        />
 
         <div className="mt-4">
           {lists === undefined ? (
             <SkeletonList rows={3} />
           ) : lists.length === 0 ? (
             <EmptyState
-              emoji="🧺"
+              icon={ShoppingBasket}
               title="No lists yet"
               body="Generate one from your weekly plan, or pick a few recipes."
               action={
@@ -68,31 +67,24 @@ function ListsScreen() {
                     <Link
                       to="/lists/$id"
                       params={{ id: list._id }}
-                      className="block rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                      className="block rounded-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-basil-700"
                     >
-                      <Card className="flex items-center gap-4 p-4 transition-shadow hover:shadow-md">
-                        <span
-                          className={cn(
-                            'flex size-11 shrink-0 items-center justify-center rounded-xl',
-                            done
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-emerald-50 text-emerald-700',
-                          )}
-                        >
-                          <ShoppingBasket
-                            className="size-5"
-                            aria-hidden="true"
-                          />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <h2 className="truncate font-semibold text-stone-900">
-                            {list.name}
-                          </h2>
-                          <p className="text-sm text-stone-500">
-                            {list.checkedCount} of {list.itemCount} ticked ·{' '}
-                            {DATE_FORMAT.format(list.createdAt)}
-                          </p>
-                        </div>
+                      <Card
+                        className={cn(
+                          'px-5 py-4 transition-colors duration-150 ease-out',
+                          done ? 'bg-basil-100' : 'hover:border-paper-300',
+                        )}
+                      >
+                        <h2 className="truncate font-serif text-title font-medium text-ink-900">
+                          {list.name}
+                        </h2>
+                        <p className="mt-1 text-meta font-medium text-ink-400 tabular-nums">
+                          {done
+                            ? 'all ticked'
+                            : `${list.checkedCount} of ${list.itemCount} ticked`}
+                          {' · '}
+                          {shortDateLabel(list.createdAt)}
+                        </p>
                       </Card>
                     </Link>
                   </li>
@@ -134,7 +126,7 @@ function RecipeMultiPicker({
     <Sheet open={open} onClose={onClose} title="Pick recipes">
       {recipes !== undefined && recipes.length === 0 ? (
         <EmptyState
-          emoji="🥕"
+          icon={BookOpen}
           title="No recipes yet"
           body="Add a recipe and it can go straight onto a list."
         />
@@ -146,26 +138,26 @@ function RecipeMultiPicker({
               return (
                 <li key={recipe._id}>
                   <label
-                    aria-label={recipe.title}
+                    htmlFor={`pick-${recipe._id}`}
                     className={cn(
-                      'flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3',
+                      'flex items-center gap-3 rounded-card border px-4 py-3',
+                      'transition-colors duration-150 ease-out',
                       isSelected
-                        ? 'border-emerald-500 bg-emerald-50'
-                        : 'border-stone-200',
+                        ? 'border-basil-700 bg-basil-100'
+                        : 'border-paper-200 bg-paper-50',
                     )}
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
+                      id={`pick-${recipe._id}`}
                       checked={isSelected}
                       onChange={() => toggle(recipe._id)}
-                      className="size-5 accent-emerald-600"
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="block font-medium text-stone-800">
+                      <span className="block font-serif text-title font-medium text-ink-900">
                         {recipe.title}
                       </span>
-                      <span className="block text-xs text-stone-500">
-                        Serves {recipe.servings}
+                      <span className="block text-meta font-medium text-ink-400">
+                        serves {recipe.servings}
                       </span>
                     </span>
                   </label>
@@ -174,7 +166,7 @@ function RecipeMultiPicker({
             })}
           </ul>
 
-          <div className="sticky bottom-0 mt-4 bg-white pt-3">
+          <div className="sticky bottom-0 mt-4 bg-paper-100 pt-3">
             <Button
               variant="accent"
               className="w-full"

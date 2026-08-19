@@ -13,21 +13,20 @@ export function SetupNotice({
 }) {
   return (
     <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-6">
-      <span className="text-4xl" aria-hidden="true">
-        🔌
-      </span>
-      <h1 className="mt-4 text-2xl font-bold text-stone-900">Almost there</h1>
-      <p className="mt-2 text-stone-600">
+      <h1 className="font-serif text-display font-semibold text-ink-900">
+        Almost there
+      </h1>
+      <p className="mt-2 text-body text-ink-600">
         Mealy needs{' '}
-        <code className="rounded bg-stone-200 px-1.5 py-0.5 text-sm">
+        <code className="rounded bg-paper-200 px-1.5 py-0.5 text-meta">
           {missing}
         </code>{' '}
         before it can start.
       </p>
-      <p className="mt-4 rounded-xl bg-stone-900 px-4 py-3 font-mono text-sm text-stone-100">
+      <p className="mt-4 rounded-card bg-ink-900 px-4 py-3 font-mono text-meta text-paper-50">
         {command}
       </p>
-      <p className="mt-3 text-sm text-stone-500">{detail}</p>
+      <p className="mt-3 text-meta text-ink-400">{detail}</p>
     </main>
   )
 }

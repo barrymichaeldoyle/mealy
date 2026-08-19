@@ -1,27 +1,64 @@
 @import 'tailwindcss';
 
+/*
+ * Fraunces carries the optical-size axis, so headings tighten as they grow.
+ * Both files split by unicode-range, so a latin page only ever fetches the
+ * latin woff2. Fontsource sets font-display: swap for us.
+ */
+@import '@fontsource-variable/fraunces/opsz.css';
+@import '@fontsource-variable/inter/wght.css';
+
 /**
- * Mealy theme: fresh, healthy, friendly.
- * Emerald for actions, warm orange for the big CTAs, amber for tags,
- * warm stone neutrals instead of cold grays.
+ * Mealy theme: "Kitchen Table". See docs/DESIGN_Specification.md.
+ * Warm paper surfaces, warm near-black ink, one green, one tomato accent.
+ * Never write a raw hex in a component. Reach for a token or add one here.
  */
 @theme {
-  --color-brand-50: var(--color-emerald-50);
-  --color-brand-100: var(--color-emerald-100);
-  --color-brand-200: var(--color-emerald-200);
-  --color-brand-500: var(--color-emerald-500);
-  --color-brand-600: var(--color-emerald-600);
-  --color-brand-700: var(--color-emerald-700);
-  --color-brand-900: var(--color-emerald-900);
+  /* Paper (surfaces): warm, slightly yellow-shifted. */
+  --color-paper-50: #faf7f0;
+  --color-paper-100: #f3eee2;
+  --color-paper-200: #e7dfcd;
+  --color-paper-300: #d3c8ae;
 
-  --color-accent-100: var(--color-orange-100);
-  --color-accent-500: var(--color-orange-500);
-  --color-accent-600: var(--color-orange-600);
+  /* Ink (text): warm near-black, never pure black. */
+  --color-ink-900: #262115;
+  --color-ink-600: #5c5443;
+  --color-ink-400: #6f6652;
 
-  --color-surface: var(--color-stone-50);
-  --color-ink: var(--color-stone-800);
-  --color-ink-muted: var(--color-stone-500);
-  --color-hairline: var(--color-stone-200);
+  /* Basil (primary): a deep herb green, not emerald. */
+  --color-basil-700: #2d5a3d;
+  --color-basil-800: #234a31;
+  --color-basil-100: #dfeadf;
+
+  /* Tomato (accent): the one loud CTA per screen, and destructive. */
+  --color-tomato-600: #c8442c;
+  --color-tomato-700: #a83722;
+
+  --color-success: var(--color-basil-700);
+  --color-danger: var(--color-tomato-600);
+  /* Destructive *text* takes the darker shade: tomato-600 only clears
+   * 4.2:1 on a paper-100 card, which is under AA for body sizes. */
+  --color-danger-text: var(--color-tomato-700);
+
+  --font-serif: 'Fraunces Variable', Georgia, 'Times New Roman', serif;
+  --font-sans:
+    'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    Roboto, sans-serif;
+
+  /* Cards and inputs get 10px, buttons 8px. Nothing gets rounded-2xl. */
+  --radius-card: 10px;
+  --radius-btn: 8px;
+
+  --text-display: 1.75rem;
+  --text-display--line-height: 2.125rem;
+  --text-title: 1.25rem;
+  --text-title--line-height: 1.625rem;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5rem;
+  --text-cook: 1.125rem;
+  --text-cook--line-height: 1.875rem;
+  --text-meta: 0.8125rem;
+  --text-meta--line-height: 1.125rem;
 }
 
 * {
@@ -35,7 +72,9 @@
 button:not(:disabled),
 [role='button']:not([aria-disabled='true']),
 label:has(input[type='checkbox']),
+label:has(input[type='radio']),
 input[type='checkbox'],
+input[type='radio'],
 summary {
   cursor: pointer;
 }
@@ -45,20 +84,40 @@ body {
   min-height: 100%;
 }
 
+html {
+  /* Only affects faces that carry an opsz axis, which is Fraunces. */
+  font-optical-sizing: auto;
+}
+
 body {
   margin: 0;
-  background-color: var(--color-surface);
-  color: var(--color-ink);
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
+  background-color: var(--color-paper-50);
+  color: var(--color-ink-900);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
   -webkit-font-smoothing: antialiased;
   /* Never let a horizontal overflow scroll the whole phone screen. */
   overflow-x: hidden;
+}
+
+/*
+ * Hairline dividers between list rows, inset to the text edge rather than
+ * running the full width of the card. See components/ui/list-row.tsx.
+ */
+@utility divide-inset {
+  & > * + * {
+    position: relative;
+  }
+
+  & > * + *::before {
+    content: '';
+    position: absolute;
+    inset-inline: 1rem 0;
+    top: 0;
+    height: 1px;
+    background-color: var(--color-paper-200);
+  }
 }
 
 /* Bottom nav sits above the home indicator on notched phones. */
@@ -73,6 +132,23 @@ body {
 /* Room for the sticky bottom tab bar plus the safe area. */
 .pb-nav {
   padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Bottom sheets slide up; see components/ui/sheet.tsx. */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Skeletons shimmer in paper tones, never grey on white. */
+@keyframes paper-shimmer {
+  50% {
+    background-color: var(--color-paper-200);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

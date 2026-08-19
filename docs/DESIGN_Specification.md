@@ -59,7 +59,7 @@ or config):
   /* Ink (text): warm near-black, never pure #000 */
   --ink-900: #262115; /* headings, primary text */
   --ink-600: #5c5443; /* body secondary */
-  --ink-400: #8f8672; /* placeholders, meta, timestamps */
+  --ink-400: #6f6652; /* placeholders, meta, timestamps */
 
   /* Basil (primary): a deep herb green, not emerald */
   --basil-700: #2d5a3d; /* buttons, active tab, links */
@@ -73,6 +73,7 @@ or config):
   /* Semantic */
   --success: var(--basil-700);
   --danger: var(--tomato-600);
+  --danger-text: var(--tomato-700); /* destructive *text*, see below */
 }
 ```
 
@@ -91,10 +92,23 @@ Usage rules, which are the important part:
 Dark mode is out of MVP scope, but these tokens make it a swap later
 (dark paper `#1c1913`, and so on). Do not half-implement it now.
 
-Contrast: `ink-900` on `paper-50` is about 13:1, `basil-700` on
-`paper-50` is about 7:1, and `paper-50` text on `basil-700` passes AA.
-Never signal state with green alone. Checked items get strikethrough plus
-tint, not just a green tick.
+Contrast: `ink-900` on `paper-50` is about 15:1, `basil-700` on `paper-50`
+is about 7.4:1, and `paper-50` text on `basil-700` passes AA. Never signal
+state with green alone. Checked items get strikethrough plus tint, not just
+a green tick.
+
+Two of these values were darkened after measuring them, because the first
+draft did not clear 4.5:1:
+
+- `ink-400` was `#8f8672`, which is 3.4:1 on `paper-50` and only 2.9:1 on
+  the `basil-100` of a ticked shopping list row. At `#6f6652` the worst
+  pairing is 4.6:1. Meta text is 13px, so it is not "large" and the 3:1
+  allowance does not apply.
+- Destructive *text* uses `tomato-700`, not `tomato-600`. Tomato-600 is
+  4.2:1 on a `paper-100` card, under the line. Tomato-600 stays as the
+  accent fill, where the text on top of it is `paper-50` at 4.5:1.
+
+Anything added to this palette gets measured before it ships.
 
 ---
 
@@ -155,7 +169,7 @@ away with floury hands. It should feel like a page, not a form.
   600.
 - **Accent**, one per screen: same shape, `tomato-600`.
 - **Secondary:** `paper-100` fill, `paper-300` border, `ink-900` text.
-- **Ghost and destructive text:** plain text in `tomato-600`. No outlined
+- **Ghost and destructive text:** plain text in `tomato-700`. No outlined
   buttons. Three variants is enough.
 - **Pressed:** darken the fill to the `-800` shade. No scale animations.
 

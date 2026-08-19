@@ -100,26 +100,26 @@ function MembersCard({
 
   return (
     <Card className="p-5">
-      <h2 className="font-semibold text-stone-900">
+      <h2 className="font-serif text-title font-medium text-ink-900">
         {members.length === 1 ? 'Just you so far' : `${members.length} people`}
       </h2>
-      <ul className="mt-3 divide-y divide-stone-100">
+      <ul className="mt-3 divide-y divide-paper-200">
         {members.map((member) => (
           <li
             key={member._id}
             className="flex items-center gap-3 py-3 first:pt-0"
           >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-50 font-semibold text-emerald-700">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-basil-100 font-serif font-medium text-basil-700">
               {member.name.slice(0, 1).toUpperCase()}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate font-medium text-stone-800">
+              <span className="block truncate font-medium text-ink-900">
                 {member.name}
                 {member.userId === meId && (
-                  <span className="text-stone-400"> (you)</span>
+                  <span className="text-ink-400"> (you)</span>
                 )}
               </span>
-              <span className="text-xs text-stone-500 capitalize">
+              <span className="text-meta text-ink-400 capitalize">
                 {member.role}
               </span>
             </span>
@@ -164,15 +164,17 @@ function InviteCard({
 
   return (
     <Card className="p-5">
-      <h2 className="font-semibold text-stone-900">Invite someone</h2>
-      <p className="mt-1 text-sm text-stone-500">
+      <h2 className="font-serif text-title font-medium text-ink-900">
+        Invite someone
+      </h2>
+      <p className="mt-1 text-body text-ink-600">
         Anyone who opens the link joins {householdName} and sees the same
         recipes, plan and lists as you.
       </p>
 
       {token ? (
         <div className="mt-4 space-y-3">
-          <p className="rounded-xl bg-stone-50 px-3 py-2.5 font-mono text-xs break-all text-stone-600">
+          <p className="rounded-card border border-paper-200 bg-paper-50 px-3 py-2.5 font-mono text-meta break-all text-ink-600">
             {inviteUrl(token)}
           </p>
           <div className="flex flex-wrap gap-2">
@@ -192,7 +194,7 @@ function InviteCard({
             </Button>
           </div>
           {expiresAt && (
-            <p className="text-xs text-stone-500">
+            <p className="text-meta text-ink-400">
               The link works once, and expires on{' '}
               {new Date(expiresAt).toLocaleDateString('en-ZA', {
                 day: 'numeric',
@@ -229,8 +231,10 @@ function LeaveCard() {
 
   return (
     <Card className="p-5">
-      <h2 className="font-semibold text-stone-900">Leave this household</h2>
-      <p className="mt-1 text-sm text-stone-500">
+      <h2 className="font-serif text-title font-medium text-ink-900">
+        Leave this household
+      </h2>
+      <p className="mt-1 text-body text-ink-600">
         You go back to a kitchen of your own. The recipes, plans and lists stay
         here with everyone else.
       </p>

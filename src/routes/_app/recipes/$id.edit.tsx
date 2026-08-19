@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { FileQuestion } from 'lucide-react'
 import { AppHeader } from '../../../components/app-header'
 import { RecipeForm, type RecipeDraft } from '../../../components/recipe-form'
 import { SkeletonList } from '../../../components/ui/skeleton'
@@ -33,7 +34,7 @@ function EditRecipe() {
       <>
         <AppHeader title="Edit recipe" />
         <main className="mx-auto max-w-3xl px-4 pt-4 pb-nav">
-          <EmptyState emoji="🤔" title="That recipe isn’t here" />
+          <EmptyState icon={FileQuestion} title="That recipe isn’t here" />
         </main>
       </>
     )

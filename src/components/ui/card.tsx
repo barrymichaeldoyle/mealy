@@ -1,5 +1,9 @@
 import { cn } from '../../lib/cn'
 
+/**
+ * Depth comes from a tone shift plus a hairline, never a shadow. Shadows are
+ * reserved for things that actually float: the sheet and the sticky bars.
+ */
 export function Card({
   className,
   ...props
@@ -7,7 +11,7 @@ export function Card({
   return (
     <div
       className={cn(
-        'rounded-2xl bg-white shadow-sm ring-1 ring-stone-200/70',
+        'rounded-card border border-paper-200 bg-paper-100',
         className,
       )}
       {...props}

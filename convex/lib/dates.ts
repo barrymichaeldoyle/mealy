@@ -19,6 +19,15 @@ const MONTHS = [
   'Dec',
 ]
 
+/**
+ * Three-letter month for a 0-based index, or undefined if out of range.
+ * `src/lib/dates.ts` formats against this too, because en-ZA's Intl data
+ * abbreviates September as "Sept" and the two would otherwise disagree.
+ */
+export function shortMonth(index: number): string | undefined {
+  return MONTHS[index]
+}
+
 /** "2026-08-17" becomes "17 Aug". Falls back to the input if it is not a date. */
 export function formatShortDate(iso: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)

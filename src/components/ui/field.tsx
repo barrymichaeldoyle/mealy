@@ -1,11 +1,17 @@
 import { cloneElement, isValidElement, useId } from 'react'
 import { cn } from '../../lib/cn'
 
+/*
+ * Inputs fill with `paper-50`, lighter than the `paper-100` card they sit
+ * in, so they punch through the paper instead of sinking into it. 16px text
+ * because anything smaller makes iOS zoom the page on focus.
+ */
 const CONTROL = cn(
-  'w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5',
-  'text-base text-stone-800 placeholder:text-stone-400 shadow-sm',
-  'focus:border-emerald-500 focus:outline-2 focus:outline-offset-0',
-  'focus:outline-emerald-500/40',
+  'w-full rounded-card border border-paper-300 bg-paper-50 px-3 py-2.5',
+  'text-body text-ink-900 placeholder:text-ink-400',
+  'transition-colors duration-150 ease-out',
+  'focus:border-basil-700 focus:outline-2 focus:outline-offset-2',
+  'focus:outline-basil-700',
 )
 
 export function Field({
@@ -26,7 +32,8 @@ export function Field({
   const control = children(id)
   return (
     <div className={cn('space-y-1.5', className)}>
-      <label htmlFor={id} className="block text-sm font-medium text-stone-700">
+      {/* Always a visible label. Placeholder-as-label loses the question. */}
+      <label htmlFor={id} className="block text-meta font-medium text-ink-600">
         {label}
       </label>
       {/*
@@ -40,11 +47,11 @@ export function Field({
             'aria-describedby': errorId,
           })
         : control}
-      {hint && !error && <p className="text-xs text-stone-500">{hint}</p>}
+      {hint && !error && <p className="text-meta text-ink-400">{hint}</p>}
       {error && (
         <p
           id={errorId}
-          className="text-xs font-medium text-red-600"
+          className="text-meta font-medium text-danger-text"
           role="alert"
         >
           {error}

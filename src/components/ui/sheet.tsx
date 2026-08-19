@@ -12,7 +12,8 @@ import { cn } from '../../lib/cn'
 
 /**
  * Bottom sheet on phones, centred dialog on wider screens. Uses a native
- * <dialog> so focus trapping and Escape come from the platform.
+ * <dialog> so focus trapping and Escape come from the platform. Sheets are
+ * the one place a real shadow is allowed, because this surface floats.
  */
 export function Sheet({
   open,
@@ -54,20 +55,23 @@ export function Sheet({
       }}
       aria-label={title}
       className={cn(
-        'w-full max-w-lg rounded-t-3xl bg-white p-0 backdrop:bg-stone-900/40',
-        'sm:rounded-3xl',
+        'w-full max-w-lg bg-paper-100 p-0 backdrop:bg-ink-900/30',
+        'rounded-t-[1.25rem] sm:rounded-[1.25rem]',
         'mx-auto mt-auto mb-0 sm:my-auto',
-        'open:animate-none',
+        'shadow-[0_-4px_24px_rgba(38,33,21,0.16)]',
+        'open:animate-[sheet-up_250ms_ease-out] sm:open:animate-none',
         className,
       )}
     >
-      <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
-        <h2 className="text-base font-semibold text-stone-800">{title}</h2>
+      <div className="flex items-center justify-between border-b border-paper-200 px-5 py-4">
+        <h2 className="font-serif text-title font-medium text-ink-900">
+          {title}
+        </h2>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="-mr-2 rounded-full p-2 text-stone-500 hover:bg-stone-100"
+          className="-mr-2 rounded-full p-2 text-ink-400 hover:bg-paper-200 hover:text-ink-600"
         >
           <X className="size-5" aria-hidden="true" />
         </button>

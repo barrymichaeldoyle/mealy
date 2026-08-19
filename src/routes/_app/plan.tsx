@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import {
+  BookOpen,
   ChevronLeft,
   ChevronRight,
   Minus,
   Plus,
-  ShoppingBasket,
   Trash2,
 } from 'lucide-react'
 import { AppHeader } from '../../components/app-header'
@@ -13,6 +13,7 @@ import { Button } from '../../components/ui/button'
 import { Card } from '../../components/ui/card'
 import { Sheet } from '../../components/ui/sheet'
 import { Input } from '../../components/ui/field'
+import { PageHeader } from '../../components/ui/page-header'
 import { Skeleton } from '../../components/ui/skeleton'
 import { EmptyState } from '../../components/ui/empty-state'
 import {
@@ -25,12 +26,14 @@ import { useRecipes } from '../../hooks/use-recipes'
 import { useGenerateListFromPlan } from '../../hooks/use-lists'
 import {
   addDays,
-  dayMonthLabel,
+  dayOfMonth,
+  isCurrentWeek,
   isToday,
   startOfWeek,
   weekDates,
   weekRangeLabel,
   weekdayLongLabel,
+  weekdayShortLabel,
   type IsoDate,
 } from '../../lib/dates'
 import { cn } from '../../lib/cn'
@@ -72,165 +75,91 @@ function PlanScreen() {
     <>
       <AppHeader />
       <main className="mx-auto max-w-3xl px-4 pt-4 pb-nav">
-        <div className="flex items-center justify-between gap-2">
-          <h1 className="text-2xl font-bold text-stone-900">Plan</h1>
-          <Button
-            variant="accent"
-            disabled={plannedCount === 0 || generating}
-            onClick={async () => {
-              setGenerating(true)
-              try {
-                const listId = await generateList({ start, end })
-                await navigate({ to: '/lists/$id', params: { id: listId } })
-              } finally {
-                setGenerating(false)
-              }
-            }}
-          >
-            <ShoppingBasket className="size-4" aria-hidden="true" />
-            {generating ? 'Generating…' : 'Generate list'}
-          </Button>
-        </div>
-
-        <div className="mt-4 flex items-center justify-between rounded-2xl bg-white px-2 py-2 shadow-sm ring-1 ring-stone-200/70">
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label="Previous week"
-            onClick={() => setWeekStart(addDays(weekStart, -7))}
-          >
-            <ChevronLeft className="size-5" aria-hidden="true" />
-          </Button>
-          <div className="text-center">
-            <p className="text-sm font-semibold text-stone-800">
-              {weekRangeLabel(weekStart)}
-            </p>
-            <button
-              type="button"
-              className="text-xs font-medium text-emerald-700 hover:underline"
-              onClick={() => setWeekStart(startOfWeek(new Date()))}
+        <PageHeader
+          title="Plan"
+          action={
+            /* The one loud CTA on this screen. */
+            <Button
+              variant="accent"
+              disabled={plannedCount === 0 || generating}
+              onClick={async () => {
+                setGenerating(true)
+                try {
+                  const listId = await generateList({ start, end })
+                  await navigate({ to: '/lists/$id', params: { id: listId } })
+                } finally {
+                  setGenerating(false)
+                }
+              }}
             >
-              Jump to this week
-            </button>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label="Next week"
-            onClick={() => setWeekStart(addDays(weekStart, 7))}
-          >
-            <ChevronRight className="size-5" aria-hidden="true" />
-          </Button>
-        </div>
+              {generating ? 'Generating…' : 'Generate list'}
+            </Button>
+          }
+        />
 
-        <ul className="mt-4 space-y-3">
-          {days.map((date) => {
-            const dayMeals = mealsByDate.get(date) ?? []
-            return (
-              <li key={date}>
-                <Card
-                  className={cn(
-                    'overflow-hidden',
-                    isToday(date) && 'ring-2 ring-emerald-500',
-                  )}
-                >
-                  <div className="flex items-center justify-between bg-stone-50/80 px-4 py-2.5">
-                    <h2 className="text-sm font-semibold text-stone-700">
-                      {weekdayLongLabel(date)}
-                      <span className="ml-2 font-normal text-stone-400">
-                        {dayMonthLabel(date)}
-                      </span>
-                      {isToday(date) && (
-                        <span className="ml-2 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white uppercase">
-                          Today
-                        </span>
-                      )}
-                    </h2>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      aria-label={`Add dinner for ${weekdayLongLabel(date)}`}
+        <WeekNav weekStart={weekStart} onChange={setWeekStart} />
+
+        {/*
+         * Seven day rows, not a grid. This is a phone: a grid squeezes a
+         * recipe title into three characters.
+         */}
+        <ol className="mt-4">
+          {days.map((date) => (
+            <li key={date} className="flex gap-3 py-2">
+              <DayRail date={date} />
+              <div className="min-w-0 flex-1 space-y-2">
+                {meals === undefined ? (
+                  <Skeleton className="h-[52px] w-full" />
+                ) : (mealsByDate.get(date) ?? []).length === 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setPickerDate(date)}
+                    className={cn(
+                      'flex min-h-[52px] w-full items-center gap-2 rounded-card',
+                      'border border-dashed border-paper-300 px-4',
+                      'text-body text-ink-400 transition-colors duration-150',
+                      'ease-out hover:border-basil-700 hover:text-basil-700',
+                      'focus-visible:outline-2 focus-visible:outline-offset-2',
+                      'focus-visible:outline-basil-700',
+                    )}
+                  >
+                    <Plus className="size-4" aria-hidden="true" />
+                    Add dinner
+                    <span className="sr-only">
+                      {' '}
+                      for {weekdayLongLabel(date)}
+                    </span>
+                  </button>
+                ) : (
+                  <>
+                    {(mealsByDate.get(date) ?? []).map((meal) => (
+                      <MealCard
+                        key={meal._id}
+                        title={meal.recipe?.title ?? 'Deleted recipe'}
+                        servings={meal.servings}
+                        onServings={(servings) =>
+                          setServings({ id: meal._id, servings })
+                        }
+                        onRemove={() => removeMeal({ id: meal._id })}
+                      />
+                    ))}
+                    <button
+                      type="button"
                       onClick={() => setPickerDate(date)}
+                      className="rounded-btn px-1 py-1 text-meta font-medium text-basil-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-basil-700"
                     >
-                      <Plus className="size-4" aria-hidden="true" />
-                      Dinner
-                    </Button>
-                  </div>
-
-                  {meals === undefined ? (
-                    <div className="px-4 py-3">
-                      <Skeleton className="h-6 w-2/3" />
-                    </div>
-                  ) : dayMeals.length === 0 ? (
-                    <p className="px-4 py-4 text-sm text-stone-400">
-                      Nothing planned yet.
-                    </p>
-                  ) : (
-                    <ul className="divide-y divide-stone-100">
-                      {dayMeals.map((meal) => (
-                        <li
-                          key={meal._id}
-                          className="flex items-center gap-3 px-4 py-3"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate font-medium text-stone-800">
-                              {meal.recipe?.title ?? 'Deleted recipe'}
-                            </p>
-                            <p className="text-xs text-stone-500">
-                              Serves {meal.servings}
-                            </p>
-                          </div>
-
-                          <div className="flex items-center gap-1 rounded-xl bg-stone-100 p-0.5">
-                            <button
-                              type="button"
-                              aria-label="Fewer servings"
-                              disabled={meal.servings <= 1}
-                              onClick={() =>
-                                setServings({
-                                  id: meal._id,
-                                  servings: meal.servings - 1,
-                                })
-                              }
-                              className="rounded-lg p-2 text-stone-600 hover:bg-white disabled:opacity-40"
-                            >
-                              <Minus className="size-4" aria-hidden="true" />
-                            </button>
-                            <span className="min-w-5 text-center text-sm font-semibold tabular-nums">
-                              {meal.servings}
-                            </span>
-                            <button
-                              type="button"
-                              aria-label="More servings"
-                              onClick={() =>
-                                setServings({
-                                  id: meal._id,
-                                  servings: meal.servings + 1,
-                                })
-                              }
-                              className="rounded-lg p-2 text-stone-600 hover:bg-white"
-                            >
-                              <Plus className="size-4" aria-hidden="true" />
-                            </button>
-                          </div>
-
-                          <button
-                            type="button"
-                            aria-label={`Remove ${meal.recipe?.title ?? 'meal'}`}
-                            onClick={() => removeMeal({ id: meal._id })}
-                            className="rounded-lg p-2 text-stone-400 hover:bg-red-50 hover:text-red-600"
-                          >
-                            <Trash2 className="size-4" aria-hidden="true" />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </Card>
-              </li>
-            )
-          })}
-        </ul>
+                      Add another
+                      <span className="sr-only">
+                        {' '}
+                        dinner for {weekdayLongLabel(date)}
+                      </span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </li>
+          ))}
+        </ol>
       </main>
 
       <RecipePicker
@@ -247,6 +176,132 @@ function PlanScreen() {
         }}
       />
     </>
+  )
+}
+
+/**
+ * The week header sticks so you always know which week you are editing. The
+ * way back only appears once there is somewhere to go back to.
+ */
+function WeekNav({
+  weekStart,
+  onChange,
+}: {
+  weekStart: Date
+  onChange: (next: Date) => void
+}) {
+  const current = isCurrentWeek(weekStart)
+
+  return (
+    <div className="sticky top-14 z-10 -mx-4 mt-4 bg-paper-50/95 px-4 py-2 backdrop-blur">
+      <div className="flex items-center justify-between gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label="Previous week"
+          onClick={() => onChange(addDays(weekStart, -7))}
+        >
+          <ChevronLeft className="size-5" aria-hidden="true" />
+        </Button>
+        <p className="font-serif text-title font-medium text-ink-900 tabular-nums">
+          {weekRangeLabel(weekStart)}
+        </p>
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label="Next week"
+          onClick={() => onChange(addDays(weekStart, 7))}
+        >
+          <ChevronRight className="size-5" aria-hidden="true" />
+        </Button>
+      </div>
+      {!current && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={() => onChange(startOfWeek(new Date()))}
+            className="rounded-btn px-2 py-1 text-meta font-medium text-basil-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-basil-700"
+          >
+            Back to this week
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** The left rail: weekday above the date number, today ringed in basil. */
+function DayRail({ date }: { date: IsoDate }) {
+  const today = isToday(date)
+
+  return (
+    <div className="w-11 shrink-0 pt-1 text-center">
+      <p className="font-serif text-meta font-medium text-ink-400 uppercase">
+        {weekdayShortLabel(date)}
+      </p>
+      <p
+        className={cn(
+          'mx-auto mt-0.5 grid size-8 place-items-center rounded-full',
+          'font-serif text-title font-medium tabular-nums',
+          today ? 'bg-basil-700 text-paper-50' : 'text-ink-600',
+        )}
+      >
+        {dayOfMonth(date)}
+        {today && <span className="sr-only"> (today)</span>}
+      </p>
+    </div>
+  )
+}
+
+function MealCard({
+  title,
+  servings,
+  onServings,
+  onRemove,
+}: {
+  title: string
+  servings: number
+  onServings: (servings: number) => void
+  onRemove: () => void
+}) {
+  return (
+    <Card className="flex items-center gap-2 py-2 pr-2 pl-4">
+      <p className="min-w-0 flex-1 truncate font-serif text-title font-medium text-ink-900">
+        {title}
+      </p>
+
+      <div className="flex items-center gap-0.5 rounded-btn border border-paper-200 bg-paper-50">
+        <button
+          type="button"
+          aria-label={`Fewer servings of ${title}`}
+          disabled={servings <= 1}
+          onClick={() => onServings(servings - 1)}
+          className="rounded-btn p-2 text-ink-600 hover:bg-paper-200 disabled:opacity-40"
+        >
+          <Minus className="size-4" aria-hidden="true" />
+        </button>
+        <span className="min-w-5 text-center text-meta font-semibold text-ink-900 tabular-nums">
+          {servings}
+        </span>
+        <button
+          type="button"
+          aria-label={`More servings of ${title}`}
+          onClick={() => onServings(servings + 1)}
+          className="rounded-btn p-2 text-ink-600 hover:bg-paper-200"
+        >
+          <Plus className="size-4" aria-hidden="true" />
+        </button>
+      </div>
+
+      <button
+        type="button"
+        aria-label={`Remove ${title}`}
+        onClick={onRemove}
+        className="rounded-btn p-2 text-ink-400 hover:bg-paper-200 hover:text-danger-text"
+      >
+        <Trash2 className="size-4" aria-hidden="true" />
+      </button>
+    </Card>
   )
 }
 
@@ -286,7 +341,7 @@ function RecipePicker({
       {recipes !== undefined && recipes.length === 0 ? (
         <div className="mt-4">
           <EmptyState
-            emoji="🥕"
+            icon={BookOpen}
             title="No recipes yet"
             body="Add a recipe first, then you can plan it in."
           />
@@ -298,13 +353,19 @@ function RecipePicker({
               <button
                 type="button"
                 onClick={() => onPick(recipe._id)}
-                className="w-full rounded-xl border border-stone-200 px-4 py-3 text-left hover:border-emerald-400 hover:bg-emerald-50"
+                className={cn(
+                  'w-full rounded-card border border-paper-200 bg-paper-50',
+                  'px-4 py-3 text-left transition-colors duration-150 ease-out',
+                  'hover:border-basil-700 hover:bg-basil-100',
+                  'focus-visible:outline-2 focus-visible:outline-offset-2',
+                  'focus-visible:outline-basil-700',
+                )}
               >
-                <span className="block font-medium text-stone-800">
+                <span className="block font-serif text-title font-medium text-ink-900">
                   {recipe.title}
                 </span>
-                <span className="block text-xs text-stone-500">
-                  Serves {recipe.servings}
+                <span className="block text-meta font-medium text-ink-400">
+                  serves {recipe.servings}
                   {recipe.tags.length > 0 && ` · ${recipe.tags.join(', ')}`}
                 </span>
               </button>

@@ -13,7 +13,9 @@ export const Route = createRootRoute({
         name: 'viewport',
         content: 'width=device-width, initial-scale=1, viewport-fit=cover',
       },
-      { name: 'theme-color', content: '#059669' },
+      // Paper, not basil: the browser chrome should blend with the app
+      // background rather than shout. See docs/LOGO_Specification.md.
+      { name: 'theme-color', content: '#faf7f0' },
       { title: 'Mealy' },
       {
         name: 'description',
@@ -22,7 +24,12 @@ export const Route = createRootRoute({
           'consolidated list.',
       },
     ],
-    links: [{ rel: 'stylesheet', href: appCss }],
+    links: [
+      { rel: 'stylesheet', href: appCss },
+      { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' },
+      { rel: 'icon', href: '/favicon.ico', sizes: '32x32' },
+      { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+    ],
   }),
   shellComponent: RootDocument,
 })

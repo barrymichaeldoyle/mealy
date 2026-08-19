@@ -1,10 +1,11 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Clock, Pencil, Users } from 'lucide-react'
+import { FileQuestion, Pencil } from 'lucide-react'
 import { AppHeader } from '../../../components/app-header'
 import { Card } from '../../../components/ui/card'
+import { Chip } from '../../../components/ui/chip'
 import { EmptyState } from '../../../components/ui/empty-state'
+import { ListRow, ListRows } from '../../../components/ui/list-row'
 import { SkeletonList } from '../../../components/ui/skeleton'
-import { Tag } from '../../../components/ui/tag'
 import { buttonClass } from '../../../components/ui/button'
 import { ConfirmButton } from '../../../components/ui/confirm-button'
 import { useDeleteRecipe, useRecipe } from '../../../hooks/use-recipes'
@@ -38,7 +39,7 @@ function RecipeDetail() {
         <AppHeader />
         <main className="mx-auto max-w-3xl px-4 pt-4 pb-nav">
           <EmptyState
-            emoji="🤔"
+            icon={FileQuestion}
             title="That recipe isn’t here"
             body="It may have been deleted."
             action={
@@ -54,119 +55,124 @@ function RecipeDetail() {
 
   const totalTime =
     (recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0)
+  const meta = [
+    recipe.prepTimeMinutes ? `prep ${recipe.prepTimeMinutes} min` : null,
+    recipe.cookTimeMinutes ? `cook ${recipe.cookTimeMinutes} min` : null,
+    totalTime > 0 ? `${totalTime} min total` : null,
+    `serves ${recipe.servings}`,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
     <>
       <AppHeader />
-      {/* Generous type and spacing: this screen gets read mid-cook. */}
+      {/*
+       * Cook mode: this page gets read from a metre away with floury hands,
+       * so the type runs a size up and the method column is capped at about
+       * 34ch. It should feel like a page, not a form.
+       */}
       <main className="mx-auto max-w-3xl px-4 pt-4 pb-nav">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-stone-900">
+            <h1 className="font-serif text-display font-semibold text-ink-900">
               {recipe.title}
             </h1>
-            {recipe.description && (
-              <p className="mt-1 text-stone-600">{recipe.description}</p>
-            )}
+            <p className="mt-1 text-meta font-medium text-ink-400 tabular-nums">
+              {meta}
+            </p>
           </div>
           <Link
             to="/recipes/$id/edit"
             params={{ id: recipe._id }}
-            className={buttonClass('secondary', 'md', 'shrink-0')}
+            className={buttonClass('secondary', 'md', 'mt-1 shrink-0')}
           >
             <Pencil className="size-4" aria-hidden="true" />
             Edit
           </Link>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-stone-500">
-          <span className="inline-flex items-center gap-1.5">
-            <Users className="size-4" aria-hidden="true" />
-            Serves {recipe.servings}
-          </span>
-          {recipe.prepTimeMinutes ? (
-            <span>Prep {recipe.prepTimeMinutes} min</span>
-          ) : null}
-          {recipe.cookTimeMinutes ? (
-            <span>Cook {recipe.cookTimeMinutes} min</span>
-          ) : null}
-          {totalTime > 0 && (
-            <span className="inline-flex items-center gap-1.5 font-medium text-stone-700">
-              <Clock className="size-4" aria-hidden="true" />
-              {totalTime} min total
-            </span>
-          )}
-        </div>
+        {recipe.description && (
+          <p className="mt-3 max-w-[34ch] text-cook text-ink-600">
+            {recipe.description}
+          </p>
+        )}
 
         {recipe.tags.length > 0 && (
           <ul className="mt-3 flex flex-wrap gap-2">
             {recipe.tags.map((tag) => (
               <li key={tag}>
-                <Tag>{tag}</Tag>
+                <Chip>{tag}</Chip>
               </li>
             ))}
           </ul>
         )}
 
         <section aria-labelledby="ingredients" className="mt-8">
-          <h2 id="ingredients" className="text-lg font-semibold text-stone-900">
+          <h2
+            id="ingredients"
+            className="font-serif text-title font-medium text-ink-900"
+          >
             Ingredients
           </h2>
-          <Card className="mt-3 divide-y divide-stone-100">
-            {recipe.ingredients.length === 0 && (
-              <p className="p-4 text-sm text-stone-500">
+          <Card className="mt-3 overflow-hidden">
+            {recipe.ingredients.length === 0 ? (
+              <p className="px-4 py-4 text-body text-ink-400">
                 No ingredients listed.
               </p>
+            ) : (
+              <ListRows>
+                {recipe.ingredients.map((ingredient, index) => (
+                  <ListRow key={index} className="justify-between">
+                    <span className="text-cook text-ink-900">
+                      {ingredient.name}
+                      {ingredient.note && (
+                        <span className="text-ink-400">
+                          , {ingredient.note}
+                        </span>
+                      )}
+                    </span>
+                    <span className="shrink-0 text-cook font-semibold text-ink-600 tabular-nums">
+                      {formatRecipeQuantity(
+                        ingredient.quantity,
+                        ingredient.unit,
+                      )}
+                    </span>
+                  </ListRow>
+                ))}
+              </ListRows>
             )}
-            {recipe.ingredients.map((ingredient, index) => (
-              <div
-                key={index}
-                className="flex items-baseline justify-between gap-4 px-4 py-3.5"
-              >
-                <span className="text-base text-stone-800">
-                  {ingredient.name}
-                  {ingredient.note && (
-                    <span className="text-stone-500">, {ingredient.note}</span>
-                  )}
-                </span>
-                <span className="shrink-0 font-semibold text-emerald-700 tabular-nums">
-                  {formatRecipeQuantity(ingredient.quantity, ingredient.unit)}
-                </span>
-              </div>
-            ))}
           </Card>
         </section>
 
-        <section aria-labelledby="method" className="mt-8">
-          <h2 id="method" className="text-lg font-semibold text-stone-900">
+        <section aria-labelledby="method" className="mt-10">
+          <h2
+            id="method"
+            className="font-serif text-title font-medium text-ink-900"
+          >
             Method
           </h2>
           {recipe.steps.length === 0 ? (
-            <p className="mt-3 text-sm text-stone-500">No steps listed.</p>
+            <p className="mt-3 text-body text-ink-400">No steps listed.</p>
           ) : (
-            <ol className="mt-3 space-y-3">
+            <ol className="mt-4 space-y-6">
               {recipe.steps.map((step, index) => (
-                <li key={index}>
-                  <Card className="flex gap-3 p-4">
-                    <span
-                      className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white"
-                      aria-hidden="true"
-                    >
-                      {index + 1}
-                    </span>
-                    <p className="text-base leading-relaxed text-stone-800">
-                      {step}
-                    </p>
-                  </Card>
+                <li key={index} className="flex gap-4">
+                  <span
+                    className="shrink-0 font-serif text-title font-medium text-basil-700 tabular-nums"
+                    aria-hidden="true"
+                  >
+                    {index + 1}
+                  </span>
+                  <p className="max-w-[34ch] text-cook text-ink-900">{step}</p>
                 </li>
               ))}
             </ol>
           )}
         </section>
 
-        <div className="mt-10">
+        <div className="mt-12">
           <ConfirmButton
-            className="w-full"
             onConfirm={async () => {
               await deleteRecipe({ id: recipe._id })
               await navigate({ to: '/recipes' })
