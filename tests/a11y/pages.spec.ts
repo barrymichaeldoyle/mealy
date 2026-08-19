@@ -13,7 +13,8 @@ const publicPages = [
   {
     name: 'home',
     path: '/',
-    ready: (page: Page) => page.getByRole('heading', { name: 'Mealy' }),
+    ready: (page: Page) =>
+      page.getByRole('heading', { name: 'Dinner, sorted for the week.' }),
   },
   {
     name: 'sign in',
