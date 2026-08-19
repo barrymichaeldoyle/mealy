@@ -13,7 +13,9 @@ export function PageHeader({
   action?: React.ReactNode
 }) {
   return (
-    <div className="flex items-start justify-between gap-3">
+    <div
+      className={`flex justify-between gap-3 ${meta ? 'items-start' : 'items-center'}`}
+    >
       <div className="min-w-0">
         <h1 className="font-serif text-display font-semibold text-ink-900">
           {title}
@@ -22,7 +24,9 @@ export function PageHeader({
           <p className="mt-1 text-meta font-medium text-ink-400">{meta}</p>
         )}
       </div>
-      {action && <div className="mt-1 shrink-0">{action}</div>}
+      {action && (
+        <div className={`shrink-0 ${meta ? 'mt-1' : ''}`}>{action}</div>
+      )}
     </div>
   )
 }
