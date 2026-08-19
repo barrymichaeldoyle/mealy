@@ -51,6 +51,7 @@ jobs:
     # the publishable key. Without it the job would test a setup notice.
     if: ${{ vars.VITE_CLERK_PUBLISHABLE_KEY != '' }}
     env:
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
       VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.VITE_CLERK_PUBLISHABLE_KEY }}
     steps:
       - uses: actions/checkout@v4
