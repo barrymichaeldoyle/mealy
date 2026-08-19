@@ -64,7 +64,10 @@ export default defineSchema({
     acceptedAt: v.optional(v.number()),
   })
     .index('by_token', ['token'])
-    .index('by_household', ['householdId']),
+    .index('by_household', ['householdId'])
+    // Account deletion has to reach invites this user made for a household
+    // they have since left, which by_household no longer finds.
+    .index('by_creator', ['createdBy']),
 
   recipes: defineTable({
     householdId: v.id('households'),

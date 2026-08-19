@@ -62,6 +62,39 @@ Mealy only asks for the `email`, `profile` and `openid` scopes, which are not
 sensitive, so verification is the basic form. Adding a sensitive scope later
 means a full review and a demo video.
 
+### Clerk webhook (account deletion)
+
+Clerk has to tell Convex when a user is deleted, or the account goes from
+Clerk and its household data stays behind, which would make the deletion
+promise on `/privacy` untrue.
+
+Add an endpoint under **Configure > Webhooks** on each Clerk instance,
+subscribed to the `user.deleted` event only:
+
+| Instance    | Endpoint URL                                             |
+| ----------- | -------------------------------------------------------- |
+| Production  | `https://admired-rabbit-570.convex.site/clerk-webhook`   |
+| Development | `https://ceaseless-puffin-932.convex.site/clerk-webhook` |
+
+Note the `.convex.site` domain. HTTP actions are served there, not from the
+`.convex.cloud` URL the browser client uses.
+
+Copy the signing secret Clerk generates and set it on the matching Convex
+deployment. The command prompts for the value, keeping it out of shell
+history:
+
+```bash
+npx convex env set --prod CLERK_WEBHOOK_SECRET
+npx convex env set CLERK_WEBHOOK_SECRET
+```
+
+The handler returns 500 while that variable is unset. Svix retries a 500, so
+events queued before the secret is set are not lost.
+
+To check it end to end, delete a throwaway user in the Clerk dashboard and
+watch the delivery succeed in Clerk's webhook log. What the mutation does
+once it runs is covered by the tests in `convex/__tests__/`.
+
 ### Convex
 
 Set the production Clerk issuer on the default production deployment. The
@@ -159,6 +192,8 @@ Check these paths on a phone-sized viewport and a desktop browser:
 - A signed-in user can create a recipe and see it after a reload.
 - `/household` creates an invite URL on the production hostname.
 - The invite opens in a separate account and joins the same household.
+- `/household` downloads a JSON file holding that account's recipes.
+- Deleting a throwaway Clerk user empties its household in Convex.
 
 Keep the development and production accounts visibly different while testing.
 Production starts with an empty Convex database.

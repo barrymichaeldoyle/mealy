@@ -140,8 +140,10 @@ const SECTIONS: LegalSection[] = [
       {
         text: (
           <>
-            You can stop using Mealy whenever you like. To have your account and
-            data deleted, email {EMAIL_LINK} from your account address. The{' '}
+            You can stop using Mealy whenever you like. Download your data first
+            if you want to keep it: the button is on the Household screen. To
+            have your account and data deleted, email {EMAIL_LINK} from your
+            account address. The{' '}
             <Link to="/privacy" className={legalLinkClass}>
               privacy policy
             </Link>{' '}

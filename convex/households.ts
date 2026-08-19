@@ -1,5 +1,5 @@
 import { ConvexError, v } from 'convex/values'
-import { mutation, query } from './_generated/server'
+import { internalMutation, mutation, query } from './_generated/server'
 import type { Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 import {
@@ -427,5 +427,141 @@ export const removeMember = mutation({
     }
 
     await ctx.db.delete(args.memberId)
+  },
+})
+
+/**
+ * Everything a Clerk account deletion has to take with it. Called by the
+ * `user.deleted` webhook in http.ts, never by a client: the identity comes
+ * from Clerk's signed payload rather than an argument a caller could forge,
+ * which is why it is internal.
+ *
+ * The privacy policy promises this, so the shape of it is deliberate. A
+ * household with other people in it keeps its recipes, plans and lists. A
+ * household that was only ever theirs goes with them.
+ */
+export const deleteAccount = internalMutation({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    // An invite records who made it, wherever that household is now, so
+    // these go first and independently of membership.
+    const created = await ctx.db
+      .query('householdInvites')
+      .withIndex('by_creator', (q) => q.eq('createdBy', args.userId))
+      .collect()
+    for (const row of created) {
+      await ctx.db.delete(row._id)
+    }
+
+    const memberships = await ctx.db
+      .query('householdMembers')
+      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .collect()
+
+    for (const membership of memberships) {
+      const remaining = await members(ctx, membership.householdId)
+      await ctx.db.delete(membership._id)
+
+      if (remaining.length === 1) {
+        await discardHousehold(ctx, membership.householdId)
+        continue
+      }
+
+      // The household lives on, so only the spent invite naming them goes.
+      const invites = await ctx.db
+        .query('householdInvites')
+        .withIndex('by_household', (q) =>
+          q.eq('householdId', membership.householdId),
+        )
+        .collect()
+      for (const row of invites) {
+        if (row.acceptedBy === args.userId) {
+          await ctx.db.delete(row._id)
+        }
+      }
+    }
+
+    return { households: memberships.length }
+  },
+})
+
+/**
+ * The whole household as one JSON document. The privacy policy offers a
+ * portable copy on request, and this is what makes that a button rather than
+ * a favour. Convex ids are left out: they identify rows in our database, not
+ * anything the reader can use.
+ */
+export const exportData = query({
+  args: {},
+  handler: async (ctx) => {
+    const membership = await getMembership(ctx)
+    if (!membership) {
+      return null
+    }
+    const household = await ctx.db.get(membership.householdId)
+    if (!household) {
+      return null
+    }
+    const householdId = membership.householdId
+
+    const [recipes, meals, lists, items] = await Promise.all([
+      ctx.db
+        .query('recipes')
+        .withIndex('by_household', (q) => q.eq('householdId', householdId))
+        .collect(),
+      ctx.db
+        .query('plannedMeals')
+        .withIndex('by_household', (q) => q.eq('householdId', householdId))
+        .collect(),
+      ctx.db
+        .query('shoppingLists')
+        .withIndex('by_household', (q) => q.eq('householdId', householdId))
+        .collect(),
+      ctx.db
+        .query('shoppingListItems')
+        .withIndex('by_household', (q) => q.eq('householdId', householdId))
+        .collect(),
+    ])
+
+    const titles = new Map(recipes.map((recipe) => [recipe._id, recipe.title]))
+
+    return {
+      household: { name: household.name, createdAt: household.createdAt },
+      members: (await members(ctx, householdId)).map((member) => ({
+        name: member.name,
+        role: member.role,
+        joinedAt: member.joinedAt,
+      })),
+      recipes: recipes.map((recipe) => ({
+        title: recipe.title,
+        description: recipe.description ?? null,
+        servings: recipe.servings,
+        prepTimeMinutes: recipe.prepTimeMinutes ?? null,
+        cookTimeMinutes: recipe.cookTimeMinutes ?? null,
+        tags: recipe.tags,
+        ingredients: recipe.ingredients,
+        steps: recipe.steps,
+      })),
+      plannedMeals: meals.map((meal) => ({
+        date: meal.date,
+        slot: meal.slot,
+        servings: meal.servings,
+        recipe: titles.get(meal.recipeId) ?? null,
+      })),
+      shoppingLists: lists.map((list) => ({
+        name: list.name,
+        createdAt: list.createdAt,
+        items: items
+          .filter((item) => item.listId === list._id)
+          .map((item) => ({
+            name: item.name,
+            quantity: item.quantity ?? null,
+            unit: item.unit,
+            checked: item.checked,
+            manuallyAdded: item.manuallyAdded,
+            approximate: item.approximate,
+          })),
+      })),
+    }
   },
 })

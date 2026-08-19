@@ -229,17 +229,33 @@ The a11y suite scans both documents alongside the other public pages.
 Two dashboards have to point at these URLs as well. Neither is in this
 repository, so `docs/DEPLOYMENT.md` records what to enter where.
 
+The policy makes two promises the code has to keep, so both are wired up
+rather than done by hand:
+
+- **Deletion.** Clerk posts `user.deleted` to `convex/http.ts`, which
+  verifies the Svix signature and runs `households.deleteAccount`. That drops
+  the membership, any invite naming the user, and any household only they
+  belonged to, with its recipes, plans and lists. A household with other
+  people in it keeps everything. `docs/DEPLOYMENT.md` covers the endpoint and
+  the `CLERK_WEBHOOK_SECRET` variable it needs.
+- **Portability.** `households.exportData` returns the whole household as one
+  JSON document, and the Household screen downloads it. Convex ids and Clerk
+  user ids are left out, since they identify rows in our database rather than
+  anything the reader can use.
+
 ## Layout
 
 ```
 convex/
   schema.ts          tables, indexes, shared validators
+  http.ts            the Clerk webhook that cleans up a deleted account
   households.ts      membership, invite links, joining and leaving
   recipes.ts         recipe CRUD
   plans.ts           weekly planned meals
   lists.ts           shopping lists + generation
   migrations.ts      one-off backfill for pre-household data
   lib/units.ts       units, conversions, consolidation (pure, tested)
+  lib/svix.ts        webhook signature verification (pure, tested)
   lib/validation.ts  server-side input rules
   lib/auth.ts        identity + household guards
   lib/dates.ts       short date names for generated lists
@@ -257,6 +273,7 @@ src/
   integrations/      the Clerk and Convex providers
   lib/               dates, class names, logo geometry, units re-export
     legal.ts         operator name and contact address, used by both pages
+    download.ts      hands the browser the data export as a JSON file
 docs/                MVP, design and logo specs
 scripts/             generate-icons.ts, run by pnpm icons
 public/              the icons it writes

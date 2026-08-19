@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import { Check, Copy, Link2, UserPlus } from 'lucide-react'
+import { Check, Copy, Download, Link2, UserPlus } from 'lucide-react'
 import { AppHeader } from '../../components/app-header'
+import { SiteFooter } from '../../components/site-footer'
 import { Button } from '../../components/ui/button'
 import { Card } from '../../components/ui/card'
 import { ConfirmButton } from '../../components/ui/confirm-button'
@@ -10,6 +11,7 @@ import { SkeletonList } from '../../components/ui/skeleton'
 import {
   useCreateInvite,
   useDisplayName,
+  useExportData,
   useHousehold,
   useLeaveHousehold,
   useRemoveMember,
@@ -18,6 +20,8 @@ import {
 } from '../../hooks/use-household'
 import type { Doc } from '../../../convex/_generated/dataModel'
 import { defined } from '../../../convex/lib/optional'
+import { downloadJson, exportFilename } from '../../lib/download'
+import { CONTACT_EMAIL } from '../../lib/legal'
 
 export const Route = createFileRoute('/_app/household')({
   component: HouseholdScreen,
@@ -51,8 +55,10 @@ function HouseholdScreen() {
               householdName={household.household.name}
             />
             {household.members.length > 1 && <LeaveCard />}
+            <DataCard />
           </>
         )}
+        <SiteFooter />
       </main>
     </>
   )
@@ -221,6 +227,56 @@ function InviteCard({
           Create invite link
         </Button>
       )}
+    </Card>
+  )
+}
+
+/**
+ * The privacy policy offers a portable copy and a deletion route. This is
+ * where a signed-in person actually finds them.
+ */
+function DataCard() {
+  const exportData = useExportData()
+  const [busy, setBusy] = useState(false)
+
+  return (
+    <Card className="p-5">
+      <h2 className="font-serif text-title font-medium text-ink-900">
+        Your data
+      </h2>
+      <p className="mt-1 text-body text-ink-600">
+        Download everything in this kitchen as one file: the recipes, the plan
+        and every list.
+      </p>
+      <Button
+        className="mt-4"
+        variant="secondary"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true)
+          try {
+            const data = await exportData()
+            if (data) {
+              downloadJson(exportFilename(new Date()), data)
+            }
+          } finally {
+            setBusy(false)
+          }
+        }}
+      >
+        <Download className="size-4" aria-hidden="true" />
+        {busy ? 'Preparing…' : 'Download my data'}
+      </Button>
+      <p className="mt-3 text-meta text-ink-400">
+        To have your account deleted, email{' '}
+        <a
+          href={`mailto:${CONTACT_EMAIL}`}
+          className="underline underline-offset-2 hover:text-ink-600"
+        >
+          {CONTACT_EMAIL}
+        </a>
+        . This kitchen goes with it unless someone else is in it.
+      </p>
     </Card>
   )
 }

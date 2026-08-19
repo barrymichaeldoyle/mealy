@@ -221,10 +221,13 @@ const SECTIONS: LegalSection[] = [
         text: 'Under POPIA and the GDPR you can ask us to give you a copy of the personal information we hold about you, correct it, delete it, restrict what we do with it, or object to us processing it. You can also ask for it in a portable format.',
       },
       {
+        text: 'You do not have to ask us for a copy. The Household screen has a Download my data button that gives you everything in your kitchen as a single JSON file.',
+      },
+      {
         text: (
           <>
-            Email {EMAIL_LINK} from the address on your account. We answer
-            within 30 days and we do not charge for it.
+            For anything else, email {EMAIL_LINK} from the address on your
+            account. We answer within 30 days and we do not charge for it.
           </>
         ),
       },

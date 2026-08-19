@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { useMutation, useQuery } from 'convex/react'
+import { useConvex, useMutation, useQuery } from 'convex/react'
 import { useUser } from '@clerk/tanstack-react-start'
 import { api } from '../../convex/_generated/api'
 import { defined } from '../../convex/lib/optional'
@@ -34,6 +34,15 @@ export function useLeaveHousehold() {
 
 export function useRemoveMember() {
   return useMutation(api.households.removeMember)
+}
+
+/**
+ * Fetched on the button press rather than subscribed to, since a copy of
+ * everything is not worth keeping live in memory on every visit.
+ */
+export function useExportData() {
+  const convex = useConvex()
+  return () => convex.query(api.households.exportData, {})
 }
 
 /** The name we show other members, taken from Clerk. */
