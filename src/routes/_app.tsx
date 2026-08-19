@@ -21,7 +21,7 @@ function AppLayout() {
       </Show>
       <Show when="signed-in">
         <HouseholdBootstrap />
-        <div className="md:pl-56">
+        <div className="app-shell-content md:pl-64">
           <Outlet />
         </div>
         <AppNav />

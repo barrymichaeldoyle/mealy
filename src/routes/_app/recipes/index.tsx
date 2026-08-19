@@ -111,7 +111,7 @@ function RecipeList() {
               body="Try a different search, or clear the tag filter."
             />
           ) : (
-            <ul className="space-y-3">
+            <ul className="grid gap-3 lg:grid-cols-2">
               {filtered.map((recipe) => (
                 <li key={recipe._id}>
                   <Link

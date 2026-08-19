@@ -193,7 +193,7 @@ function WeekNav({
   const current = isCurrentWeek(weekStart)
 
   return (
-    <div className="sticky top-14 z-10 -mx-4 mt-4 bg-paper-50/95 px-4 py-2 backdrop-blur">
+    <div className="sticky top-14 z-10 -mx-4 mt-4 bg-paper-50/95 px-4 py-2 backdrop-blur md:top-0">
       <div className="flex items-center justify-between gap-2">
         <Button
           variant="ghost"

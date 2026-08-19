@@ -9,7 +9,7 @@ import { Logo } from './ui/logo'
  */
 export function AppHeader({ title }: { title?: string }) {
   return (
-    <header className="sticky top-0 z-20 bg-paper-50/90 shadow-[0_1px_0_var(--color-paper-200)] backdrop-blur pt-safe">
+    <header className="sticky top-0 z-20 bg-paper-50/90 shadow-[0_1px_0_var(--color-paper-200)] backdrop-blur pt-safe md:hidden">
       <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
         {title ? (
           <h1 className="truncate font-serif text-title font-medium text-ink-900">
