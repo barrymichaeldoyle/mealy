@@ -158,9 +158,9 @@ pnpm exec playwright install chromium
 
 The JSX accessibility rules fail lint for invalid ARIA, missing labels,
 keyboard-inaccessible controls and related structural problems. Playwright
-runs Axe against the rendered home and authentication pages at desktop and
-mobile sizes. Automated checks catch common WCAG failures, but they do not
-replace manual keyboard and screen-reader testing.
+runs Axe against the rendered home, authentication and legal pages at
+desktop and mobile sizes. Automated checks catch common WCAG failures, but
+they do not replace manual keyboard and screen-reader testing.
 
 ## Checks
 
@@ -213,6 +213,22 @@ with the URL supplied by the Convex deploy key and deploys Convex. Its deploy
 command then publishes that same build to Cloudflare. See
 `docs/DEPLOYMENT.md` for the required build configuration.
 
+## Legal pages
+
+`/privacy` and `/terms` are public routes. Both render through
+`src/components/legal-page.tsx`, and the prose lives in the route files as a
+list of sections. The operator name and the contact address they share sit in
+`src/lib/legal.ts`. Change them there, not in the prose, and update the
+`UPDATED` date in whichever document you edited.
+
+`SiteFooter` puts home, privacy and terms links on the landing page and on
+both authentication pages. Google's OAuth review looks for exactly that: a
+reachable home page, a privacy policy and terms, all on the app's own domain.
+The a11y suite scans both documents alongside the other public pages.
+
+Two dashboards have to point at these URLs as well. Neither is in this
+repository, so `docs/DEPLOYMENT.md` records what to enter where.
+
 ## Layout
 
 ```
@@ -232,10 +248,15 @@ convex/
 src/
   routes/            file-based routes; everything under _app needs auth
     _app/            household, join, plan, recipes, lists
+    privacy.tsx      privacy policy, public
+    terms.tsx        terms of service, public
   components/        shared pieces, with the primitives in components/ui
+    legal-page.tsx   the shared layout both legal documents render through
+    site-footer.tsx  home, privacy and terms links on every public page
   hooks/             data access (Convex queries/mutations) behind hooks
   integrations/      the Clerk and Convex providers
   lib/               dates, class names, logo geometry, units re-export
+    legal.ts         operator name and contact address, used by both pages
 docs/                MVP, design and logo specs
 scripts/             generate-icons.ts, run by pnpm icons
 public/              the icons it writes

@@ -25,6 +25,18 @@ const publicPages = [
     path: '/sign-up',
     ready: (page: Page) => page.getByRole('textbox').first(),
   },
+  {
+    name: 'privacy policy',
+    path: '/privacy',
+    ready: (page: Page) =>
+      page.getByRole('heading', { name: 'Privacy policy' }),
+  },
+  {
+    name: 'terms of service',
+    path: '/terms',
+    ready: (page: Page) =>
+      page.getByRole('heading', { name: 'Terms of service' }),
+  },
 ]
 
 for (const publicPage of publicPages) {

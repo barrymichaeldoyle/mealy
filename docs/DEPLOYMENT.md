@@ -23,9 +23,44 @@ clerk env pull --instance prod
 The file must contain a `pk_live_` publishable key. Keep the development
 `pk_test_` and `sk_test_` keys in `.env.local`.
 
+Point Clerk's legal links at the deployed pages, under **Customization >
+Legal**. Clerk then shows them under the sign-up form and records consent:
+
+| Field            | Value                                         |
+| ---------------- | --------------------------------------------- |
+| Terms of service | `https://mealy.barrymichaeldoyle.com/terms`   |
+| Privacy policy   | `https://mealy.barrymichaeldoyle.com/privacy` |
+
+Turn on the requirement to accept them at sign-up if you want the tick box.
+Both URLs must be live before Clerk will save them.
+
 Create the `convex` JWT template in the Clerk production instance. Use the
 claims documented in the Clerk section of the README. Copy its issuer domain
 from Clerk's Frontend API setting.
+
+### Google
+
+The Google OAuth credentials behind Clerk's Google sign-in are reviewed
+against the app's own domain. Fill these in on the OAuth consent screen for
+the project that owns the production client, under **APIs & Services > OAuth
+consent screen**:
+
+| Field                        | Value                                         |
+| ---------------------------- | --------------------------------------------- |
+| Application home page        | `https://mealy.barrymichaeldoyle.com`         |
+| Application privacy policy   | `https://mealy.barrymichaeldoyle.com/privacy` |
+| Application terms of service | `https://mealy.barrymichaeldoyle.com/terms`   |
+| Authorised domain            | `barrymichaeldoyle.com`                       |
+| Support email                | `barry@barrymichaeldoyle.com`                 |
+
+Google checks that each URL is reachable, sits on the authorised domain and
+is linked from the page that starts sign-in. `SiteFooter` puts all three
+links on the landing page and on `/sign-in` and `/sign-up`, so that holds as
+long as those links stay there.
+
+Mealy only asks for the `email`, `profile` and `openid` scopes, which are not
+sensitive, so verification is the basic form. Adding a sensitive scope later
+means a full review and a demo video.
 
 ### Convex
 
@@ -118,7 +153,8 @@ Later releases only need `pnpm deploy` unless the Clerk secret changes.
 
 Check these paths on a phone-sized viewport and a desktop browser:
 
-- `/` loads over HTTPS.
+- `/` loads over HTTPS, and its footer links to `/privacy` and `/terms`.
+- `/privacy` and `/terms` load signed out, and each links back to `/`.
 - `/sign-up` creates a production Clerk user.
 - A signed-in user can create a recipe and see it after a reload.
 - `/household` creates an invite URL on the production hostname.
