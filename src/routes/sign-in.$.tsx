@@ -1,5 +1,6 @@
 import { SignIn } from '@clerk/tanstack-react-start'
 import { Link, createFileRoute } from '@tanstack/react-router'
+import { flatCardAppearance } from '../integrations/clerk/appearance'
 import { SiteFooter } from '../components/site-footer'
 import { Logo } from '../components/ui/logo'
 
@@ -16,7 +17,7 @@ function Page() {
           <Logo className="size-7" />
           Mealy
         </Link>
-        <SignIn />
+        <SignIn appearance={flatCardAppearance} />
       </main>
       <SiteFooter />
     </div>
