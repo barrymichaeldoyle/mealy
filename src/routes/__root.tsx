@@ -1,5 +1,6 @@
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 
+import { ServiceWorker } from '../components/service-worker'
 import { AppClerkProvider } from '../integrations/clerk/provider'
 import { AppConvexProvider } from '../integrations/convex/provider'
 
@@ -23,12 +24,19 @@ export const Route = createRootRoute({
           'Save your recipes, plan the week’s dinners, and shop from one ' +
           'consolidated list.',
       },
+      // iOS only reads the manifest for a Home Screen app from 17.4, so the
+      // older Apple keys stay until that floor is not worth caring about.
+      { name: 'mobile-web-app-capable', content: 'yes' },
+      { name: 'apple-mobile-web-app-capable', content: 'yes' },
+      { name: 'apple-mobile-web-app-title', content: 'Mealy' },
+      { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
     ],
     links: [
       { rel: 'stylesheet', href: appCss },
       { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' },
       { rel: 'icon', href: '/favicon.ico', sizes: '32x32' },
       { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+      { rel: 'manifest', href: '/manifest.webmanifest' },
     ],
   }),
   shellComponent: RootDocument,
@@ -45,6 +53,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <AppClerkProvider>
           <AppConvexProvider>{children}</AppConvexProvider>
         </AppClerkProvider>
+        <ServiceWorker />
         <Scripts />
       </body>
     </html>

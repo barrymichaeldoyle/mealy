@@ -57,7 +57,7 @@ export function emptyRecipeDraft(): RecipeDraft {
   return {
     title: '',
     description: '',
-    servings: '2',
+    servings: '',
     prepTimeMinutes: '',
     cookTimeMinutes: '',
     tags: '',
@@ -256,6 +256,7 @@ export function RecipeForm({
                 max={100}
                 value={draft.servings}
                 onChange={(event) => patch({ servings: event.target.value })}
+                placeholder="4"
               />
             )}
           </Field>
@@ -270,6 +271,7 @@ export function RecipeForm({
                 onChange={(event) =>
                   patch({ prepTimeMinutes: event.target.value })
                 }
+                placeholder="15"
               />
             )}
           </Field>
@@ -284,6 +286,7 @@ export function RecipeForm({
                 onChange={(event) =>
                   patch({ cookTimeMinutes: event.target.value })
                 }
+                placeholder="45"
               />
             )}
           </Field>
@@ -401,6 +404,7 @@ export function RecipeForm({
                           note: event.target.value,
                         })
                       }
+                      placeholder="finely chopped"
                       autoComplete="off"
                     />
                   )}

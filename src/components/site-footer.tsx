@@ -11,26 +11,30 @@ export function SiteFooter({ className }: { className?: string }) {
   return (
     <footer
       className={cn(
-        'mt-auto w-full border-t border-paper-200 py-6 pb-safe',
+        'mt-auto w-full border-t border-paper-200 pt-6 pb-safe-8',
         className,
       )}
     >
-      <nav aria-label="Legal and site links">
-        <ul className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-meta font-medium">
-          <li>
-            <FooterLink to="/">Home</FooterLink>
-          </li>
-          <li>
-            <FooterLink to="/privacy">Privacy</FooterLink>
-          </li>
-          <li>
-            <FooterLink to="/terms">Terms</FooterLink>
-          </li>
-        </ul>
-      </nav>
-      <p className="mt-3 text-center text-meta text-ink-400">
-        © 2026 {OPERATOR}
-      </p>
+      {/* Reversed on wide screens so the links land right and the operator
+       * name left, while the narrow stack keeps links above the small print. */}
+      <div className="flex flex-col items-center gap-4 sm:flex-row-reverse sm:justify-between sm:gap-6">
+        <nav aria-label="Legal and site links">
+          <ul className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-meta font-medium">
+            <li>
+              <FooterLink to="/">Home</FooterLink>
+            </li>
+            <li>
+              <FooterLink to="/privacy">Privacy</FooterLink>
+            </li>
+            <li>
+              <FooterLink to="/terms">Terms</FooterLink>
+            </li>
+          </ul>
+        </nav>
+        <p className="text-center text-meta text-balance text-ink-400 sm:text-left">
+          © 2026 {OPERATOR}
+        </p>
+      </div>
     </footer>
   )
 }

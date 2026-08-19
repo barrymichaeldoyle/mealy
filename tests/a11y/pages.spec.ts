@@ -37,6 +37,12 @@ const publicPages = [
     ready: (page: Page) =>
       page.getByRole('heading', { name: 'Terms of service' }),
   },
+  {
+    name: 'offline',
+    path: '/offline',
+    ready: (page: Page) =>
+      page.getByRole('heading', { name: 'You’re offline' }),
+  },
 ]
 
 for (const publicPage of publicPages) {

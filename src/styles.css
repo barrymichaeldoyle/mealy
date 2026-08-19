@@ -134,6 +134,11 @@ body {
   padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
 }
 
+/* The site footer wants real space under it, not just the home indicator. */
+.pb-safe-8 {
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+}
+
 /* Bottom sheets slide up; see components/ui/sheet.tsx. */
 @keyframes sheet-up {
   from {

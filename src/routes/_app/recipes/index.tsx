@@ -42,14 +42,16 @@ function RecipeList() {
         <PageHeader
           title="Recipes"
           action={
-            <Link
-              to="/recipes/new"
-              className={buttonClass('primary', 'md')}
-              aria-label="Add a recipe"
-            >
-              <Plus className="size-4" aria-hidden="true" />
-              Add
-            </Link>
+            recipes?.length === 0 ? null : (
+              <Link
+                to="/recipes/new"
+                className={buttonClass('primary', 'md')}
+                aria-label="Add a recipe"
+              >
+                <Plus className="size-4" aria-hidden="true" />
+                Add
+              </Link>
+            )
           }
         />
 

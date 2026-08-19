@@ -333,10 +333,41 @@ Chromium into `public/`. Change the geometry, run `pnpm icons`, then commit
 what lands in `public/`. The favicon drops the tip leaf, since it disappears
 below 24px.
 
+## Installing it
+
+Mealy is installable. `public/manifest.webmanifest` names the app, points at
+the icons in `public/` and starts it on `/plan` in standalone mode, with
+shortcuts to the plan, the lists and the recipes. The root route links the
+manifest and keeps the older Apple meta tags, since iOS only reads a
+manifest for a Home Screen app from 17.4.
+
+`public/sw.js` is the service worker, hand written and about a hundred
+lines. It is registered by `<ServiceWorker>` from
+`src/components/service-worker.tsx` on `load`, and only in a production
+build:
+
+- Hashed files under `/assets/` are served cache first. The build renames
+  them on every change, so a cached copy can never be the wrong one.
+- The icons, the manifest and `/offline` are fetched on install. The offline
+  copy is refreshed at most once a day, on a navigation that has just proved
+  the network is up, so it never points at CSS that a later deploy removed.
+- Navigations go to the network, and fall back to the cached `/offline` page
+  when that throws. HTML is never cached: pages are server rendered with the
+  signed-in user's Clerk state in them, so a cached copy would outlive the
+  session on a shared phone. The offline page is fetched with
+  `credentials: 'omit'` for the same reason, which caches the signed-out
+  shell.
+- Requests to other origins are left alone, so Convex and Clerk traffic
+  stays live.
+
+Bump `CACHE` in `public/sw.js` when that file changes. Activating deletes
+every cache that does not match.
+
 ## Not in the MVP
 
-Offline/PWA support is the first post-MVP milestone. The icons are already
-there, `apple-touch-icon.png` and a maskable 512, but there is no web app
-manifest and no service worker. Data access sits behind the hooks in
-`src/hooks/` and list rendering is client-side, so adding them does not
-require restructuring.
+The shopping list does not work offline yet. Convex holds the data over a
+live socket, so with no signal a list screen has nothing to render and the
+offline page takes over. Making the shop itself work needs the list cached
+locally and check-offs queued until the connection is back. Data access sits
+behind the hooks in `src/hooks/` and list rendering is client-side, so that
+lands in the hooks rather than in a restructure.
