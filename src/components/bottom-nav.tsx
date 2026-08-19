@@ -26,16 +26,16 @@ export function AppNav() {
         'md:shadow-[1px_0_0_var(--color-paper-200)]',
       )}
     >
-      <ul className="mx-auto flex max-w-lg md:flex-col md:gap-1 md:px-3">
+      <ul className="mx-auto grid max-w-lg grid-cols-3 md:flex md:flex-col md:gap-1 md:px-3">
         {TABS.map(({ to, label, icon: Icon }) => (
-          <li key={to} className="flex-1">
-            <Link to={to} className="block">
+          <li key={to} className="min-w-0 md:w-full">
+            <Link to={to} className="block w-full">
               {({ isActive }) => (
                 <span
                   className={cn(
-                    'flex min-h-[56px] flex-col items-center justify-center gap-1',
+                    'flex h-14 w-full flex-col items-center justify-center gap-1',
                     'text-meta transition-colors duration-150 ease-out',
-                    'md:min-h-[44px] md:flex-row md:justify-start md:gap-3',
+                    'md:h-11 md:flex-row md:justify-start md:gap-3',
                     'md:rounded-btn md:px-3',
                     isActive
                       ? 'font-medium text-basil-700 md:bg-basil-100'
@@ -43,11 +43,13 @@ export function AppNav() {
                   )}
                 >
                   <Icon
-                    className="size-6 md:size-5"
+                    className="size-6 shrink-0 md:size-5"
                     strokeWidth={1.75}
                     aria-hidden="true"
                   />
-                  {label}
+                  <span className="leading-none md:leading-[inherit]">
+                    {label}
+                  </span>
                 </span>
               )}
             </Link>

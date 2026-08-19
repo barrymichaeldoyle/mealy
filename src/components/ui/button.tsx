@@ -1,6 +1,12 @@
 import { cn } from '../../lib/cn'
 
-type Variant = 'primary' | 'accent' | 'secondary' | 'ghost' | 'danger'
+type Variant =
+  | 'primary'
+  | 'accent'
+  | 'secondary'
+  | 'ghost'
+  | 'danger'
+  | 'dangerPrimary'
 type Size = 'sm' | 'md' | 'lg'
 
 // Every target clears 44px so it stays thumb-friendly on a phone.
@@ -23,6 +29,8 @@ const VARIANTS: Record<Variant, string> = {
     'bg-paper-100 text-ink-900 border border-paper-300 hover:bg-paper-200',
   ghost: 'text-ink-600 hover:bg-paper-100',
   danger: 'text-danger-text hover:bg-paper-100',
+  dangerPrimary:
+    'bg-tomato-700 text-paper-50 hover:bg-tomato-600 active:bg-tomato-600',
 }
 
 export function buttonClass(

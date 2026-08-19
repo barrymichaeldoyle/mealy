@@ -363,11 +363,13 @@ build:
 Bump `CACHE` in `public/sw.js` when that file changes. Activating deletes
 every cache that does not match.
 
-## Not in the MVP
+## Offline shopping
 
-The shopping list does not work offline yet. Convex holds the data over a
-live socket, so with no signal a list screen has nothing to render and the
-offline page takes over. Making the shop itself work needs the list cached
-locally and check-offs queued until the connection is back. Data access sits
-behind the hooks in `src/hooks/` and list rendering is client-side, so that
-lands in the hooks rather than in a restructure.
+Opening a shopping list caches it in browser storage for the signed-in Clerk
+user. If the connection drops while shopping, the cached list stays visible
+and check-offs are saved locally. Repeated taps on one item collapse to its
+latest value. The queue is sent to Convex when the browser comes online.
+
+Adding, editing, clearing and deleting still need a connection. Their controls
+are unavailable while offline. A list must have been opened once on that device
+before it can be used without a connection.

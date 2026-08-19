@@ -132,7 +132,10 @@ function MembersCard({
             {isOwner && member.userId !== meId && (
               <ConfirmButton
                 size="sm"
-                onConfirm={() => void removeMember({ memberId: member._id })}
+                title={`Remove ${member.name}?`}
+                description={`${member.name} will lose access to this household and its recipes, plan and lists.`}
+                confirmLabel="Remove person"
+                onConfirm={() => removeMember({ memberId: member._id })}
               >
                 Remove
               </ConfirmButton>
@@ -296,8 +299,10 @@ function LeaveCard() {
       </p>
       <ConfirmButton
         className="mt-4"
-        onConfirm={() => void leave(defined({ name }))}
-        confirmLabel="Tap again to leave"
+        title="Leave this household?"
+        description="You will lose access to this household. Its recipes, plan and lists will stay with the other people here."
+        confirmLabel="Leave household"
+        onConfirm={() => leave(defined({ name }))}
       >
         <Link2 className="size-4" aria-hidden="true" />
         Leave household

@@ -55,7 +55,8 @@ export function Sheet({
       }}
       aria-label={title}
       className={cn(
-        'w-full max-w-lg bg-paper-100 p-0 backdrop:bg-ink-900/30',
+        'max-h-[calc(100dvh-env(safe-area-inset-top,0px))] w-full max-w-lg',
+        'bg-paper-100 p-0 backdrop:bg-ink-900/30 open:flex open:flex-col',
         'rounded-t-[1.25rem] sm:rounded-[1.25rem]',
         'mx-auto mt-auto mb-0 sm:my-auto',
         'shadow-[0_-4px_24px_rgba(38,33,21,0.16)]',
@@ -63,7 +64,7 @@ export function Sheet({
         className,
       )}
     >
-      <div className="flex items-center justify-between border-b border-paper-200 px-5 py-4">
+      <div className="flex shrink-0 items-center justify-between border-b border-paper-200 px-5 py-4">
         <h2 className="font-serif text-title font-medium text-ink-900">
           {title}
         </h2>
@@ -76,7 +77,7 @@ export function Sheet({
           <X className="size-5" aria-hidden="true" />
         </button>
       </div>
-      <div className="max-h-[70vh] overflow-y-auto px-5 py-4 pb-safe">
+      <div className="min-h-0 max-h-[70dvh] overflow-y-auto overscroll-contain px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
         {children}
       </div>
     </dialog>

@@ -5,6 +5,7 @@ import { CheckCheck, Hourglass, House, Unlink } from 'lucide-react'
 import { AppHeader } from '../../components/app-header'
 import { Button, buttonClass } from '../../components/ui/button'
 import { Card } from '../../components/ui/card'
+import { ConfirmButton } from '../../components/ui/confirm-button'
 import { EmptyState } from '../../components/ui/empty-state'
 import { SkeletonList } from '../../components/ui/skeleton'
 import {
@@ -93,12 +94,33 @@ function JoinForm({
   const [moveData, setMoveData] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [armed, setArmed] = useState(false)
 
   const counts = mine?.counts ?? { recipes: 0, lists: 0, plannedMeals: 0 }
   const total = counts.recipes + counts.lists + counts.plannedMeals
   const canChoose = total > 0 && (mine?.canMove ?? false)
   const discards = canChoose && !moveData
+
+  async function joinHousehold() {
+    setBusy(true)
+    setError(null)
+    try {
+      await accept({
+        ...defined({ name }),
+        token,
+        moveData: canChoose ? moveData : false,
+      })
+      await navigate({ to: '/recipes' })
+    } catch (thrown) {
+      setError(
+        thrown instanceof ConvexError
+          ? String(thrown.data)
+          : 'Could not join that household. Try again.',
+      )
+      throw thrown
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -123,10 +145,7 @@ function JoinForm({
           <div className="mt-3 space-y-2">
             <Choice
               checked={moveData}
-              onSelect={() => {
-                setMoveData(true)
-                setArmed(false)
-              }}
+              onSelect={() => setMoveData(true)}
               title="Bring them with me"
               body="Everything you have moves into this household. You both see the lot."
             />
@@ -154,45 +173,28 @@ function JoinForm({
       )}
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        <Button
-          variant="accent"
-          size="lg"
-          disabled={busy}
-          onClick={async () => {
-            // Joining without bringing your data deletes it, so that path
-            // asks twice.
-            if (discards && !armed) {
-              setArmed(true)
-              return
-            }
-
-            setBusy(true)
-            setError(null)
-            try {
-              await accept({
-                ...defined({ name }),
-                token,
-                moveData: canChoose ? moveData : false,
-              })
-              await navigate({ to: '/recipes' })
-            } catch (thrown) {
-              setArmed(false)
-              setError(
-                thrown instanceof ConvexError
-                  ? String(thrown.data)
-                  : 'Could not join that household. Try again.',
-              )
-            } finally {
-              setBusy(false)
-            }
-          }}
-        >
-          {busy
-            ? 'Joining…'
-            : armed
-              ? 'Tap again to join and delete mine'
-              : `Join ${household.name}`}
-        </Button>
+        {discards ? (
+          <ConfirmButton
+            variant="accent"
+            size="lg"
+            disabled={busy}
+            title="Join and delete your kitchen?"
+            description={`Joining ${household.name} with “Start fresh” permanently deletes ${describe(counts)} from your current kitchen.`}
+            confirmLabel="Join and delete mine"
+            onConfirm={joinHousehold}
+          >
+            Join {household.name}
+          </ConfirmButton>
+        ) : (
+          <Button
+            variant="accent"
+            size="lg"
+            disabled={busy}
+            onClick={() => void joinHousehold().catch(() => undefined)}
+          >
+            {busy ? 'Joining…' : `Join ${household.name}`}
+          </Button>
+        )}
         <Link to="/recipes" className={buttonClass('secondary', 'lg')}>
           Not now
         </Link>

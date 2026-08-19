@@ -173,6 +173,9 @@ function RecipeDetail() {
 
         <div className="mt-12">
           <ConfirmButton
+            title="Delete this recipe?"
+            description={`“${recipe.title}” will be permanently deleted. This cannot be undone.`}
+            confirmLabel="Delete recipe"
             onConfirm={async () => {
               await deleteRecipe({ id: recipe._id })
               await navigate({ to: '/recipes' })

@@ -24,16 +24,18 @@ export function AppHeader({ title }: { title?: string }) {
             Mealy
           </Link>
         )}
-        <div className="flex items-center gap-1">
-          <Link
-            to="/household"
-            aria-label="Household"
-            className="flex size-9 items-center justify-center rounded-full text-ink-400 hover:bg-paper-200 hover:text-ink-600"
-          >
-            <Users className="size-5" aria-hidden="true" />
-          </Link>
-          <UserButton />
-        </div>
+        <UserButton
+          appearance={{ elements: { avatarBox: 'size-9' } }}
+          aria-label="Open account menu"
+        >
+          <UserButton.MenuItems>
+            <UserButton.Link
+              label="Household"
+              labelIcon={<Users className="size-4" aria-hidden="true" />}
+              href="/household"
+            />
+          </UserButton.MenuItems>
+        </UserButton>
       </div>
     </header>
   )

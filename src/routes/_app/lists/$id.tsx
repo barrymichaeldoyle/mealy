@@ -24,6 +24,7 @@ import {
   useDeleteList,
   useRemoveListItem,
   useShoppingList,
+  useOnlineStatus,
   useToggleListItem,
   useUpdateListItem,
 } from '../../../hooks/use-lists'
@@ -53,6 +54,7 @@ function ListDetail() {
   const { id } = Route.useParams()
   const navigate = useNavigate()
   const list = useShoppingList(id as Id<'shoppingLists'>)
+  const online = useOnlineStatus()
   const toggleItem = useToggleListItem()
   const deleteList = useDeleteList()
   const clearChecked = useClearChecked()
@@ -121,12 +123,19 @@ function ListDetail() {
           title={list.name}
           meta={`${checkedCount} of ${items.length} ticked`}
           action={
-            <Button onClick={() => setAdding(true)}>
+            <Button disabled={!online} onClick={() => setAdding(true)}>
               <Plus className="size-4" aria-hidden="true" />
               Add
             </Button>
           }
         />
+
+        {!online && (
+          <output className="mt-4 block rounded-card border border-paper-300 bg-paper-100 px-4 py-3 text-meta font-medium text-ink-600">
+            Offline. You can keep ticking items. Changes will sync when your
+            connection returns.
+          </output>
+        )}
 
         {items.length === 0 ? (
           <div className="mt-4">
@@ -151,7 +160,7 @@ function ListDetail() {
                       key={item._id}
                       item={item}
                       onToggle={handleToggle}
-                      onEdit={() => setEditing(item)}
+                      onEdit={online ? () => setEditing(item) : undefined}
                     />
                   ))}
                 </ListRows>
@@ -174,7 +183,7 @@ function ListDetail() {
                         key={item._id}
                         item={item}
                         onToggle={handleToggle}
-                        onEdit={() => setEditing(item)}
+                        onEdit={online ? () => setEditing(item) : undefined}
                       />
                     ))}
                   </ListRows>
@@ -189,6 +198,7 @@ function ListDetail() {
             <Button
               variant="secondary"
               className="w-full"
+              disabled={!online}
               onClick={() => clearChecked({ listId: list._id })}
             >
               Clear {checkedCount} ticked item
@@ -197,6 +207,10 @@ function ListDetail() {
           )}
           <ConfirmButton
             className="w-full"
+            disabled={!online}
+            title="Delete this list?"
+            description={`“${list.name}” and every item in it will be permanently deleted.`}
+            confirmLabel="Delete list"
             onConfirm={async () => {
               await deleteList({ id: list._id })
               await navigate({ to: '/lists' })
@@ -231,7 +245,7 @@ function ItemRow({
 }: {
   item: Item
   onToggle: (id: ItemId, checked: boolean) => void
-  onEdit: () => void
+  onEdit: (() => void) | undefined
 }) {
   const amount = formatListItem(item)
   const approximate = amount.startsWith('≈')
@@ -270,14 +284,16 @@ function ItemRow({
           {approximate ? amount.slice(1) : amount}
         </span>
       </label>
-      <button
-        type="button"
-        onClick={onEdit}
-        aria-label={`Edit ${item.name}`}
-        className="rounded-btn p-2 text-ink-400 hover:bg-paper-200 hover:text-ink-600"
-      >
-        <Pencil className="size-4" aria-hidden="true" />
-      </button>
+      {onEdit && (
+        <button
+          type="button"
+          onClick={onEdit}
+          aria-label={`Edit ${item.name}`}
+          className="rounded-btn p-2 text-ink-400 hover:bg-paper-200 hover:text-ink-600"
+        >
+          <Pencil className="size-4" aria-hidden="true" />
+        </button>
+      )}
     </ListRow>
   )
 }
@@ -497,15 +513,17 @@ function EditItemForm({
       </div>
 
       <div className="flex gap-3">
-        <Button
-          variant="danger"
+        <ConfirmButton
+          title="Delete this item?"
+          description={`“${item.name}” will be permanently deleted from this list.`}
+          confirmLabel="Delete item"
           className="flex-1"
-          onClick={onDelete}
+          onConfirm={onDelete}
           aria-label={`Delete ${item.name}`}
         >
           <Trash2 className="size-4" aria-hidden="true" />
           Delete
-        </Button>
+        </ConfirmButton>
         <Button type="submit" variant="accent" className="flex-1">
           Save
         </Button>
