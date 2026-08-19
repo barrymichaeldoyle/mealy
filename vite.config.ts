@@ -14,12 +14,22 @@ const config = defineConfig({
     devtools(),
     nitro({
       preset: 'cloudflare_module',
-      // Required at 2024-09-19 or later for Workers with static assets.
-      compatibilityDate: '2024-09-19',
+      compatibilityDate: '2026-08-19',
       cloudflare: {
         // Generates wrangler.json at build time, wired to the build output.
         deployConfig: true,
         nodeCompat: true,
+        wrangler: {
+          name: 'mealy',
+          routes: [
+            {
+              pattern: 'mealy.barrymichaeldoyle.com',
+              custom_domain: true,
+            },
+          ],
+          secrets: { required: ['CLERK_SECRET_KEY'] },
+          workers_dev: false,
+        },
       },
       rollupConfig: { external: [/^@sentry\//] },
     }),

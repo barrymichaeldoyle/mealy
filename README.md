@@ -23,6 +23,7 @@ Built to the specs in `docs/`: `MVP_Specification.md` for scope,
 | Tests      | Vitest (+ convex-test)                 |
 | A11y       | oxlint jsx-a11y + Playwright Axe       |
 | CI         | GitHub Actions, plus a pre-commit hook |
+| Deployment | Cloudflare Workers Builds              |
 | Hosting    | Cloudflare Workers (Nitro preset)      |
 | Memoising  | React Compiler, no manual useMemo      |
 
@@ -190,10 +191,9 @@ file. It is regenerated every build. To add bindings, put them under
 `cloudflare.wrangler` in the `nitro()` options, or commit your own
 `wrangler.json` at the project root for Nitro to merge.
 
-```bash
-npx wrangler login
-pnpm deploy
-```
+The production Worker is named `mealy` and uses the custom domain
+`mealy.barrymichaeldoyle.com`. See `docs/DEPLOYMENT.md` for the Clerk, Convex
+and Cloudflare setup checklist and the first-release sequence.
 
 **Environment variables split two ways.** `VITE_`-prefixed values are
 inlined at build time, so they must be present when `pnpm build` runs (in
@@ -204,8 +204,14 @@ and must be a Worker secret:
 npx wrangler secret put CLERK_SECRET_KEY
 ```
 
-Convex needs no Worker configuration. The browser connects to it directly,
-and nothing in this app queries Convex during SSR.
+Convex needs no Worker binding. The browser connects to it directly, and
+nothing in this app queries Convex during SSR. `pnpm deploy` deploys the
+production Convex functions and the Worker together.
+
+Cloudflare Workers Builds deploys pushes to `main`. Its build command builds
+with the URL supplied by the Convex deploy key and deploys Convex. Its deploy
+command then publishes that same build to Cloudflare. See
+`docs/DEPLOYMENT.md` for the required build configuration.
 
 ## Layout
 

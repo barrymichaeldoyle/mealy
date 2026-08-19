@@ -25,7 +25,10 @@
     "precommit": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm knip && pnpm test",
     "prepare": "git config core.hooksPath .githooks",
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm knip && pnpm test && pnpm test:a11y",
-    "deploy": "vite build && nitro deploy --prebuilt"
+    "deploy": "pnpm deploy:convex && pnpm deploy:cloudflare",
+    "deploy:build": "pnpm precommit && pnpm deploy:convex",
+    "deploy:convex": "convex deploy --cmd 'pnpm build' --cmd-url-env-var-name VITE_CONVEX_URL",
+    "deploy:cloudflare": "nitro deploy --prebuilt"
   },
   "dependencies": {
     "@clerk/tanstack-react-start": "^1.4.21",
