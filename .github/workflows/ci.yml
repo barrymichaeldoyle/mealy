@@ -27,8 +27,22 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Same command the pre-commit hook runs, so a green commit stays green.
-      - run: pnpm precommit
+      # The steps `pnpm precommit` runs, spelled out so a failure names itself
+      # in the UI. Keep them in sync with that script in package.json, which
+      # the pre-commit hook runs as one command.
+      - run: pnpm lint
+
+      - run: pnpm format:check
+        if: ${{ !cancelled() }}
+
+      - run: pnpm typecheck
+        if: ${{ !cancelled() }}
+
+      - run: pnpm knip
+        if: ${{ !cancelled() }}
+
+      - run: pnpm test
+        if: ${{ !cancelled() }}
 
   a11y:
     name: Accessibility

@@ -83,8 +83,10 @@ bodies:
   wired up by `pnpm install` through the `prepare` script. The browser a11y
   suite is deliberately left out, since it needs a dev server. Use
   `git commit -n` to skip the hook, and say so in the message when you do.
-- CI (`.github/workflows/ci.yml`) runs the same `pnpm precommit` command, plus
-  the a11y suite in a second job. That job needs the repository variable
+- CI (`.github/workflows/ci.yml`) runs those same checks as separate steps,
+  so a red run names the one that failed and one run reports every failure.
+  Add a check to `precommit` and add it to the workflow too. The a11y suite
+  runs in a second job, which needs the repository variable
   `VITE_CLERK_PUBLISHABLE_KEY` and skips itself when it is unset.
 - Comments explain why. Delete a comment that restates the line below it.
 - Data access lives behind the hooks in `src/hooks/`. Components do not
