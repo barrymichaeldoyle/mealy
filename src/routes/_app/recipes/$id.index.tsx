@@ -159,7 +159,7 @@ function RecipeDetail() {
               {recipe.steps.map((step, index) => (
                 <li key={index} className="flex gap-4">
                   <span
-                    className="shrink-0 font-serif text-title font-medium text-basil-700 tabular-nums"
+                    className="shrink-0 text-title font-semibold text-basil-700 tabular-nums"
                     aria-hidden="true"
                   >
                     {index + 1}

@@ -203,7 +203,7 @@ function WeekNav({
         >
           <ChevronLeft className="size-5" aria-hidden="true" />
         </Button>
-        <p className="font-serif text-title font-medium text-ink-900 tabular-nums">
+        <p className="text-title font-semibold text-ink-900 tabular-nums">
           {weekRangeLabel(weekStart)}
         </p>
         <Button
@@ -236,13 +236,13 @@ function DayRail({ date }: { date: IsoDate }) {
 
   return (
     <div className="w-11 shrink-0 pt-1 text-center">
-      <p className="font-serif text-meta font-medium text-ink-400 uppercase">
+      <p className="text-meta font-semibold tracking-wide text-ink-400 uppercase">
         {weekdayShortLabel(date)}
       </p>
       <p
         className={cn(
           'mx-auto mt-0.5 grid size-8 place-items-center rounded-full',
-          'font-serif text-title font-medium tabular-nums',
+          'text-title font-semibold tabular-nums',
           today ? 'bg-basil-700 text-paper-50' : 'text-ink-600',
         )}
       >

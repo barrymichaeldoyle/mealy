@@ -122,7 +122,10 @@ Two families, both free (Google Fonts or Fontsource):
 - **UI and body:** Inter, or the system stack if you want zero font cost
   on body. Weights 400, 500 and 600 only.
 - **Quantities and numbers:** Inter with `font-variant-numeric:
-  tabular-nums` so shopping list quantities align.
+  tabular-nums` so shopping list quantities align. Every digit in the app
+  is Inter, including step numbers and the dates in the week rail.
+  Fraunces figures are handsome and slow to read, and a number is read at
+  a glance rather than looked at.
 
 Scale, mobile-first, in rem:
 
@@ -137,8 +140,8 @@ Scale, mobile-first, in rem:
 `meta` is set in `ink-400`.
 
 Cook mode on the recipe detail screen bumps body to 18/30. Step numbers
-are set in Fraunces at title size in `basil-700`, the column is capped at
-about 34ch, and steps get `space-y-6`. This screen is read from a metre
+are set in Inter 600 at title size in `basil-700`, the column is capped
+at about 34ch, and steps get `space-y-6`. This screen is read from a metre
 away with floury hands. It should feel like a page, not a form.
 
 ---
@@ -197,7 +200,7 @@ with generous left padding.
 ### Plan, the week
 
 A vertical list of 7 day rows, not a grid. It is a phone. Each row has the
-day label in the left rail (Fraunces, "MON" plus the date number) and
+day label in the left rail (Inter, "MON" plus the date number) and
 meals as small cards to the right. Today's rail number gets a `basil-700`
 circle. An empty day is a dashed `paper-300` border row with "＋ Add
 dinner" in `ink-400`.

@@ -439,7 +439,7 @@ export function RecipeForm({
             <li key={step.key}>
               <Card className="flex items-start gap-2 p-3">
                 <span
-                  className="mt-3 shrink-0 font-serif text-title font-medium text-basil-700 tabular-nums"
+                  className="mt-3 shrink-0 text-title font-semibold text-basil-700 tabular-nums"
                   aria-hidden="true"
                 >
                   {index + 1}

@@ -224,7 +224,7 @@ function PlanRow({
           className={
             active
               ? 'mx-auto mt-1 grid size-7 place-items-center rounded-full bg-basil-700 text-meta font-semibold text-paper-50'
-              : 'mt-1 font-serif text-body font-medium text-ink-600'
+              : 'mt-1 text-meta font-semibold text-ink-600 tabular-nums'
           }
         >
           {date}
