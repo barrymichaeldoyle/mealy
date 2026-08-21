@@ -137,6 +137,7 @@ pnpm precommit       # the same without Axe, what the hook runs
 pnpm test            # vitest, both projects
 pnpm test:watch      # vitest in watch mode
 pnpm test:a11y       # Axe on public pages, desktop and mobile
+pnpm test:e2e        # signed-in screens, local only, needs Clerk keys
 pnpm lint            # oxlint
 pnpm lint:fix        # oxlint --fix
 pnpm knip            # unused files, exports and dependencies
@@ -155,6 +156,14 @@ Install Chromium once before the first accessibility run:
 ```bash
 pnpm exec playwright install chromium
 ```
+
+`pnpm test:e2e` covers the screens you have to be signed in to see, which
+the Axe suite deliberately leaves alone. It reads `CLERK_SECRET_KEY` and
+`VITE_CLERK_PUBLISHABLE_KEY` from `.env.local`, creates a throwaway Clerk
+account for the run and deletes it afterwards, so every run starts on a
+household that has answered nothing. It skips itself without those keys and
+stays out of `pnpm check`, since CI has no development instance to sign in
+to.
 
 The JSX accessibility rules fail lint for invalid ARIA, missing labels,
 keyboard-inaccessible controls and related structural problems. Playwright

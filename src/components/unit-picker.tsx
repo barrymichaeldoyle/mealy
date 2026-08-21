@@ -192,6 +192,8 @@ export function UnitSystemCard() {
         <Button
           disabled={!dirty}
           className="shrink-0"
+          // The household name has a Save button too, so this one says which.
+          aria-label="Save measurements"
           onClick={async () => {
             await setSystems({ systems })
             setDraft(null)

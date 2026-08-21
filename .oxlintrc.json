@@ -59,7 +59,9 @@
         "*.config.ts",
         "convex/auth.config.ts",
         "convex/schema.ts",
-        "convex/http.ts"
+        "convex/http.ts",
+        "tests/e2e/global-setup.ts",
+        "tests/e2e/global-teardown.ts"
       ],
       "rules": {
         "import/no-default-export": "off"

@@ -16,6 +16,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:a11y": "playwright test --config playwright.a11y.config.ts",
+    "test:e2e": "playwright test --config playwright.e2e.config.ts",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
@@ -49,6 +50,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@babel/core": "^8.0.1",
+    "@clerk/testing": "^2.2.27",
     "@edge-runtime/vm": "^5.0.0",
     "@playwright/test": "^1.62.1",
     "@rolldown/plugin-babel": "^0.2.3",
