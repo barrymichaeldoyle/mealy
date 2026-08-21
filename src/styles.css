@@ -157,6 +157,17 @@ body {
   }
 }
 
+/*
+ * A form whose actions are pinned to the foot of the screen. The bar floats
+ * over the fields, so anything the browser scrolls to by itself, a control
+ * reached by Tab or a field jumped to after a failed submit, has to clear
+ * it. Without this the browser is happy to stop scrolling with the control
+ * underneath the bar, where it cannot be clicked.
+ */
+.form-sticky-actions :is(a, button, input, select, textarea) {
+  scroll-margin-bottom: 5.5rem;
+}
+
 /* The site footer wants real space under it, not just the home indicator. */
 .pb-safe-8 {
   padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));

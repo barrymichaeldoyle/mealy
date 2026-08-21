@@ -47,11 +47,19 @@ export function useNeedsUnitSetup(): boolean {
 export function useUnitOptions(keep: readonly Unit[] = []): {
   units: Unit[]
   defaultUnit: Unit
+  /**
+   * False while the household query is still in flight. Until it resolves
+   * the units below are the metric fallback, which is the wrong list for an
+   * imperial kitchen, so a caller showing a picker waits for this.
+   */
+  ready: boolean
 } {
+  const household = useHousehold()
   const systems = useUnitSystems()
   return {
     units: unitsForSystems(systems, keep),
     defaultUnit: defaultUnitFor(systems),
+    ready: household !== undefined,
   }
 }
 
