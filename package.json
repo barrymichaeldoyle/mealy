@@ -17,6 +17,7 @@
     "test:watch": "vitest",
     "test:a11y": "playwright test --config playwright.a11y.config.ts",
     "test:e2e": "playwright test --config playwright.e2e.config.ts",
+    "test:a11y:app": "playwright test --config playwright.e2e.config.ts a11y.spec.ts",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
