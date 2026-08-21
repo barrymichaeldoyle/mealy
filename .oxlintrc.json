@@ -49,7 +49,7 @@
   },
   "overrides": [
     {
-      "files": ["convex/**/*.ts"],
+      "files": ["convex/**/*.ts", "tests/**/*.ts"],
       "rules": {
         "no-await-in-loop": "off"
       }
