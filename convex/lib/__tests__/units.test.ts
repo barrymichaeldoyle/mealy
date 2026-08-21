@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  UNITS,
   consolidate,
+  defaultUnitFor,
+  formatEquivalent,
   formatCanonicalQuantity,
   formatListItem,
   formatRecipeQuantity,
@@ -8,6 +11,7 @@ import {
   roundCanonical,
   toCanonical,
   unitFamily,
+  unitsForSystems,
 } from '../units'
 
 /** Return an indexed item or fail the test with a useful bounds error. */
@@ -244,5 +248,103 @@ describe('formatRecipeQuantity', () => {
     expect(formatRecipeQuantity(2, 'tin')).toBe('2 tin')
     expect(formatRecipeQuantity(3, 'item')).toBe('3')
     expect(formatRecipeQuantity(undefined, 'none')).toBe('to taste')
+  })
+})
+
+describe('unitsForSystems', () => {
+  it('offers metric and the shared spoons, but nothing imperial', () => {
+    const units = unitsForSystems(['metric'])
+    expect(units).toEqual([
+      'g',
+      'kg',
+      'ml',
+      'l',
+      'tsp',
+      'tbsp',
+      'cup',
+      'item',
+      'tin',
+      'pack',
+      'none',
+    ])
+  })
+
+  it('offers imperial and the same shared spoons', () => {
+    const units = unitsForSystems(['imperial'])
+    expect(units).toEqual([
+      'oz',
+      'lb',
+      'tsp',
+      'tbsp',
+      'cup',
+      'fl oz',
+      'pint',
+      'item',
+      'tin',
+      'pack',
+      'none',
+    ])
+  })
+
+  it('offers everything when both are on', () => {
+    expect(unitsForSystems(['metric', 'imperial'])).toEqual([...UNITS])
+  })
+
+  it('keeps a unit a saved recipe already uses', () => {
+    const units = unitsForSystems(['metric'], ['lb'])
+    expect(units).toContain('lb')
+    expect(units).not.toContain('oz')
+    // Canonical order, not appended at the end.
+    expect(units.indexOf('lb')).toBeLessThan(units.indexOf('ml'))
+  })
+
+  it('does not repeat a kept unit that is already offered', () => {
+    const units = unitsForSystems(['metric'], ['g', 'g'])
+    expect(units.filter((unit) => unit === 'g')).toHaveLength(1)
+  })
+})
+
+describe('defaultUnitFor', () => {
+  it('starts a metric kitchen on grams and an imperial one on ounces', () => {
+    expect(defaultUnitFor(['metric'])).toBe('g')
+    expect(defaultUnitFor(['metric', 'imperial'])).toBe('g')
+    expect(defaultUnitFor(['imperial'])).toBe('oz')
+  })
+})
+
+describe('formatEquivalent', () => {
+  const metric = ['metric'] as const
+  const imperial = ['imperial'] as const
+
+  it('restates spoons and cups in metric', () => {
+    expect(formatEquivalent(1, 'tbsp', metric)).toBe('15ml')
+    expect(formatEquivalent(2, 'tsp', metric)).toBe('10ml')
+    // The cup is an agreed 250ml, so the answer hedges.
+    expect(formatEquivalent(2, 'cup', metric)).toBe('≈500ml')
+  })
+
+  it('restates an imported imperial amount in metric', () => {
+    expect(formatEquivalent(8, 'oz', metric)).toBe('≈226.8g')
+    expect(formatEquivalent(1, 'pint', metric)).toBe('≈473ml')
+  })
+
+  it('restates spoons and cups in imperial, promoting to lb and pints', () => {
+    expect(formatEquivalent(2, 'cup', imperial)).toBe('≈1.1 pint')
+    expect(formatEquivalent(1, 'tbsp', imperial)).toBe('≈0.5 fl oz')
+    expect(formatEquivalent(1, 'kg', imperial)).toBe('≈2.2lb')
+    expect(formatEquivalent(100, 'g', imperial)).toBe('≈3.5oz')
+  })
+
+  it('says nothing when the unit already is one of theirs', () => {
+    expect(formatEquivalent(250, 'g', metric)).toBeNull()
+    expect(formatEquivalent(1, 'l', metric)).toBeNull()
+    expect(formatEquivalent(8, 'oz', imperial)).toBeNull()
+    expect(formatEquivalent(1, 'pint', imperial)).toBeNull()
+  })
+
+  it('says nothing for counts or a missing amount', () => {
+    expect(formatEquivalent(2, 'tin', metric)).toBeNull()
+    expect(formatEquivalent(1, 'none', metric)).toBeNull()
+    expect(formatEquivalent(undefined, 'cup', metric)).toBeNull()
   })
 })

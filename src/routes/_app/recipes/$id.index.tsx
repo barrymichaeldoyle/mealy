@@ -9,7 +9,8 @@ import { SkeletonList } from '../../../components/ui/skeleton'
 import { buttonClass } from '../../../components/ui/button'
 import { ConfirmButton } from '../../../components/ui/confirm-button'
 import { useDeleteRecipe, useRecipe } from '../../../hooks/use-recipes'
-import { formatRecipeQuantity } from '../../../lib/units'
+import { formatEquivalent, formatRecipeQuantity } from '../../../lib/units'
+import { useUnitSystems } from '../../../hooks/use-household'
 import type { Id } from '../../../../convex/_generated/dataModel'
 
 export const Route = createFileRoute('/_app/recipes/$id/')({
@@ -21,6 +22,7 @@ function RecipeDetail() {
   const navigate = useNavigate()
   const recipe = useRecipe(id as Id<'recipes'>)
   const deleteRecipe = useDeleteRecipe()
+  const systems = useUnitSystems()
 
   if (recipe === undefined) {
     return (
@@ -122,24 +124,38 @@ function RecipeDetail() {
               </p>
             ) : (
               <ListRows>
-                {recipe.ingredients.map((ingredient, index) => (
-                  <ListRow key={index} className="justify-between">
-                    <span className="text-cook text-ink-900">
-                      {ingredient.name}
-                      {ingredient.note && (
-                        <span className="text-ink-400">
-                          , {ingredient.note}
+                {recipe.ingredients.map((ingredient, index) => {
+                  const equivalent = formatEquivalent(
+                    ingredient.quantity,
+                    ingredient.unit,
+                    systems,
+                  )
+                  return (
+                    <ListRow key={index} className="justify-between">
+                      <span className="text-cook text-ink-900">
+                        {ingredient.name}
+                        {ingredient.note && (
+                          <span className="text-ink-400">
+                            , {ingredient.note}
+                          </span>
+                        )}
+                      </span>
+                      <span className="shrink-0 text-right">
+                        <span className="block text-cook font-semibold text-ink-600 tabular-nums">
+                          {formatRecipeQuantity(
+                            ingredient.quantity,
+                            ingredient.unit,
+                          )}
                         </span>
-                      )}
-                    </span>
-                    <span className="shrink-0 text-cook font-semibold text-ink-600 tabular-nums">
-                      {formatRecipeQuantity(
-                        ingredient.quantity,
-                        ingredient.unit,
-                      )}
-                    </span>
-                  </ListRow>
-                ))}
+                        {equivalent && (
+                          <span className="block text-meta text-ink-400 tabular-nums">
+                            {equivalent}
+                          </span>
+                        )}
+                      </span>
+                    </ListRow>
+                  )
+                })}
               </ListRows>
             )}
           </Card>

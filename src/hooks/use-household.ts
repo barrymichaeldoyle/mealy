@@ -3,6 +3,13 @@ import { useConvex, useMutation, useQuery } from 'convex/react'
 import { useUser } from '@clerk/tanstack-react-start'
 import { api } from '../../convex/_generated/api'
 import { defined } from '../../convex/lib/optional'
+import {
+  DEFAULT_UNIT_SYSTEMS,
+  defaultUnitFor,
+  unitsForSystems,
+  type Unit,
+  type UnitSystem,
+} from '../lib/units'
 
 export function useHousehold() {
   return useQuery(api.households.current)
@@ -10,6 +17,42 @@ export function useHousehold() {
 
 export function useInvitePreview(token: string | undefined) {
   return useQuery(api.households.invite, token ? { token } : 'skip')
+}
+
+export function useSetUnitSystems() {
+  return useMutation(api.households.setUnitSystems)
+}
+
+/**
+ * The measurement systems this household writes recipes in. Falls back to
+ * metric while the household query is in flight, and for the moment between
+ * a new household being created and the setup screen being answered.
+ */
+export function useUnitSystems(): readonly UnitSystem[] {
+  const household = useHousehold()
+  return household?.household.unitSystems ?? DEFAULT_UNIT_SYSTEMS
+}
+
+/** True once we know the household exists and nobody has answered yet. */
+export function useNeedsUnitSetup(): boolean {
+  const household = useHousehold()
+  return Boolean(household) && household?.household.unitSystems === undefined
+}
+
+/**
+ * The units to offer in a picker. `keep` holds units already chosen on the
+ * rows being edited, so an imported recipe stays editable whatever the
+ * household has since turned off.
+ */
+export function useUnitOptions(keep: readonly Unit[] = []): {
+  units: Unit[]
+  defaultUnit: Unit
+} {
+  const systems = useUnitSystems()
+  return {
+    units: unitsForSystems(systems, keep),
+    defaultUnit: defaultUnitFor(systems),
+  }
 }
 
 export function useRenameHousehold() {

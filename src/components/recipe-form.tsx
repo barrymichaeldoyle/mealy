@@ -3,7 +3,13 @@ import { Plus, Trash2 } from 'lucide-react'
 import { Button } from './ui/button'
 import { Card } from './ui/card'
 import { Field, Input, Select, Textarea } from './ui/field'
-import { UNITS, type Unit } from '../lib/units'
+import {
+  UNIT_OPTION_LABELS,
+  formatEquivalent,
+  type Unit,
+  type UnitSystem,
+} from '../lib/units'
+import { useUnitOptions, useUnitSystems } from '../hooks/use-household'
 import { defined, type Defined } from '../../convex/lib/optional'
 import { cn } from '../lib/cn'
 
@@ -45,15 +51,19 @@ export type RecipePayload = {
 let keySeed = 0
 const nextKey = () => `k${keySeed++}`
 
-function emptyIngredient(): IngredientDraft {
-  return { key: nextKey(), name: '', quantity: '', unit: 'g', note: '' }
+function emptyIngredient(unit: Unit): IngredientDraft {
+  return { key: nextKey(), name: '', quantity: '', unit, note: '' }
 }
 
 function emptyStep() {
   return { key: nextKey(), text: '' }
 }
 
-export function emptyRecipeDraft(): RecipeDraft {
+/**
+ * `unit` is the household's default, so an imperial kitchen does not open
+ * the form on grams. Callers wait for the household to load before asking.
+ */
+export function emptyRecipeDraft(unit: Unit): RecipeDraft {
   return {
     title: '',
     description: '',
@@ -61,24 +71,10 @@ export function emptyRecipeDraft(): RecipeDraft {
     prepTimeMinutes: '',
     cookTimeMinutes: '',
     tags: '',
-    ingredients: [emptyIngredient()],
+    ingredients: [emptyIngredient(unit)],
     steps: [emptyStep()],
   }
 }
-
-const UNIT_OPTIONS: { value: Unit; label: string }[] = UNITS.map((unit) => ({
-  value: unit,
-  label:
-    unit === 'none'
-      ? 'to taste'
-      : unit === 'item'
-        ? 'item(s)'
-        : unit === 'tin'
-          ? 'tin(s)'
-          : unit === 'pack'
-            ? 'pack(s)'
-            : unit,
-}))
 
 function optionalNumber(value: string): number | undefined {
   const trimmed = value.trim()
@@ -148,6 +144,32 @@ function draftToPayload(draft: RecipeDraft): {
   }
 }
 
+/**
+ * Spoons and cups say nothing about how much to buy, so the amount is said
+ * again in the household's own units as they type. Absent when the unit
+ * already is one of theirs.
+ */
+function IngredientEquivalent({
+  quantity,
+  unit,
+  systems,
+}: {
+  quantity: string
+  unit: Unit
+  systems: readonly UnitSystem[]
+}) {
+  const parsed = Number(quantity.trim())
+  const equivalent =
+    quantity.trim() && Number.isFinite(parsed) && parsed > 0
+      ? formatEquivalent(parsed, unit, systems)
+      : null
+
+  if (!equivalent) {
+    return null
+  }
+  return <p className="-mt-1 text-meta text-ink-400">That is {equivalent}.</p>
+}
+
 export function RecipeForm({
   initial,
   submitLabel,
@@ -163,6 +185,12 @@ export function RecipeForm({
   const [errors, setErrors] = useState<FormErrors>({})
   const [saving, setSaving] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
+  const systems = useUnitSystems()
+  // A recipe already written in a unit the household has since switched off
+  // keeps offering it, so editing the row cannot silently change what it says.
+  const { units, defaultUnit } = useUnitOptions(
+    draft.ingredients.map((ingredient) => ingredient.unit),
+  )
 
   /*
    * The action bar is sticky at the foot of a long form, so a failed submit
@@ -384,15 +412,21 @@ export function RecipeForm({
                           })
                         }
                       >
-                        {UNIT_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
+                        {units.map((unit) => (
+                          <option key={unit} value={unit}>
+                            {UNIT_OPTION_LABELS[unit]}
                           </option>
                         ))}
                       </Select>
                     )}
                   </Field>
                 </div>
+
+                <IngredientEquivalent
+                  quantity={ingredient.quantity}
+                  unit={ingredient.unit}
+                  systems={systems}
+                />
 
                 <Field label="Note" hint="Optional, e.g. finely chopped">
                   {(id) => (
@@ -418,7 +452,9 @@ export function RecipeForm({
           variant="secondary"
           className="w-full"
           onClick={() =>
-            patch({ ingredients: [...draft.ingredients, emptyIngredient()] })
+            patch({
+              ingredients: [...draft.ingredients, emptyIngredient(defaultUnit)],
+            })
           }
         >
           <Plus className="size-4" aria-hidden="true" />

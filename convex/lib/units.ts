@@ -353,3 +353,147 @@ export function consolidate(inputs: ConsolidationInput[]): ConsolidatedItem[] {
     }
   })
 }
+
+export const UNIT_SYSTEMS = ['metric', 'imperial'] as const
+
+export type UnitSystem = (typeof UNIT_SYSTEMS)[number]
+
+/**
+ * Which systems offer a unit in the recipe form. Spoons and cups sit in
+ * both: a metric kitchen still measures baking powder in teaspoons. Counts
+ * and "to taste" belong to no system and are always offered.
+ */
+const SYSTEMS_BY_UNIT: Record<Unit, readonly UnitSystem[]> = {
+  g: ['metric'],
+  kg: ['metric'],
+  ml: ['metric'],
+  l: ['metric'],
+  oz: ['imperial'],
+  lb: ['imperial'],
+  'fl oz': ['imperial'],
+  pint: ['imperial'],
+  tsp: ['metric', 'imperial'],
+  tbsp: ['metric', 'imperial'],
+  cup: ['metric', 'imperial'],
+  item: [],
+  tin: [],
+  pack: [],
+  none: [],
+}
+
+/** What a household gets before anyone has answered the setup question. */
+export const DEFAULT_UNIT_SYSTEMS: readonly UnitSystem[] = ['metric']
+
+export const UNIT_SYSTEM_LABELS: Record<UnitSystem, string> = {
+  metric: 'Metric',
+  imperial: 'Imperial and US',
+}
+
+/** The units each system contributes, for the setup screen to show. */
+export const UNIT_SYSTEM_UNITS: Record<UnitSystem, readonly Unit[]> = {
+  metric: UNITS.filter((unit) => SYSTEMS_BY_UNIT[unit].includes('metric')),
+  imperial: UNITS.filter((unit) => SYSTEMS_BY_UNIT[unit].includes('imperial')),
+}
+
+/** Offered whatever the household picked. */
+export const UNIVERSAL_UNITS: readonly Unit[] = UNITS.filter(
+  (unit) => SYSTEMS_BY_UNIT[unit].length === 0,
+)
+
+/**
+ * Labels for a unit picker. `UNIT_LABELS` renders nothing for a bare count,
+ * which is right beside a number and useless in a dropdown.
+ */
+export const UNIT_OPTION_LABELS: Record<Unit, string> = {
+  ...UNIT_LABELS,
+  item: 'item(s)',
+  tin: 'tin(s)',
+  pack: 'pack(s)',
+  none: 'to taste',
+}
+
+export function isUnitSystem(value: string): value is UnitSystem {
+  return (UNIT_SYSTEMS as readonly string[]).includes(value)
+}
+
+/**
+ * The units to offer in a picker, in canonical order.
+ *
+ * `keep` holds units already saved on the row being edited. A recipe written
+ * in ounces stays editable after the household turns imperial off, rather
+ * than silently changing what it says.
+ */
+export function unitsForSystems(
+  systems: readonly UnitSystem[],
+  keep: readonly Unit[] = [],
+): Unit[] {
+  return UNITS.filter(
+    (unit) =>
+      SYSTEMS_BY_UNIT[unit].length === 0 ||
+      SYSTEMS_BY_UNIT[unit].some((system) => systems.includes(system)) ||
+      keep.includes(unit),
+  )
+}
+
+/** The unit a fresh ingredient row starts on. */
+export function defaultUnitFor(systems: readonly UnitSystem[]): Unit {
+  return systems.includes('metric') ? 'g' : 'oz'
+}
+
+/** The system whose units the household reads amounts in. */
+function preferredSystem(systems: readonly UnitSystem[]): UnitSystem {
+  return systems.includes('metric') ? 'metric' : 'imperial'
+}
+
+/** Render a canonical amount in imperial units, promoting oz to lb, fl oz to pints. */
+function formatImperial(quantity: number, unit: CanonicalUnit): string {
+  switch (unit) {
+    case 'g':
+      return quantity >= TO_CANONICAL.lb
+        ? `${formatNumber(quantity / TO_CANONICAL.lb, 1)}lb`
+        : `${formatNumber(quantity / TO_CANONICAL.oz, 1)}oz`
+    case 'ml':
+      return quantity >= TO_CANONICAL.pint
+        ? `${formatNumber(quantity / TO_CANONICAL.pint, 1)} pint`
+        : `${formatNumber(quantity / TO_CANONICAL['fl oz'], 1)} fl oz`
+    default:
+      return ''
+  }
+}
+
+/**
+ * The same amount said again in the household's own units, or null when the
+ * entered unit already is one of them.
+ *
+ * Spoons and cups always get one, since "2 cups" tells you nothing about how
+ * much to buy. So does an ounce in a metric kitchen.
+ */
+export function formatEquivalent(
+  quantity: number | undefined,
+  unit: Unit,
+  systems: readonly UnitSystem[],
+): string | null {
+  const family = unitFamily(unit)
+  if (quantity === undefined || family === 'none' || isCountFamily(family)) {
+    return null
+  }
+
+  const target = preferredSystem(systems)
+  // A unit that belongs to the target system and to it alone already reads
+  // natively. tsp, tbsp and cup belong to both, so they fall through.
+  const owners = SYSTEMS_BY_UNIT[unit]
+  if (owners.length === 1 && owners[0] === target) {
+    return null
+  }
+
+  const canonical = toCanonical(quantity, unit)
+  const amount =
+    target === 'metric'
+      ? formatCanonicalQuantity(canonical.quantity, canonical.unit)
+      : formatImperial(canonical.quantity, canonical.unit)
+  if (!amount) {
+    return null
+  }
+  // Every imperial constant here is an approximation, so those always hedge.
+  return canonical.approximate || target === 'imperial' ? `≈${amount}` : amount
+}

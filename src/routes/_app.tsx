@@ -5,6 +5,7 @@ import {
   Show,
 } from '@clerk/tanstack-react-start'
 import { AppNav } from '../components/bottom-nav'
+import { UnitSetupGate } from '../components/unit-picker'
 import { useHouseholdBootstrap } from '../hooks/use-household'
 
 export const Route = createFileRoute('/_app')({ component: AppLayout })
@@ -21,10 +22,12 @@ function AppLayout() {
       </Show>
       <Show when="signed-in">
         <HouseholdBootstrap />
-        <div className="app-shell-content md:pl-64">
-          <Outlet />
-        </div>
-        <AppNav />
+        <UnitSetupGate>
+          <div className="app-shell-content md:pl-64">
+            <Outlet />
+          </div>
+          <AppNav />
+        </UnitSetupGate>
       </Show>
     </ClerkLoaded>
   )

@@ -1,5 +1,6 @@
 import { ConvexError, v } from 'convex/values'
 import { internalMutation, mutation, query } from './_generated/server'
+import { unitSystemValidator } from './schema'
 import type { Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 import {
@@ -104,6 +105,24 @@ export const ensureCurrent = mutation({
     }
 
     return await createHousehold(ctx, identity.subject, name)
+  },
+})
+
+/**
+ * Which measurement systems the recipe form offers. Answered on the setup
+ * screen the first time, changeable from the household screen after that.
+ * It changes nothing already saved: a recipe written in ounces still says
+ * ounces, it just stops being offered on new rows.
+ */
+export const setUnitSystems = mutation({
+  args: { systems: v.array(unitSystemValidator) },
+  handler: async (ctx, args) => {
+    const { householdId } = await requireHousehold(ctx)
+    const systems = [...new Set(args.systems)]
+    if (systems.length === 0) {
+      throw new ConvexError('Pick at least one set of measurements')
+    }
+    await ctx.db.patch(householdId, { unitSystems: systems })
   },
 })
 
@@ -526,7 +545,11 @@ export const exportData = query({
     const titles = new Map(recipes.map((recipe) => [recipe._id, recipe.title]))
 
     return {
-      household: { name: household.name, createdAt: household.createdAt },
+      household: {
+        name: household.name,
+        createdAt: household.createdAt,
+        unitSystems: household.unitSystems ?? null,
+      },
       members: (await members(ctx, householdId)).map((member) => ({
         name: member.name,
         role: member.role,

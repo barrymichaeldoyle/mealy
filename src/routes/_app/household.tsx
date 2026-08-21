@@ -8,6 +8,7 @@ import { Card } from '../../components/ui/card'
 import { ConfirmButton } from '../../components/ui/confirm-button'
 import { Field, Input } from '../../components/ui/field'
 import { SkeletonList } from '../../components/ui/skeleton'
+import { UnitSystemCard } from '../../components/unit-picker'
 import {
   useCreateInvite,
   useDisplayName,
@@ -49,6 +50,7 @@ function HouseholdScreen() {
               meId={household.userId}
               isOwner={household.role === 'owner'}
             />
+            <UnitSystemCard />
             <InviteCard
               token={household.inviteToken}
               expiresAt={household.inviteExpiresAt}

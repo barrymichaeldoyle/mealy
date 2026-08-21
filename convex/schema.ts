@@ -19,6 +19,11 @@ export const unitValidator = v.union(
   v.literal('none'),
 )
 
+export const unitSystemValidator = v.union(
+  v.literal('metric'),
+  v.literal('imperial'),
+)
+
 export const slotValidator = v.union(
   v.literal('breakfast'),
   v.literal('lunch'),
@@ -41,6 +46,11 @@ export default defineSchema({
   households: defineTable({
     name: v.string(),
     createdAt: v.number(),
+    /**
+     * Which measurement systems the recipe form offers. Absent means nobody
+     * has answered yet, which is what puts the setup screen in front of them.
+     */
+    unitSystems: v.optional(v.array(unitSystemValidator)),
   }),
 
   householdMembers: defineTable({

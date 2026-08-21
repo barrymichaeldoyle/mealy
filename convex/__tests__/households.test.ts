@@ -354,3 +354,51 @@ describe('leaving and removing', () => {
     ).rejects.toThrow('yourself')
   })
 })
+
+describe('measurement systems', () => {
+  test('a new household has not answered yet', async () => {
+    const t = setup()
+    const as = t.withIdentity(BARRY)
+    await as.mutation(api.households.ensureCurrent, {})
+
+    const current = await as.query(api.households.current)
+    expect(current?.household.unitSystems).toBeUndefined()
+  })
+
+  test('the answer is saved and deduplicated', async () => {
+    const t = setup()
+    const as = t.withIdentity(BARRY)
+    await as.mutation(api.households.ensureCurrent, {})
+
+    await as.mutation(api.households.setUnitSystems, {
+      systems: ['metric', 'metric', 'imperial'],
+    })
+
+    const current = await as.query(api.households.current)
+    expect(current?.household.unitSystems).toEqual(['metric', 'imperial'])
+  })
+
+  test('an empty answer is refused', async () => {
+    const t = setup()
+    const as = t.withIdentity(BARRY)
+    await as.mutation(api.households.ensureCurrent, {})
+
+    await expect(
+      as.mutation(api.households.setUnitSystems, { systems: [] }),
+    ).rejects.toThrow('at least one')
+  })
+
+  test('both members of a household see the same answer', async () => {
+    const { t, token } = await invited()
+    await t
+      .withIdentity(SAM)
+      .mutation(api.households.acceptInvite, { token, moveData: false })
+
+    await t
+      .withIdentity(BARRY)
+      .mutation(api.households.setUnitSystems, { systems: ['metric'] })
+
+    const sam = await t.withIdentity(SAM).query(api.households.current)
+    expect(sam?.household.unitSystems).toEqual(['metric'])
+  })
+})

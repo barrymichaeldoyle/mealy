@@ -28,7 +28,12 @@ import {
   useToggleListItem,
   useUpdateListItem,
 } from '../../../hooks/use-lists'
-import { UNITS, formatListItem, type Unit } from '../../../lib/units'
+import {
+  UNIT_OPTION_LABELS,
+  formatListItem,
+  type Unit,
+} from '../../../lib/units'
+import { useUnitOptions } from '../../../hooks/use-household'
 import { cn } from '../../../lib/cn'
 import type { Doc, Id } from '../../../../convex/_generated/dataModel'
 import { defined } from '../../../../convex/lib/optional'
@@ -298,11 +303,6 @@ function ItemRow({
   )
 }
 
-const UNIT_OPTIONS: { value: Unit; label: string }[] = UNITS.map((unit) => ({
-  value: unit,
-  label: unit === 'none' ? 'no amount' : unit,
-}))
-
 function AddItemSheet({
   open,
   listId,
@@ -313,6 +313,7 @@ function AddItemSheet({
   onClose: () => void
 }) {
   const addItem = useAddListItem()
+  const { units } = useUnitOptions()
   const [name, setName] = useState('')
   const [quantity, setQuantity] = useState('')
   const [unit, setUnit] = useState<Unit>('none')
@@ -376,9 +377,12 @@ function AddItemSheet({
                 value={unit}
                 onChange={(event) => setUnit(event.target.value as Unit)}
               >
-                {UNIT_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
+                {units.map((option) => (
+                  <option key={option} value={option}>
+                    {/* On a list, "no amount" is what a bare item means. */}
+                    {option === 'none'
+                      ? 'no amount'
+                      : UNIT_OPTION_LABELS[option]}
                   </option>
                 ))}
               </Select>
