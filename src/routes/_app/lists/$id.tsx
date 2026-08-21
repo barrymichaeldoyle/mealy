@@ -88,6 +88,7 @@ function ListDetail() {
   const pending = items.filter((item) => !item.checked || held.has(item._id))
   const done = items.filter((item) => item.checked && !held.has(item._id))
   const checkedCount = items.filter((item) => item.checked).length
+  const plural = checkedCount === 1 ? '' : 's'
 
   if (list === undefined) {
     return (
@@ -200,15 +201,24 @@ function ListDetail() {
 
         <div className="mt-8 space-y-3">
           {checkedCount > 0 && (
-            <Button
+            /*
+             * This deletes every ticked row for good. Deleting one item asks
+             * first, so the button that deletes twelve of them has to ask
+             * too: friction belongs in proportion to what is lost.
+             */
+            <ConfirmButton
               variant="secondary"
               className="w-full"
               disabled={!online}
-              onClick={() => clearChecked({ listId: list._id })}
+              title={`Delete ${checkedCount} ticked item${plural}?`}
+              description={`They will be permanently deleted from “${list.name}”. The items you have not ticked stay.`}
+              confirmLabel={`Delete ${checkedCount} item${plural}`}
+              onConfirm={async () => {
+                await clearChecked({ listId: list._id })
+              }}
             >
-              Clear {checkedCount} ticked item
-              {checkedCount === 1 ? '' : 's'}
-            </Button>
+              Clear {checkedCount} ticked item{plural}
+            </ConfirmButton>
           )}
           <ConfirmButton
             className="w-full"

@@ -8,6 +8,8 @@ import { Card } from '../../components/ui/card'
 import { ConfirmButton } from '../../components/ui/confirm-button'
 import { Field, Input } from '../../components/ui/field'
 import { SkeletonList } from '../../components/ui/skeleton'
+import { SaveNotice } from '../../components/ui/save-notice'
+import { useSaveState } from '../../hooks/use-save-state'
 import { UnitSystemCard } from '../../components/unit-picker'
 import {
   useCreateInvite,
@@ -69,6 +71,7 @@ function HouseholdScreen() {
 function NameCard({ name }: { name: string }) {
   const rename = useRenameHousehold()
   const [draft, setDraft] = useState(name)
+  const { status, error, save, reset } = useSaveState()
   const dirty = draft.trim() !== name
 
   return (
@@ -80,17 +83,21 @@ function NameCard({ name }: { name: string }) {
               id={id}
               value={draft}
               maxLength={60}
-              onChange={(event) => setDraft(event.target.value)}
+              onChange={(event) => {
+                reset()
+                setDraft(event.target.value)
+              }}
             />
             <Button
-              disabled={!dirty || !draft.trim()}
-              onClick={() => void rename({ name: draft })}
+              disabled={!dirty || !draft.trim() || status === 'saving'}
+              onClick={() => void save(() => rename({ name: draft }))}
             >
-              Save
+              {status === 'saving' ? 'Saving…' : 'Save'}
             </Button>
           </div>
         )}
       </Field>
+      <SaveNotice status={status} error={error} />
     </Card>
   )
 }

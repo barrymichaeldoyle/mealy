@@ -31,7 +31,7 @@ export function AppNav() {
     >
       <Link
         to="/recipes"
-        className="hidden items-center gap-3 rounded-btn px-2 font-serif text-title font-semibold text-ink-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-basil-700 md:flex"
+        className="hidden min-h-[44px] items-center gap-3 rounded-btn px-2 font-serif text-title font-semibold text-ink-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-basil-700 md:flex"
       >
         <Logo className="size-8" />
         Mealy
@@ -70,7 +70,12 @@ export function AppNav() {
 
       <div className="mt-auto hidden items-center gap-3 border-t border-paper-200 px-2 pt-5 md:flex">
         <UserButton
-          appearance={{ elements: { avatarBox: 'size-9' } }}
+          appearance={{
+            elements: {
+              avatarBox: 'size-9',
+              userButtonTrigger: 'rounded-full p-1',
+            },
+          }}
           aria-label="Open account menu"
         />
         <span className="text-meta font-medium text-ink-600">Your account</span>

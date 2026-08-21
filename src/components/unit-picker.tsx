@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import { useRouterState } from '@tanstack/react-router'
 import { Button } from './ui/button'
 import { Card } from './ui/card'
+import { SaveNotice } from './ui/save-notice'
 import { Checkbox } from './ui/checkbox'
 import { Logo } from './ui/logo'
 import {
@@ -18,6 +19,7 @@ import {
   useSetUnitSystems,
   useUnitSystems,
 } from '../hooks/use-household'
+import { useSaveState } from '../hooks/use-save-state'
 import { cn } from '../lib/cn'
 
 function unitList(units: readonly Unit[]): string {
@@ -50,7 +52,7 @@ function UnitSystemChoice({
                 'transition-colors duration-150 ease-out',
                 checked
                   ? 'border-basil-700 bg-basil-100/40'
-                  : 'border-paper-300 bg-paper-50 hover:bg-paper-100',
+                  : 'border-line bg-paper-50 hover:bg-paper-100',
               )}
             >
               <Checkbox
@@ -170,6 +172,7 @@ export function UnitSystemCard() {
   const saved = useUnitSystems()
   const setSystems = useSetUnitSystems()
   const [draft, setDraft] = useState<UnitSystem[] | null>(null)
+  const { status, error, save, reset } = useSaveState()
   const systems = draft ?? [...saved]
   const dirty =
     systems.length > 0 &&
@@ -186,22 +189,31 @@ export function UnitSystemCard() {
         What the unit picker offers when you write a recipe. Recipes you have
         already saved keep the units they were written in.
       </p>
-      <UnitSystemChoice value={systems} onChange={setDraft} />
+      <UnitSystemChoice
+        value={systems}
+        onChange={(next) => {
+          reset()
+          setDraft(next)
+        }}
+      />
       <div className="mt-3 flex items-center justify-between gap-3">
         <UnitSystemFootnote />
         <Button
-          disabled={!dirty}
+          disabled={!dirty || status === 'saving'}
           className="shrink-0"
           // The household name has a Save button too, so this one says which.
           aria-label="Save measurements"
-          onClick={async () => {
-            await setSystems({ systems })
-            setDraft(null)
-          }}
+          onClick={() =>
+            void save(async () => {
+              await setSystems({ systems })
+              setDraft(null)
+            })
+          }
         >
-          Save
+          {status === 'saving' ? 'Saving…' : 'Save'}
         </Button>
       </div>
+      <SaveNotice status={status} error={error} />
     </Card>
   )
 }

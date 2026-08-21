@@ -18,7 +18,7 @@ export function Checkbox({
       <input
         type="checkbox"
         className={cn(
-          'peer size-6 appearance-none rounded-full border-2 border-paper-300',
+          'peer size-6 appearance-none rounded-full border-2 border-line',
           'bg-paper-50 transition-colors duration-150 ease-out',
           'checked:border-basil-700 checked:bg-basil-700',
           'focus-visible:outline-2 focus-visible:outline-offset-2',

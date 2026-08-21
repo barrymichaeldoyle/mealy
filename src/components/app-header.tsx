@@ -18,14 +18,19 @@ export function AppHeader({ title }: { title?: string }) {
         ) : (
           <Link
             to="/recipes"
-            className="flex items-center gap-2 rounded-btn font-serif text-title font-semibold text-ink-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-basil-700"
+            className="flex min-h-[44px] items-center gap-2 rounded-btn font-serif text-title font-semibold text-ink-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-basil-700"
           >
             <Logo className="size-6" />
             Mealy
           </Link>
         )}
         <UserButton
-          appearance={{ elements: { avatarBox: 'size-9' } }}
+          appearance={{
+            elements: {
+              avatarBox: 'size-9',
+              userButtonTrigger: 'rounded-full p-1',
+            },
+          }}
           aria-label="Open account menu"
         >
           <UserButton.MenuItems>

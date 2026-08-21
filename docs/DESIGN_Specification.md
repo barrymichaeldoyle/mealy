@@ -131,13 +131,22 @@ Scale, mobile-first, in rem:
 
 | Token         | Size / line          | Use                                 |
 | ------------- | -------------------- | ----------------------------------- |
+| `hero`        | 40-76 fluid, Fraunces 600 | Landing hero only              |
+| `section`     | 30-48 fluid, Fraunces 600 | Landing section headings only  |
+| `lead`        | 18-20 fluid, Inter 400    | Landing lead paragraphs only   |
 | `display`     | 28/34, Fraunces 600  | Recipe detail title, screen headers |
 | `title`       | 20/26, Fraunces 500  | Card titles, list names             |
 | `body`        | 16/24, Inter 400     | Everything readable                 |
 | `body-strong` | 16/24, Inter 600     | Ingredient names, buttons           |
 | `meta`        | 13/18, Inter 500     | "35 min · serves 4", timestamps     |
 
-`meta` is set in `ink-400`.
+`meta` is set in `ink-400`, and 13px is the floor. Nothing renders smaller.
+
+The first three are the landing page's, and nothing under `/_app` uses
+them. A marketing page has to sell where a screen has to be worked in, so
+it gets type the app scale does not carry. They are fluid rather than
+stepped through breakpoints, which is why the landing page no longer
+reaches for raw Tailwind sizes.
 
 Cook mode on the recipe detail screen bumps body to 18/30. Step numbers
 are set in Inter 600 at title size in `basil-700`, the column is capped

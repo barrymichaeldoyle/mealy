@@ -11,7 +11,7 @@ export function chipClass(selected = false, className?: string): string {
     'font-medium transition-colors duration-150 ease-out',
     selected
       ? 'border-basil-700 bg-basil-100 text-basil-800'
-      : 'border-paper-300 bg-paper-100 text-ink-600',
+      : 'border-line bg-paper-100 text-ink-600',
     className,
   )
 }

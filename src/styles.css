@@ -19,11 +19,26 @@
   --color-paper-100: #f3eee2;
   --color-paper-200: #e7dfcd;
   --color-paper-300: #d3c8ae;
+  /*
+   * Control boundaries, not surfaces. WCAG 1.4.11 wants 3:1 for the edge
+   * that tells you where an input begins, and paper-300 managed 1.43:1
+   * against the card behind it, which is a line you can see only if you
+   * already know it is there. This clears 3:1 on paper-50 (3.76), on
+   * paper-100 (3.47) and on paper-200 (3.03), so an input keeps its edge
+   * wherever it sits. Dividers and decorative rules stay on paper-300.
+   */
+  --color-line: #877e6a;
 
   /* Ink (text): warm near-black, never pure black. */
   --color-ink-900: #262115;
   --color-ink-600: #5c5443;
-  --color-ink-400: #6f6652;
+  /*
+   * Darkened a second time, from #6f6652. It cleared 4.5:1 on paper-50 and
+   * paper-100 but made only 4.28:1 on the paper-200 of a hovered row, and
+   * meta text at 13px does not qualify as large. Now 4.54:1 there, 5.63:1
+   * on the page, and still a step lighter than ink-600.
+   */
+  --color-ink-400: #6b624f;
 
   /* Basil (primary): a deep herb green, not emerald. */
   --color-basil-700: #2d5a3d;
@@ -48,6 +63,20 @@
   /* Cards and inputs get 10px, buttons 8px. Nothing gets rounded-2xl. */
   --radius-card: 10px;
   --radius-btn: 8px;
+
+  /*
+   * The landing page is the one Persuade surface in the app, and it needs
+   * type the app scale does not carry: `display` at 28px is a screen header,
+   * not a hero. These two fluid steps replace the raw text-5xl/sm:text-6xl/
+   * lg:text-[4.75rem] chains it grew, so the marketing page sizes from the
+   * system like every other screen. Nothing under /_app uses them.
+   */
+  --text-hero: clamp(2.5rem, 6vw + 1rem, 4.75rem);
+  --text-hero--line-height: 0.98;
+  --text-section: clamp(1.875rem, 3vw + 1rem, 3rem);
+  --text-section--line-height: 1.12;
+  --text-lead: clamp(1.125rem, 0.5vw + 1rem, 1.25rem);
+  --text-lead--line-height: 1.6;
 
   --text-display: 1.75rem;
   --text-display--line-height: 2.125rem;
@@ -190,11 +219,24 @@ body {
   }
 }
 
+/*
+ * Reduced motion asks for less travel, not less feedback. Killing every
+ * transition takes the hover, focus and ticked-row colour shifts with it,
+ * and those carry state without moving anything.
+ *
+ * So colour and opacity keep transitioning at their normal speed, and what
+ * goes is movement: the sheet's slide, the tick's scale-in, the skeleton's
+ * pulse. Each of those still lands on its final state, just instantly.
+ */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
+    transition-property:
+      color, background-color, border-color, outline-color, opacity, fill,
+      stroke !important;
+    transition-duration: 150ms !important;
     animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

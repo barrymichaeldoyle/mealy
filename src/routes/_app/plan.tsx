@@ -16,6 +16,7 @@ import { Input } from '../../components/ui/field'
 import { PageHeader } from '../../components/ui/page-header'
 import { Skeleton } from '../../components/ui/skeleton'
 import { EmptyState } from '../../components/ui/empty-state'
+import { UndoBar } from '../../components/ui/undo-bar'
 import {
   useAddPlannedMeal,
   usePlannedMeals,
@@ -57,6 +58,14 @@ function PlanScreen() {
   const setServings = useSetPlannedServings()
   const removeMeal = useRemovePlannedMeal()
   const generateList = useGenerateListFromPlan()
+  // Everything addMeal needs to put a removed meal back exactly as it was.
+  const [undo, setUndo] = useState<{
+    title: string
+    date: IsoDate
+    slot: 'breakfast' | 'lunch' | 'dinner'
+    recipeId: Id<'recipes'>
+    servings: number
+  } | null>(null)
 
   const mealsByDate = new Map<IsoDate, NonNullable<typeof meals>>()
   for (const meal of meals ?? []) {
@@ -140,13 +149,24 @@ function PlanScreen() {
                         onServings={(servings) =>
                           setServings({ id: meal._id, servings })
                         }
-                        onRemove={() => removeMeal({ id: meal._id })}
+                        onRemove={async () => {
+                          if (meal.recipe) {
+                            setUndo({
+                              title: meal.recipe.title,
+                              date: meal.date as IsoDate,
+                              slot: meal.slot,
+                              recipeId: meal.recipeId,
+                              servings: meal.servings,
+                            })
+                          }
+                          await removeMeal({ id: meal._id })
+                        }}
                       />
                     ))}
                     <button
                       type="button"
                       onClick={() => setPickerDate(date)}
-                      className="rounded-btn px-1 py-1 text-meta font-medium text-basil-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-basil-700"
+                      className="flex min-h-[44px] items-center rounded-btn px-1 text-meta font-medium text-basil-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-basil-700"
                     >
                       Add another
                       <span className="sr-only">
@@ -175,6 +195,22 @@ function PlanScreen() {
           setPickerDate(null)
         }}
       />
+
+      {undo && (
+        <UndoBar
+          message={`Removed ${undo.title}`}
+          onDismiss={() => setUndo(null)}
+          onUndo={async () => {
+            setUndo(null)
+            await addMeal({
+              date: undo.date,
+              slot: undo.slot,
+              recipeId: undo.recipeId,
+              servings: undo.servings,
+            })
+          }}
+        />
+      )}
     </>
   )
 }
@@ -197,7 +233,6 @@ function WeekNav({
       <div className="flex items-center justify-between gap-2">
         <Button
           variant="ghost"
-          size="sm"
           aria-label="Previous week"
           onClick={() => onChange(addDays(weekStart, -7))}
         >
@@ -208,7 +243,6 @@ function WeekNav({
         </p>
         <Button
           variant="ghost"
-          size="sm"
           aria-label="Next week"
           onClick={() => onChange(addDays(weekStart, 7))}
         >
@@ -262,48 +296,71 @@ function MealCard({
   title: string
   servings: number
   onServings: (servings: number) => void
-  onRemove: () => void
+  onRemove: () => void | Promise<void>
 }) {
   return (
-    <Card className="flex items-center gap-2 py-2 pr-2 pl-4">
-      <p className="min-w-0 flex-1 truncate font-serif text-title font-medium text-ink-900">
+    /*
+     * Two rows on a phone rather than four controls crowded along one edge.
+     * These used to be 32px each, under the 44px this design commits to, with
+     * the bin one thumb-width from "one more serving".
+     */
+    <Card className="p-3">
+      <p className="min-w-0 truncate font-serif text-title font-medium text-ink-900">
         {title}
       </p>
 
-      <div className="flex items-center gap-0.5 rounded-btn border border-paper-200 bg-paper-50">
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <div className="flex items-center rounded-btn border border-line bg-paper-50">
+          <button
+            type="button"
+            aria-label={`Fewer servings of ${title}`}
+            disabled={servings <= 1}
+            onClick={() => onServings(servings - 1)}
+            className={STEP}
+          >
+            <Minus className="size-4" aria-hidden="true" />
+          </button>
+          {/* Announced with the stepper buttons, which name the recipe. */}
+          <span className="min-w-8 text-center text-body font-semibold text-ink-900 tabular-nums">
+            {servings}
+          </span>
+          <button
+            type="button"
+            aria-label={`More servings of ${title}`}
+            onClick={() => onServings(servings + 1)}
+            className={STEP}
+          >
+            <Plus className="size-4" aria-hidden="true" />
+          </button>
+        </div>
+
+        {/* Removal is undoable, so it does not need a confirm in the way. */}
         <button
           type="button"
-          aria-label={`Fewer servings of ${title}`}
-          disabled={servings <= 1}
-          onClick={() => onServings(servings - 1)}
-          className="rounded-btn p-2 text-ink-600 hover:bg-paper-200 disabled:opacity-40"
+          aria-label={`Remove ${title}`}
+          onClick={() => void onRemove()}
+          className={cn(
+            'flex size-11 items-center justify-center rounded-btn',
+            'text-ink-400 transition-colors duration-150 ease-out',
+            'hover:bg-paper-200 hover:text-danger-text',
+            'focus-visible:outline-2 focus-visible:outline-offset-2',
+            'focus-visible:outline-basil-700',
+          )}
         >
-          <Minus className="size-4" aria-hidden="true" />
-        </button>
-        <span className="min-w-5 text-center text-meta font-semibold text-ink-900 tabular-nums">
-          {servings}
-        </span>
-        <button
-          type="button"
-          aria-label={`More servings of ${title}`}
-          onClick={() => onServings(servings + 1)}
-          className="rounded-btn p-2 text-ink-600 hover:bg-paper-200"
-        >
-          <Plus className="size-4" aria-hidden="true" />
+          <Trash2 className="size-4" aria-hidden="true" />
         </button>
       </div>
-
-      <button
-        type="button"
-        aria-label={`Remove ${title}`}
-        onClick={onRemove}
-        className="rounded-btn p-2 text-ink-400 hover:bg-paper-200 hover:text-danger-text"
-      >
-        <Trash2 className="size-4" aria-hidden="true" />
-      </button>
     </Card>
   )
 }
+
+const STEP = cn(
+  'flex size-11 items-center justify-center rounded-btn text-ink-600',
+  'transition-colors duration-150 ease-out hover:bg-paper-200',
+  'disabled:opacity-40 disabled:hover:bg-transparent',
+  'focus-visible:outline-2 focus-visible:-outline-offset-2',
+  'focus-visible:outline-basil-700',
+)
 
 function RecipePicker({
   open,

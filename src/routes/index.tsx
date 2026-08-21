@@ -77,10 +77,10 @@ function PublicLanding() {
       <main>
         <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 pt-12 pb-24 sm:px-8 sm:pt-20 lg:grid-cols-[minmax(0,1fr)_minmax(28rem,0.9fr)] lg:gap-20 lg:pt-24 lg:pb-32">
           <div className="max-w-2xl">
-            <h1 className="max-w-[11ch] text-balance font-serif text-5xl/none font-semibold tracking-[-0.035em] text-ink-900 sm:text-6xl/none lg:text-[4.75rem]/[0.98]">
+            <h1 className="max-w-[11ch] text-balance font-serif text-hero font-semibold tracking-[-0.035em] text-ink-900">
               Dinner, sorted for the week.
             </h1>
-            <p className="mt-7 max-w-[34rem] text-lg/7 text-ink-600 sm:text-xl/8">
+            <p className="mt-7 max-w-[34rem] text-lead text-ink-600">
               Save your recipes, plan the week’s dinners, and walk into the shop
               with one list that has already done the adding up.
             </p>
@@ -107,7 +107,7 @@ function PublicLanding() {
         <section className="border-y border-paper-200 bg-paper-100">
           <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
             <div className="grid gap-10 lg:grid-cols-[0.7fr_1.3fr] lg:gap-20">
-              <h2 className="max-w-[12ch] text-balance font-serif text-3xl/9 font-semibold tracking-[-0.025em] sm:text-4xl/11">
+              <h2 className="max-w-[12ch] text-balance font-serif text-section font-semibold tracking-[-0.025em]">
                 From recipe to trolley, without the scraps of paper.
               </h2>
               <ol className="divide-y divide-paper-300 border-y border-paper-300">
@@ -136,10 +136,10 @@ function PublicLanding() {
 
         <section className="mx-auto max-w-3xl px-5 py-24 text-center sm:px-8 sm:py-32">
           <Logo className="mx-auto size-12" />
-          <h2 className="mt-6 text-balance font-serif text-4xl/11 font-semibold tracking-[-0.025em] sm:text-5xl/13">
+          <h2 className="mt-6 text-balance font-serif text-section font-semibold tracking-[-0.025em]">
             Make next week easier.
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-lg/7 text-ink-600">
+          <p className="mx-auto mt-4 max-w-xl text-lead text-ink-600">
             Keep the recipes your household loves, then turn the week’s plan
             into a shopping list in one place.
           </p>
@@ -161,7 +161,6 @@ function PublicLanding() {
 function KitchenPreview() {
   return (
     <div className="relative mx-auto w-full max-w-lg lg:mx-0" aria-hidden>
-      <div className="absolute -inset-12 -z-10 rounded-full bg-basil-100/60 blur-3xl" />
       <div className="landing-preview overflow-hidden rounded-[16px] border border-paper-300 bg-paper-50">
         <div className="flex items-center justify-between border-b border-paper-200 px-5 py-4">
           <div>
@@ -217,7 +216,7 @@ function PlanRow({
   return (
     <div className="grid grid-cols-[2.5rem_1fr] items-center gap-3">
       <div className="text-center">
-        <p className="text-[0.65rem] font-semibold tracking-wide text-ink-400">
+        <p className="text-meta font-semibold tracking-wide text-ink-400">
           {day}
         </p>
         <p
@@ -230,7 +229,7 @@ function PlanRow({
           {date}
         </p>
       </div>
-      <p className="rounded-btn border border-paper-200 bg-paper-100 px-3 py-2 text-sm/5 font-medium">
+      <p className="rounded-btn border border-paper-200 bg-paper-100 px-3 py-2 text-meta font-medium">
         {meal}
       </p>
     </div>
@@ -260,13 +259,13 @@ function ListRow({
       <span
         className={
           checked
-            ? 'min-w-0 grow text-sm text-ink-400 line-through'
-            : 'min-w-0 grow text-sm text-ink-900'
+            ? 'min-w-0 grow text-body text-ink-400 line-through'
+            : 'min-w-0 grow text-body text-ink-900'
         }
       >
         {name}
       </span>
-      <span className="shrink-0 text-sm tabular-nums text-ink-600">
+      <span className="shrink-0 text-body tabular-nums text-ink-600">
         {quantity}
       </span>
     </li>

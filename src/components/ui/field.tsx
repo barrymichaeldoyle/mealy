@@ -7,7 +7,7 @@ import { cn } from '../../lib/cn'
  * because anything smaller makes iOS zoom the page on focus.
  */
 const CONTROL = cn(
-  'w-full rounded-card border border-paper-300 bg-paper-50 px-3 py-2.5',
+  'w-full rounded-card border border-line bg-paper-50 px-3 py-2.5',
   'text-body text-ink-900 placeholder:text-ink-400',
   'transition-colors duration-150 ease-out',
   'focus:border-basil-700 focus:outline-2 focus:outline-offset-2',
