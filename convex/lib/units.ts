@@ -99,14 +99,20 @@ const FAMILY_CANONICAL_UNIT: Record<UnitFamily, CanonicalUnit> = {
   none: 'none',
 }
 
-/** Labels used when echoing a unit back to the user in a recipe. */
+/**
+ * Labels used when echoing a unit back to the user in a recipe.
+ *
+ * Litres are the cursive ℓ (U+2113), which is how South Africa writes them,
+ * on packaging and in schools alike. It is display only: the stored unit is
+ * still 'l', so an export reads as the SI symbol everyone else expects.
+ */
 export const UNIT_LABELS: Record<Unit, string> = {
   g: 'g',
   kg: 'kg',
   oz: 'oz',
   lb: 'lb',
-  ml: 'ml',
-  l: 'l',
+  ml: 'mℓ',
+  l: 'ℓ',
   tsp: 'tsp',
   tbsp: 'tbsp',
   cup: 'cup',
@@ -197,8 +203,8 @@ export function formatCanonicalQuantity(
         : `${formatNumber(quantity, 1)}g`
     case 'ml':
       return quantity >= 1000
-        ? `${formatNumber(quantity / 1000, 1)}l`
-        : `${formatNumber(quantity, 1)}ml`
+        ? `${formatNumber(quantity / 1000, 1)}ℓ`
+        : `${formatNumber(quantity, 1)}mℓ`
     case 'item':
     case 'tin':
     case 'pack':

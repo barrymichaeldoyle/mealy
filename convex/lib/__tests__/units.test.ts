@@ -84,8 +84,8 @@ describe('formatCanonicalQuantity', () => {
     expect(formatCanonicalQuantity(500, 'g')).toBe('500g')
     expect(formatCanonicalQuantity(1500, 'g')).toBe('1.5kg')
     expect(formatCanonicalQuantity(2000, 'g')).toBe('2kg')
-    expect(formatCanonicalQuantity(750, 'ml')).toBe('750ml')
-    expect(formatCanonicalQuantity(1000, 'ml')).toBe('1l')
+    expect(formatCanonicalQuantity(750, 'ml')).toBe('750mℓ')
+    expect(formatCanonicalQuantity(1000, 'ml')).toBe('1ℓ')
   })
 
   it('renders counts as multipliers', () => {
@@ -180,7 +180,7 @@ describe('consolidate', () => {
     // 1000 + 500 + 30 = 1530 → banded to 1500ml
     expect(item.quantity).toBe(1500)
     expect(item.approximate).toBe(true)
-    expect(formatListItem({ ...item, unit: 'ml' })).toBe('≈1.5l')
+    expect(formatListItem({ ...item, unit: 'ml' })).toBe('≈1.5ℓ')
   })
 
   it('scales by planned servings', () => {
@@ -244,6 +244,9 @@ describe('consolidate', () => {
 describe('formatRecipeQuantity', () => {
   it('shows units as the author entered them', () => {
     expect(formatRecipeQuantity(250, 'g')).toBe('250g')
+    // Display only: the stored unit is still 'ml'.
+    expect(formatRecipeQuantity(500, 'ml')).toBe('500mℓ')
+    expect(formatRecipeQuantity(1, 'l')).toBe('1ℓ')
     expect(formatRecipeQuantity(1.5, 'cup')).toBe('1.5 cup')
     expect(formatRecipeQuantity(2, 'tin')).toBe('2 tin')
     expect(formatRecipeQuantity(3, 'item')).toBe('3')
@@ -317,15 +320,15 @@ describe('formatEquivalent', () => {
   const imperial = ['imperial'] as const
 
   it('restates spoons and cups in metric', () => {
-    expect(formatEquivalent(1, 'tbsp', metric)).toBe('15ml')
-    expect(formatEquivalent(2, 'tsp', metric)).toBe('10ml')
+    expect(formatEquivalent(1, 'tbsp', metric)).toBe('15mℓ')
+    expect(formatEquivalent(2, 'tsp', metric)).toBe('10mℓ')
     // The cup is an agreed 250ml, so the answer hedges.
-    expect(formatEquivalent(2, 'cup', metric)).toBe('≈500ml')
+    expect(formatEquivalent(2, 'cup', metric)).toBe('≈500mℓ')
   })
 
   it('restates an imported imperial amount in metric', () => {
     expect(formatEquivalent(8, 'oz', metric)).toBe('≈226.8g')
-    expect(formatEquivalent(1, 'pint', metric)).toBe('≈473ml')
+    expect(formatEquivalent(1, 'pint', metric)).toBe('≈473mℓ')
   })
 
   it('restates spoons and cups in imperial, promoting to lb and pints', () => {
