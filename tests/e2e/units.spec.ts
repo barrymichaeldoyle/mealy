@@ -17,6 +17,15 @@ test.skip(
 test.describe.configure({ mode: 'serial' })
 
 /**
+ * The "Saved" confirmation, and only it. Matching the bare word also caught
+ * the card's own "Recipes you have already saved…" hint, which is always on
+ * screen, so waiting on it proved nothing and let the test race the write.
+ */
+function savedNotice(page: Page) {
+  return page.getByRole('status').filter({ hasText: 'Saved' })
+}
+
+/**
  * Take the metric default if the measurement question is still to be asked.
  * Tests inside one describe share an account, so only the first meets it.
  * The gate resolves before the app paints, so this cannot race.
@@ -136,7 +145,7 @@ test.describe('measurements', () => {
     await page.getByRole('button', { name: 'Save measurements' }).click()
     // "Saved" is the signal the write landed. The button's disabled state is
     // not: it is also disabled while the write is still going.
-    await expect(page.getByText('Saved')).toBeVisible()
+    await expect(savedNotice(page)).toBeVisible()
 
     // Prove it persisted before asking what the picker offers, so a failure
     // below is the picker's fault and not the save's.
@@ -352,5 +361,68 @@ test.describe('cooking for a different number', () => {
     await page.getByRole('link', { name: 'Bobotie' }).click()
     await expect(page.getByRole('heading', { name: 'Bobotie' })).toBeVisible()
     await expect(page.getByText('750g')).toBeVisible()
+  })
+})
+
+test.describe('changing the answer both ways', () => {
+  let ownIdentifier = ''
+  let ownUserId = ''
+
+  test.beforeAll(async () => {
+    const user = await createTestUser()
+    ownIdentifier = user.email
+    ownUserId = user.id
+  })
+
+  test.afterAll(async () => {
+    if (ownUserId) {
+      await deleteTestUser(ownUserId)
+    }
+  })
+
+  test('metric to imperial and back again both stick', async ({ page }) => {
+    await setupClerkTestingToken({ page })
+    await page.goto('/')
+    await clerk.loaded({ page })
+    await clerk.signIn({
+      page,
+      signInParams: { strategy: 'email_code', identifier: ownIdentifier },
+    })
+    await answerSetupIfAsked(page)
+
+    const metric = page.getByRole('checkbox', { name: /Metric/ })
+    const imperial = page.getByRole('checkbox', { name: /Imperial and US/ })
+    const save = page.getByRole('button', { name: 'Save measurements' })
+
+    // Metric to imperial.
+    await page.goto('/household')
+    await expect(metric).toBeChecked()
+    await imperial.check()
+    await metric.uncheck()
+    await save.click()
+    await expect(savedNotice(page)).toBeVisible()
+    await page.reload()
+    await expect(imperial).toBeChecked()
+    await expect(metric).not.toBeChecked()
+
+    // And back. This direction was never confirmed until now.
+    await metric.check()
+    await imperial.uncheck()
+    await save.click()
+    await expect(savedNotice(page)).toBeVisible()
+    await page.reload()
+    await expect(metric).toBeChecked()
+    await expect(imperial).not.toBeChecked()
+
+    // The picker follows, which is the whole point of the setting.
+    await page.goto('/recipes/new')
+    await page.getByRole('button', { name: 'Add ingredient' }).click()
+    const options = await page
+      .getByRole('dialog')
+      .getByLabel('Unit')
+      .locator('option')
+      .allTextContents()
+    expect(options).toContain('g')
+    expect(options).not.toContain('oz')
   })
 })
