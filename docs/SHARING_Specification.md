@@ -475,11 +475,14 @@ The design specification governs. Specific decisions this feature adds:
 ## 13. Offline
 
 Nothing here is offline. The service worker caches shopping lists and
-your own recipes, and it must not cache other households' recipes, the
-public feed or explore search. Browsing somebody else's book is a thing
-you do on the sofa with signal, and caching it would put other people's
-data in your device's cache with no way to expire it when a link is
-removed.
+nothing else of yours. Recipes have never been cached, so reading your
+own book already needs a connection, and that does not change here.
+
+Whatever caching grows to cover, it must not reach other households'
+recipes, the public feed or explore search. Browsing somebody else's
+book is a thing you do on the sofa with signal, and caching it would put
+other people's data in your device's cache with no way to expire it when
+a link is removed.
 
 `/explore` and its children fall through to the existing `/offline`
 route when there is no connection.
