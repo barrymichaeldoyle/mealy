@@ -103,11 +103,20 @@ test.describe('measurements', () => {
     await page.goto('/household')
     await page.getByRole('checkbox', { name: /Imperial and US/ }).check()
     await page.getByRole('checkbox', { name: /Metric/ }).uncheck()
-    const save = page.getByRole('button', { name: 'Save measurements' })
-    await save.click()
-    // It goes disabled again once the saved answer matches the tick-boxes,
-    // which is the signal the mutation landed. Navigating sooner drops it.
-    await expect(save).toBeDisabled()
+    await page.getByRole('button', { name: 'Save measurements' }).click()
+    // "Saved" is the signal the write landed. The button's disabled state is
+    // not: it is also disabled while the write is still going.
+    await expect(page.getByText('Saved')).toBeVisible()
+
+    // Prove it persisted before asking what the picker offers, so a failure
+    // below is the picker's fault and not the save's.
+    await page.reload()
+    await expect(
+      page.getByRole('checkbox', { name: /Imperial and US/ }),
+    ).toBeChecked()
+    await expect(
+      page.getByRole('checkbox', { name: /Metric/ }),
+    ).not.toBeChecked()
 
     await page.goto('/recipes/new')
     await page.getByRole('button', { name: 'Add ingredient' }).click()
@@ -138,9 +147,10 @@ async function useMetric(page: Page) {
   }
   await metric.check()
   await imperial.uncheck()
-  const save = page.getByRole('button', { name: 'Save measurements' })
-  await save.click()
-  await expect(save).toBeDisabled()
+  await page.getByRole('button', { name: 'Save measurements' }).click()
+  // The button also goes disabled while the write is in flight, so waiting
+  // on that resolves too early and navigating next drops the save.
+  await expect(page.getByText('Saved')).toBeVisible()
 }
 
 test.describe('editing ingredients', () => {

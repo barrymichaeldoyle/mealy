@@ -18,7 +18,7 @@ export default defineConfig({
   forbidOnly: Boolean(process.env['CI']),
   reporter: 'line',
   use: {
-    baseURL: 'http://127.0.0.1:3000',
+    baseURL: 'http://127.0.0.1:3100',
     trace: 'retain-on-failure',
   },
   // One project, because the run shares one household and the setup screen
@@ -26,9 +26,15 @@ export default defineConfig({
   projects: [
     { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] } },
   ],
+  /*
+   * Its own port, and strict about it. Port 3000 is a popular default, and a
+   * dev server for another project answering on it means the suite quietly
+   * scans the wrong app: every locator misses and the failures blame this
+   * code. --strictPort turns that into a refusal to start.
+   */
   webServer: {
-    command: 'pnpm dev:web --host 127.0.0.1',
-    url: 'http://127.0.0.1:3000',
+    command: 'pnpm exec vite dev --host 127.0.0.1 --port 3100 --strictPort',
+    url: 'http://127.0.0.1:3100',
     reuseExistingServer: !process.env['CI'],
   },
 })

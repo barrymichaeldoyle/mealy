@@ -203,12 +203,14 @@ export function UnitSystemCard() {
           className="shrink-0"
           // The household name has a Save button too, so this one says which.
           aria-label="Save measurements"
-          onClick={() =>
-            void save(async () => {
-              await setSystems({ systems })
-              setDraft(null)
-            })
-          }
+          /*
+           * The draft is not cleared on success. Clearing it handed the
+           * tick-boxes back to `saved`, and between the write landing and
+           * the query catching up that is the value you just replaced, so
+           * the card briefly showed the old answer as if the save had not
+           * happened. `saved` catching up turns `dirty` false on its own.
+           */
+          onClick={() => void save(() => setSystems({ systems }))}
         >
           {status === 'saving' ? 'Saving…' : 'Save'}
         </Button>

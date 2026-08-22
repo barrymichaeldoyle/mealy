@@ -1,10 +1,31 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import { clerk, setupClerkTestingToken } from '@clerk/testing/playwright'
+import { createTestUser, deleteTestUser } from './clerk-user'
 import type { Page } from '@playwright/test'
 
-const identifier = process.env['E2E_CLERK_USER'] ?? ''
-test.skip(!identifier, 'needs a test account')
+test.skip(!process.env['CLERK_SECRET_KEY'], 'needs a Clerk secret key')
+
+/*
+ * Its own account, not the run's shared one. This walk answers the
+ * measurement question on the way past, and units.spec.ts asserts that a new
+ * household is asked it. Sharing one household makes whichever file runs
+ * second fail on the other's leftovers.
+ */
+let identifier = ''
+let userId = ''
+
+test.beforeAll(async () => {
+  const user = await createTestUser()
+  identifier = user.email
+  userId = user.id
+})
+
+test.afterAll(async () => {
+  if (userId) {
+    await deleteTestUser(userId)
+  }
+})
 
 const wcagTags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
