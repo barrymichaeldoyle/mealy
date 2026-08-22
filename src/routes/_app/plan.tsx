@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import {
   BookOpen,
   ChevronLeft,
@@ -146,6 +146,7 @@ function PlanScreen() {
                         key={meal._id}
                         title={meal.recipe?.title ?? 'Deleted recipe'}
                         servings={meal.servings}
+                        {...(meal.recipe ? { recipeId: meal.recipeId } : {})}
                         onServings={(servings) =>
                           setServings({ id: meal._id, servings })
                         }
@@ -290,6 +291,7 @@ function DayRail({ date }: { date: IsoDate }) {
 function MealCard({
   title,
   servings,
+  recipeId,
   onServings,
   onRemove,
 }: {
@@ -297,6 +299,8 @@ function MealCard({
   servings: number
   onServings: (servings: number) => void
   onRemove: () => void | Promise<void>
+  /** Absent when the recipe behind the meal has been deleted. */
+  recipeId?: Id<'recipes'> | undefined
 }) {
   return (
     /*
@@ -305,9 +309,24 @@ function MealCard({
      * the bin one thumb-width from "one more serving".
      */
     <Card className="p-3">
-      <p className="min-w-0 truncate font-serif text-title font-medium text-ink-900">
-        {title}
-      </p>
+      {/*
+       * Through to the recipe, carrying the servings this meal is planned
+       * for, so the quantities on the other side are the ones you cook.
+       */}
+      {recipeId ? (
+        <Link
+          to="/recipes/$id"
+          params={{ id: recipeId }}
+          search={{ servings }}
+          className="block min-w-0 truncate rounded-btn font-serif text-title font-medium text-ink-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-basil-700"
+        >
+          {title}
+        </Link>
+      ) : (
+        <p className="min-w-0 truncate font-serif text-title font-medium text-ink-900">
+          {title}
+        </p>
+      )}
 
       <div className="mt-2 flex items-center justify-between gap-3">
         <div className="flex items-center rounded-btn border border-line bg-paper-50">

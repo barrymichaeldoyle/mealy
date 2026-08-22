@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { FileQuestion, Pencil } from 'lucide-react'
+import { FileQuestion, Minus, Pencil, Plus } from 'lucide-react'
 import { AppHeader } from '../../../components/app-header'
 import { Card } from '../../../components/ui/card'
 import { Chip } from '../../../components/ui/chip'
@@ -10,19 +11,33 @@ import { buttonClass } from '../../../components/ui/button'
 import { ConfirmButton } from '../../../components/ui/confirm-button'
 import { useDeleteRecipe, useRecipe } from '../../../hooks/use-recipes'
 import { formatEquivalent, formatRecipeQuantity } from '../../../lib/units'
+import { cn } from '../../../lib/cn'
 import { useUnitSystems } from '../../../hooks/use-household'
 import type { Id } from '../../../../convex/_generated/dataModel'
 
 export const Route = createFileRoute('/_app/recipes/$id/')({
   component: RecipeDetail,
+  /*
+   * The plan knows you scaled Thursday to six. Without this the recipe page
+   * showed the serves-four quantities anyway and left the arithmetic to you,
+   * at the stove, with floury hands.
+   */
+  validateSearch: (search: Record<string, unknown>) => {
+    const servings = Number(search['servings'])
+    return Number.isFinite(servings) && servings >= 1 && servings <= 100
+      ? { servings }
+      : {}
+  },
 })
 
 function RecipeDetail() {
   const { id } = Route.useParams()
+  const search = Route.useSearch()
   const navigate = useNavigate()
   const recipe = useRecipe(id as Id<'recipes'>)
   const deleteRecipe = useDeleteRecipe()
   const systems = useUnitSystems()
+  const [servings, setServings] = useState<number | null>(null)
 
   if (recipe === undefined) {
     return (
@@ -61,10 +76,13 @@ function RecipeDetail() {
     recipe.prepTimeMinutes ? `prep ${recipe.prepTimeMinutes} min` : null,
     recipe.cookTimeMinutes ? `cook ${recipe.cookTimeMinutes} min` : null,
     totalTime > 0 ? `${totalTime} min total` : null,
-    `serves ${recipe.servings}`,
+    `written for ${recipe.servings}`,
   ]
     .filter(Boolean)
     .join(' · ')
+
+  const cooking = servings ?? search.servings ?? recipe.servings
+  const scale = cooking / recipe.servings
 
   return (
     <>
@@ -111,12 +129,23 @@ function RecipeDetail() {
         )}
 
         <section aria-labelledby="ingredients" className="mt-8">
-          <h2
-            id="ingredients"
-            className="font-serif text-title font-medium text-ink-900"
-          >
-            Ingredients
-          </h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2
+              id="ingredients"
+              className="font-serif text-title font-medium text-ink-900"
+            >
+              Ingredients
+            </h2>
+            <ServingsStepper
+              value={cooking}
+              onChange={(next) => setServings(next)}
+            />
+          </div>
+          {scale !== 1 && (
+            <p className="mt-2 text-meta text-ink-400">
+              Scaled from {recipe.servings}.
+            </p>
+          )}
           <Card className="mt-3 overflow-hidden">
             {recipe.ingredients.length === 0 ? (
               <p className="px-4 py-4 text-body text-ink-400">
@@ -125,8 +154,12 @@ function RecipeDetail() {
             ) : (
               <ListRows>
                 {recipe.ingredients.map((ingredient, index) => {
+                  const quantity =
+                    ingredient.quantity === undefined
+                      ? undefined
+                      : ingredient.quantity * scale
                   const equivalent = formatEquivalent(
-                    ingredient.quantity,
+                    quantity,
                     ingredient.unit,
                     systems,
                   )
@@ -142,10 +175,7 @@ function RecipeDetail() {
                       </span>
                       <span className="shrink-0 text-right">
                         <span className="block text-cook font-semibold text-ink-600 tabular-nums">
-                          {formatRecipeQuantity(
-                            ingredient.quantity,
-                            ingredient.unit,
-                          )}
+                          {formatRecipeQuantity(quantity, ingredient.unit)}
                         </span>
                         {equivalent && (
                           <span className="block text-meta text-ink-400 tabular-nums">
@@ -202,5 +232,55 @@ function RecipeDetail() {
         </div>
       </main>
     </>
+  )
+}
+
+/**
+ * How many you are cooking for right now, which is not always what the
+ * recipe was written for. Scaling lives here rather than in the recipe
+ * because it changes per meal, and the plan already tracks it per meal.
+ */
+function ServingsStepper({
+  value,
+  onChange,
+}: {
+  value: number
+  onChange: (next: number) => void
+}) {
+  const step = cn(
+    'flex size-11 items-center justify-center rounded-btn text-ink-600',
+    'transition-colors duration-150 ease-out hover:bg-paper-200',
+    'disabled:opacity-40 disabled:hover:bg-transparent',
+    'focus-visible:outline-2 focus-visible:-outline-offset-2',
+    'focus-visible:outline-basil-700',
+  )
+  return (
+    <div className="flex shrink-0 items-center rounded-btn border border-line bg-paper-50">
+      <button
+        type="button"
+        aria-label="Cook for fewer"
+        disabled={value <= 1}
+        onClick={() => onChange(value - 1)}
+        className={step}
+      >
+        <Minus className="size-4" aria-hidden="true" />
+      </button>
+      {/*
+       * The number needs saying out loud, since the buttons beside it only
+       * say which way they go.
+       */}
+      <span className="px-1 text-meta font-semibold text-ink-900 tabular-nums">
+        serves <span className="text-body">{value}</span>
+      </span>
+      <button
+        type="button"
+        aria-label="Cook for more"
+        disabled={value >= 100}
+        onClick={() => onChange(value + 1)}
+        className={step}
+      >
+        <Plus className="size-4" aria-hidden="true" />
+      </button>
+    </div>
   )
 }

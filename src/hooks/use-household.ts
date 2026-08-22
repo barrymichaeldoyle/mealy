@@ -33,10 +33,22 @@ export function useUnitSystems(): readonly UnitSystem[] {
   return household?.household.unitSystems ?? DEFAULT_UNIT_SYSTEMS
 }
 
-/** True once we know the household exists and nobody has answered yet. */
-export function useNeedsUnitSetup(): boolean {
+export type UnitSetupState = 'unknown' | 'needed' | 'answered'
+
+/**
+ * Whether the measurement question still has to be asked.
+ *
+ * `unknown` covers both waiting on the query and waiting on the bootstrap to
+ * make the household, and the gate shows nothing for it. Treating either as
+ * "not needed" rendered the app first and replaced it a beat later, which
+ * read as the app breaking rather than a question arriving.
+ */
+export function useUnitSetupState(): UnitSetupState {
   const household = useHousehold()
-  return Boolean(household) && household?.household.unitSystems === undefined
+  if (household === undefined || household === null) {
+    return 'unknown'
+  }
+  return household.household.unitSystems === undefined ? 'needed' : 'answered'
 }
 
 /**

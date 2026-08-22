@@ -16,6 +16,35 @@ test.skip(
  */
 test.describe.configure({ mode: 'serial' })
 
+/**
+ * Take the metric default if the measurement question is still to be asked.
+ * Tests inside one describe share an account, so only the first meets it.
+ * The gate resolves before the app paints, so this cannot race.
+ */
+async function answerSetupIfAsked(page: Page) {
+  const setup = page.getByRole('button', { name: 'Save and carry on' })
+  // Exact: "Recipes" alone also matches the "No recipes yet" empty state.
+  const app = page.getByRole('heading', { name: 'Recipes', exact: true })
+
+  /*
+   * Up to three goes. The gate renders nothing while it does not yet know
+   * whether to ask, so the question disappearing is not proof it was
+   * answered: the app arriving is. A brand new account creates its
+   * household on first sign-in, and the gate can come back once while that
+   * settles.
+   */
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await page.goto('/recipes')
+    await expect(setup.or(app)).toBeVisible()
+    if (await app.isVisible()) {
+      return
+    }
+    await setup.click()
+    await expect(setup.or(app)).toBeVisible()
+  }
+  await expect(app).toBeVisible()
+}
+
 /** Fill the ingredient sheet and close it. */
 async function addIngredient(
   page: Page,
@@ -164,15 +193,7 @@ test.describe('editing ingredients', () => {
       signInParams: { strategy: 'email_code', identifier: ownIdentifier },
     })
     // Metric is the preselected answer, so one tap gets these tests to it.
-    await page.goto('/recipes')
-    const setup = page.getByRole('button', { name: 'Save and carry on' })
-    await expect(
-      setup.or(page.getByRole('heading', { name: 'Recipes' })),
-    ).toBeVisible()
-    if (await setup.isVisible()) {
-      await setup.click()
-      await expect(setup).toBeHidden()
-    }
+    await answerSetupIfAsked(page)
     await page.goto('/recipes/new')
   })
 
@@ -273,5 +294,63 @@ test.describe('editing ingredients', () => {
     // passing is the assertion: scroll-margin keeps the button clear of it.
     await page.getByRole('button', { name: 'Add ingredient' }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
+  })
+})
+
+test.describe('cooking for a different number', () => {
+  let ownIdentifier = ''
+  let ownUserId = ''
+
+  test.beforeAll(async () => {
+    const user = await createTestUser()
+    ownIdentifier = user.email
+    ownUserId = user.id
+  })
+
+  test.afterAll(async () => {
+    if (ownUserId) {
+      await deleteTestUser(ownUserId)
+    }
+  })
+
+  test('the recipe scales, and the plan hands over its servings', async ({
+    page,
+  }) => {
+    await setupClerkTestingToken({ page })
+    await page.goto('/')
+    await clerk.loaded({ page })
+    await clerk.signIn({
+      page,
+      signInParams: { strategy: 'email_code', identifier: ownIdentifier },
+    })
+    await answerSetupIfAsked(page)
+
+    await page.goto('/recipes/new')
+    await page.getByLabel('Recipe name').fill('Bobotie')
+    await page.getByLabel('Serves').fill('4')
+    await addIngredient(page, { name: 'mince', quantity: '500', unit: 'g' })
+    await page.getByRole('button', { name: 'Save recipe' }).click()
+    await expect(page.getByRole('heading', { name: 'Bobotie' })).toBeVisible()
+
+    // Written for four, so four is what it opens on.
+    await expect(page.getByText('500g')).toBeVisible()
+    await page.getByRole('button', { name: 'Cook for more' }).click()
+    await page.getByRole('button', { name: 'Cook for more' }).click()
+    await expect(page.getByText('750g')).toBeVisible()
+    await expect(page.getByText('Scaled from 4.')).toBeVisible()
+
+    // The plan carries its own servings through the link.
+    await page.goto('/plan')
+    await page.getByRole('button', { name: /add/i }).first().click()
+    await page.getByRole('dialog').getByText('Bobotie').first().click()
+    await expect(
+      page.getByRole('button', { name: /Remove Bobotie/ }),
+    ).toBeVisible()
+    await page.getByRole('button', { name: /More servings/ }).click()
+    await page.getByRole('button', { name: /More servings/ }).click()
+
+    await page.getByRole('link', { name: 'Bobotie' }).click()
+    await expect(page.getByRole('heading', { name: 'Bobotie' })).toBeVisible()
+    await expect(page.getByText('750g')).toBeVisible()
   })
 })

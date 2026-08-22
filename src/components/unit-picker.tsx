@@ -15,8 +15,8 @@ import {
   type UnitSystem,
 } from '../lib/units'
 import {
-  useNeedsUnitSetup,
   useSetUnitSystems,
+  useUnitSetupState,
   useUnitSystems,
 } from '../hooks/use-household'
 import { useSaveState } from '../hooks/use-save-state'
@@ -159,12 +159,19 @@ function UnitSetup() {
  * household of one they are about to leave would be the wrong one to ask.
  */
 export function UnitSetupGate({ children }: { children: React.ReactNode }) {
-  const needsSetup = useNeedsUnitSetup()
+  const state = useUnitSetupState()
   const onJoinScreen = useRouterState({
     select: (state) => state.location.pathname.startsWith('/join'),
   })
 
-  return needsSetup && !onJoinScreen ? <UnitSetup /> : children
+  if (onJoinScreen) {
+    return children
+  }
+  // Nothing, rather than the app, until we know which of the two it is.
+  if (state === 'unknown') {
+    return null
+  }
+  return state === 'needed' ? <UnitSetup /> : children
 }
 
 /** The household screen's copy of the question, for changing the answer. */
