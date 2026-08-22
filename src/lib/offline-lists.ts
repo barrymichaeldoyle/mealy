@@ -2,6 +2,8 @@ import type { Doc, Id } from '../../convex/_generated/dataModel'
 
 export type CachedShoppingList = Doc<'shoppingLists'> & {
   items: Doc<'shoppingListItems'>[]
+  /** When this copy was taken, so "your last list" means something. */
+  cachedAt?: number
 }
 
 export type PendingToggle = {
@@ -48,8 +50,56 @@ export function writeCachedList(
   storage: StorageLike,
   userId: string,
   list: CachedShoppingList,
+  now: number = Date.now(),
 ): void {
-  storage.setItem(listKey(userId, list._id), JSON.stringify(list))
+  storage.setItem(
+    listKey(userId, list._id),
+    JSON.stringify({ ...list, cachedAt: now }),
+  )
+}
+
+/**
+ * The most recently cached list, whoever it belongs to.
+ *
+ * The offline page has no Clerk session to ask who is signed in, so the
+ * owner comes back with the list and the caller uses it to queue ticks
+ * under the right key. A phone that has only ever had one person signed in
+ * has one owner here, which is the case this exists for: standing in a shop
+ * with no signal and a locked phone that dropped the tab.
+ */
+export function readLastCachedList(
+  storage: StorageLike,
+): { userId: string; list: CachedShoppingList } | undefined {
+  let best: { userId: string; list: CachedShoppingList } | undefined
+  for (let index = 0; index < storage.length; index += 1) {
+    const key = storage.key(index)
+    if (!key?.startsWith(`${PREFIX}:`) || !key.includes(':list:')) {
+      continue
+    }
+    const list = parse<CachedShoppingList>(storage.getItem(key))
+    if (!list) {
+      continue
+    }
+    const userId = key.slice(PREFIX.length + 1, key.indexOf(':list:'))
+    if (!best || (list.cachedAt ?? 0) > (best.list.cachedAt ?? 0)) {
+      best = { userId, list }
+    }
+  }
+  return best
+}
+
+/** Everything this device has cached for anyone. Used when signing out. */
+export function clearCachedLists(storage: StorageLike): void {
+  const keys: string[] = []
+  for (let index = 0; index < storage.length; index += 1) {
+    const key = storage.key(index)
+    if (key?.startsWith(`${PREFIX}:`)) {
+      keys.push(key)
+    }
+  }
+  for (const key of keys) {
+    storage.removeItem(key)
+  }
 }
 
 export function readPendingToggles(

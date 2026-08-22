@@ -1,6 +1,7 @@
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 
 import { ServiceWorker } from '../components/service-worker'
+import { ListCacheGuard } from '../components/list-cache'
 import { AppClerkProvider } from '../integrations/clerk/provider'
 import { AppConvexProvider } from '../integrations/convex/provider'
 
@@ -51,6 +52,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         {/* Clerk wraps Convex: the Convex client reads Clerk's auth token. */}
         <AppClerkProvider>
+          <ListCacheGuard />
           <AppConvexProvider>{children}</AppConvexProvider>
         </AppClerkProvider>
         <ServiceWorker />
