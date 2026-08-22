@@ -159,7 +159,7 @@ function UnitSetup() {
  * household of one they are about to leave would be the wrong one to ask.
  */
 export function UnitSetupGate({ children }: { children: React.ReactNode }) {
-  const state = useUnitSetupState()
+  const setupState = useUnitSetupState()
   const onJoinScreen = useRouterState({
     select: (state) => state.location.pathname.startsWith('/join'),
   })
@@ -168,10 +168,10 @@ export function UnitSetupGate({ children }: { children: React.ReactNode }) {
     return children
   }
   // Nothing, rather than the app, until we know which of the two it is.
-  if (state === 'unknown') {
+  if (setupState === 'unknown') {
     return null
   }
-  return state === 'needed' ? <UnitSetup /> : children
+  return setupState === 'needed' ? <UnitSetup /> : children
 }
 
 /** The household screen's copy of the question, for changing the answer. */
