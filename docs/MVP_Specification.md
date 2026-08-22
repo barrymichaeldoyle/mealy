@@ -335,6 +335,17 @@ contrast (don't rely on green alone for state), keyboard navigable.
 - Rationale: shopping happens in stores with bad signal, and this is
   the gap users will notice most.
 
+**Milestone 2: sharing between households**
+
+- Link two households so each can read the other's recipes, without
+  sharing a plan or a shopping list.
+- Copy a recipe you can read into your own book, with a line saying
+  where it came from.
+- A public explore feed for households that want their recipes read by
+  anyone.
+- The [sharing specification](./SHARING_Specification.md) is the
+  authority on it: schema additions, the read rule, and the phasing.
+
 **Later / Nice-to-Have:**
 
 1. **Recipe import from the web:** search/import recipes from external
