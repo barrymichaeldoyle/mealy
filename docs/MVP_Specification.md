@@ -139,6 +139,19 @@ Conventions:
   - Mass: `g`, `kg`, `oz`, `lb`
   - Volume: `ml`, `l`, `tsp`, `tbsp`, `cup`, `fl oz`, `pint`
   - Count: `item`, `tin`, `pack`, `none` ("to taste")
+- **Which of them the picker offers** is per household, stored as
+  `households.unitSystems`. A South African kitchen never reaches for
+  ounces or pints, and offering them on every ingredient row is clutter.
+  - `metric` contributes `g`, `kg`, `ml`, `l`. `imperial` contributes
+    `oz`, `lb`, `fl oz`, `pint`.
+  - `tsp`, `tbsp` and `cup` belong to both: a metric kitchen still
+    measures baking powder in teaspoons.
+  - Counts and "to taste" belong to neither and are always offered.
+  - The field is absent until someone answers, which is what puts the
+    setup screen in front of new and existing households alike.
+  - Changing it changes nothing already saved. A recipe written in ounces
+    still says ounces, and the picker keeps offering a unit that recipe
+    already uses so editing a row cannot silently change what it says.
 - **Conversion table (fixed constants, no external service):**
   - `1 kg = 1000 g`, `1 oz = 28.35 g`, `1 lb = 453.6 g`
   - `1 l = 1000 ml`, `1 tsp = 5 ml`, `1 tbsp = 15 ml`,
@@ -148,7 +161,16 @@ Conventions:
   - Implement as a single pure, well-tested utility module shared by
     recipe display and list consolidation.
 - **Display rules:**
-  - Recipes: show units as entered (respect the author's recipe).
+  - Recipes: show units as entered (respect the author's recipe), with a
+    stepper for the number you are cooking for. Quantities scale by
+    servings ÷ recipe servings, and a link from the plan carries its
+    planned servings so a meal planned for six opens on six.
+  - Litres are written with the cursive ℓ (`mℓ`, `ℓ`), which is how South
+    Africa writes them. Display only: the stored unit is still `l`, so an
+    export reads as the SI symbol.
+  - Spoons and cups are restated in the household's own units underneath,
+    since "2 cups" says nothing about how much to buy. So is an imported
+    ounce in a metric kitchen.
   - Shopping lists: always display metric, rounded to sensible values
     (e.g. 477g → 480g; ≥1000g → kg with 1 decimal; ≥1000ml → l).
   - **Rounding transparency:** when a displayed quantity was rounded or
@@ -327,11 +349,17 @@ contrast (don't rely on green alone for state), keyboard navigable.
 
 ## 8. Post-MVP Roadmap
 
-**Milestone 1 (first priority after MVP): PWA / offline shopping lists**
+**Milestone 1 (done): PWA / offline shopping lists**
 
 - Installable PWA (manifest, icons, service worker).
 - Shopping list view works offline: cached list data, check-offs queued
   locally and synced when back online.
+- HTML is never cached, because pages are server rendered with the
+  signed-in user's Clerk state and a cached copy would outlive the
+  session on a shared phone. The `/offline` route carries the last
+  cached list instead, read and tick only, so a phone that locks in a
+  shop and drops the tab still comes back to the list. Signing out
+  clears the cache.
 - Rationale: shopping happens in stores with bad signal, and this is
   the gap users will notice most.
 
