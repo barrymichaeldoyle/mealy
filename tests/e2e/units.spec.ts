@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { clerk, setupClerkTestingToken } from '@clerk/testing/playwright'
+import { createTestUser, deleteTestUser } from './clerk-user'
 import type { Page } from '@playwright/test'
 
 const identifier = process.env['E2E_CLERK_USER'] ?? ''
@@ -132,37 +133,46 @@ test.describe('measurements', () => {
   })
 })
 
-/**
- * The run shares one household, and the test above leaves it on imperial.
- * Setting the answer here rather than inheriting it keeps these tests
- * readable in grams and independent of what ran before.
+/*
+ * Its own account, so these start on a household that has answered nothing
+ * and can answer metric through the setup screen. Reaching back through the
+ * household screen to undo what the test above did made these depend on the
+ * order they ran in.
  */
-async function useMetric(page: Page) {
-  await page.goto('/household')
-  const metric = page.getByRole('checkbox', { name: /Metric/ })
-  const imperial = page.getByRole('checkbox', { name: /Imperial and US/ })
-  await expect(metric).toBeVisible()
-  if ((await metric.isChecked()) && !(await imperial.isChecked())) {
-    return
-  }
-  await metric.check()
-  await imperial.uncheck()
-  await page.getByRole('button', { name: 'Save measurements' }).click()
-  // The button also goes disabled while the write is in flight, so waiting
-  // on that resolves too early and navigating next drops the save.
-  await expect(page.getByText('Saved')).toBeVisible()
-}
-
 test.describe('editing ingredients', () => {
+  let ownIdentifier = ''
+  let ownUserId = ''
+
+  test.beforeAll(async () => {
+    const user = await createTestUser()
+    ownIdentifier = user.email
+    ownUserId = user.id
+  })
+
+  test.afterAll(async () => {
+    if (ownUserId) {
+      await deleteTestUser(ownUserId)
+    }
+  })
+
   test.beforeEach(async ({ page }) => {
     await setupClerkTestingToken({ page })
     await page.goto('/')
     await clerk.loaded({ page })
     await clerk.signIn({
       page,
-      signInParams: { strategy: 'email_code', identifier },
+      signInParams: { strategy: 'email_code', identifier: ownIdentifier },
     })
-    await useMetric(page)
+    // Metric is the preselected answer, so one tap gets these tests to it.
+    await page.goto('/recipes')
+    const setup = page.getByRole('button', { name: 'Save and carry on' })
+    await expect(
+      setup.or(page.getByRole('heading', { name: 'Recipes' })),
+    ).toBeVisible()
+    if (await setup.isVisible()) {
+      await setup.click()
+      await expect(setup).toBeHidden()
+    }
     await page.goto('/recipes/new')
   })
 

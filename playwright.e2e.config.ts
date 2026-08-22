@@ -15,6 +15,14 @@ export default defineConfig({
   globalTeardown: './tests/e2e/global-teardown.ts',
   fullyParallel: false,
   workers: 1,
+  /*
+   * Generous, because every test here pays for a cold Vite SSR render plus a
+   * Clerk sign-in round trip before it asserts anything. The default 30s was
+   * enough right up until it was not, and a timeout reads like a broken
+   * feature rather than a slow dev server.
+   */
+  timeout: 90_000,
+  expect: { timeout: 10_000 },
   forbidOnly: Boolean(process.env['CI']),
   reporter: 'line',
   use: {
