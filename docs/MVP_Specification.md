@@ -121,6 +121,11 @@ Conventions:
     "flour 1 cup"): keep as separate line items. Do NOT guess
     volume↔mass conversions.
   - Scale quantities by planned servings ÷ recipe servings.
+- A ticked item records who ticked it (`checkedBy`, a Clerk subject),
+  resolved to a name by `lists.get`. Shown only to the other people in the
+  household, and only when there is more than one member: two people in
+  one shop need to know who has the milk, and nobody needs telling what
+  they ticked themselves.
 - List item fields: `name`, `quantity`, `unit`, `checked` (boolean),
   `manuallyAdded` (boolean), `approximate` (boolean, see §3.5 rounding).
 - Users can:

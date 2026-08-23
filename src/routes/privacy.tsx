@@ -200,12 +200,22 @@ const SECTIONS: LegalSection[] = [
       {
         text: (
           <>
-            To delete everything, email {EMAIL_LINK} from your account address
-            and we will remove your account, your household membership and any
-            household that only you belong to, within 30 days. Provider backups
-            may hold a copy for a short period after that before they roll off.
-            Content you created in a household you share with other people stays
-            with that household.
+            You can delete your whole account yourself, from the account menu on
+            the Household screen. It removes your account, your household
+            membership and any household that only you belong to, straight away
+            rather than on a request queue. Provider backups may hold a copy for
+            a short period afterwards before they roll off. Content you created
+            in a household you share with other people stays with that
+            household.
+          </>
+        ),
+      },
+      {
+        text: (
+          <>
+            If you would rather we did it, or you cannot get into your account,
+            email {EMAIL_LINK} from your account address and we will do it
+            within 30 days.
           </>
         ),
       },
