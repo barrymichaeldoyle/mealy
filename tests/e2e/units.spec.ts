@@ -619,3 +619,90 @@ test.describe('finishing the shop and finding things', () => {
     await expect(page.getByText('That is everything')).toBeVisible()
   })
 })
+
+test.describe('two people, one list', () => {
+  const users: { id: string; email: string }[] = []
+
+  test.beforeAll(async () => {
+    users.push(await createTestUser(), await createTestUser())
+  })
+
+  test.afterAll(async () => {
+    for (const user of users) {
+      await deleteTestUser(user.id)
+    }
+  })
+
+  test('a ticked row says who got it', async ({ page, browser }) => {
+    const [owner, joiner] = users as [
+      { id: string; email: string },
+      { id: string; email: string },
+    ]
+
+    // The owner sets up a household with a recipe and a list.
+    await setupClerkTestingToken({ page })
+    await page.goto('/')
+    await clerk.loaded({ page })
+    await clerk.signIn({
+      page,
+      signInParams: { strategy: 'email_code', identifier: owner.email },
+    })
+    await answerSetupIfAsked(page)
+
+    await page.goto('/recipes/new')
+    await page.getByLabel('Recipe name').fill('Shared bake')
+    await page.getByLabel('Serves').fill('2')
+    await addIngredient(page, { name: 'milk', quantity: '500', unit: 'ml' })
+    await page.getByRole('button', { name: 'Save recipe' }).click()
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Shared bake' }),
+    ).toBeVisible()
+
+    await page.goto('/lists')
+    await page.getByRole('button', { name: 'New list' }).click()
+    const picker = page.getByRole('dialog')
+    await picker.getByText('Shared bake').first().click()
+    await picker.getByRole('button', { name: /Generate list/ }).click()
+    await expect(page.getByText('0 of 1 ticked')).toBeVisible()
+    const listUrl = page.url()
+
+    // On their own, no name is shown: there is nobody to tell apart.
+    await page.getByText('milk').first().click()
+    await expect(page.getByText('1 of 1 ticked')).toBeVisible()
+    await page.getByText(/^Done \(/).click()
+    await expect(page.getByText(/got this/)).toBeHidden()
+
+    // Invite the second person.
+    await page.goto('/household')
+    await page
+      .getByRole('button', { name: /Invite|Create/ })
+      .first()
+      .click()
+    const invite = await page.getByLabel('Invite link').inputValue()
+
+    const second = await browser.newContext()
+    const other = await second.newPage()
+    await setupClerkTestingToken({ page: other })
+    await other.goto('/')
+    await clerk.loaded({ page: other })
+    await clerk.signIn({
+      page: other,
+      signInParams: { strategy: 'email_code', identifier: joiner.email },
+    })
+    await other.goto(new URL(invite).pathname)
+    await other.getByRole('button', { name: /Join/ }).first().click()
+
+    // Now the same row carries a name for both of them. Ticked rows live in
+    // the Done drawer, which is where you go to ask who got what.
+    await other.goto(listUrl)
+    await other.getByText(/^Done \(/).click()
+    await expect(other.getByText(/got this/)).toBeVisible()
+
+    // The owner ticked it, so their own copy stays quiet about it.
+    await page.goto(listUrl)
+    await page.getByText(/^Done \(/).click()
+    await expect(page.getByText(/got this/)).toBeHidden()
+    await other.screenshot({ path: 'test-results/shared-list.png' })
+    await second.close()
+  })
+})

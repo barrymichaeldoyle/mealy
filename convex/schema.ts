@@ -115,6 +115,12 @@ export default defineSchema({
     quantity: v.optional(v.number()),
     unit: unitValidator,
     checked: v.boolean(),
+    /**
+     * Who ticked it, as a Clerk subject. Two people in the same shop watch
+     * rows flip under their thumbs, and "did you get the milk" is the
+     * question that follows. Cleared when a row is unticked.
+     */
+    checkedBy: v.optional(v.string()),
     manuallyAdded: v.boolean(),
     approximate: v.boolean(),
     sourceRecipeIds: v.array(v.id('recipes')),

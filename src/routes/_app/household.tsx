@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import { Check, Copy, Download, Link2, Share2, UserPlus } from 'lucide-react'
+import { useClerk } from '@clerk/tanstack-react-start'
+import {
+  Check,
+  Copy,
+  Download,
+  Link2,
+  Share2,
+  Trash2,
+  UserPlus,
+} from 'lucide-react'
 import { AppHeader } from '../../components/app-header'
 import { SiteFooter } from '../../components/site-footer'
 import { Button } from '../../components/ui/button'
@@ -281,6 +290,7 @@ function InviteCard({
  */
 function DataCard() {
   const exportData = useExportData()
+  const clerk = useClerk()
   const [busy, setBusy] = useState(false)
 
   return (
@@ -311,16 +321,40 @@ function DataCard() {
         <Download className="size-4" aria-hidden="true" />
         {busy ? 'Preparing…' : 'Download my data'}
       </Button>
-      <p className="mt-3 text-meta text-ink-400">
-        To have your account deleted, email{' '}
-        <a
-          href={`mailto:${CONTACT_EMAIL}`}
-          className="underline underline-offset-2 hover:text-ink-600"
+      <div className="mt-6 border-t border-paper-200 pt-5">
+        <h3 className="font-serif text-title font-medium text-ink-900">
+          Delete your account
+        </h3>
+        <p className="mt-1 text-meta text-ink-400">
+          This kitchen goes with it, along with its recipes, plans and lists,
+          unless somebody else is in it. Download your data first if you want to
+          keep a copy.
+        </p>
+        {/*
+         * This used to say to email us. Deleting is self-serve in the
+         * account menu, and the webhook clears the kitchen behind it, so
+         * asking people to write a letter about it was busywork and read as
+         * though we might say no.
+         */}
+        <Button
+          className="mt-3"
+          variant="danger"
+          onClick={() => clerk.openUserProfile()}
         >
-          {CONTACT_EMAIL}
-        </a>
-        . This kitchen goes with it unless someone else is in it.
-      </p>
+          <Trash2 className="size-4" aria-hidden="true" />
+          Delete account
+        </Button>
+        <p className="mt-3 text-meta text-ink-400">
+          Something not right? Email{' '}
+          <a
+            href={`mailto:${CONTACT_EMAIL}`}
+            className="underline underline-offset-2 hover:text-ink-600"
+          >
+            {CONTACT_EMAIL}
+          </a>
+          .
+        </p>
+      </div>
     </Card>
   )
 }

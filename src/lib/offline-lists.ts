@@ -1,7 +1,18 @@
 import type { Doc, Id } from '../../convex/_generated/dataModel'
 
+/**
+ * A row as the query hands it over, with the ticker's name resolved. The
+ * name is optional here because a copy cached before that existed still has
+ * to read.
+ */
+export type CachedShoppingListItem = Doc<'shoppingListItems'> & {
+  checkedByName?: string | null
+}
+
 export type CachedShoppingList = Doc<'shoppingLists'> & {
-  items: Doc<'shoppingListItems'>[]
+  items: CachedShoppingListItem[]
+  /** How many people share this list, or null when it is yours alone. */
+  sharedWith?: number | null
   /** When this copy was taken, so "your last list" means something. */
   cachedAt?: number
 }

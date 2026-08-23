@@ -3,7 +3,7 @@ import { useAuth } from '@clerk/tanstack-react-start'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { useOnlineStatus } from './use-online-status'
-import type { Doc, Id } from '../../convex/_generated/dataModel'
+import type { Id } from '../../convex/_generated/dataModel'
 import {
   queueToggle,
   readCachedList,
@@ -101,8 +101,17 @@ export function useToggleListItem() {
         if (!value) {
           continue
         }
-        const items = value.items.map((item: Doc<'shoppingListItems'>) =>
-          item._id === args.id ? { ...item, checked: args.checked } : item,
+        // Inferred from the query rather than annotated as the raw
+        // document, so fields the query adds are not stripped here.
+        const items = value.items.map((item) =>
+          item._id === args.id
+            ? {
+                ...item,
+                checked: args.checked,
+                // The name arrives with the round trip; unticking drops it now.
+                checkedByName: args.checked ? item.checkedByName : null,
+              }
+            : item,
         )
         localStore.setQuery(api.lists.get, queryArgs, { ...value, items })
       }

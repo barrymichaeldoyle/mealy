@@ -58,9 +58,29 @@ export const get = query({
       .withIndex('by_list', (q) => q.eq('listId', args.id))
       .collect()
 
+    /*
+     * Names, not ids, because the list is read in a shop by the other
+     * person. Resolved here rather than on the client so a row carries who
+     * ticked it wherever it is rendered, including the offline copy.
+     */
+    const members = await ctx.db
+      .query('householdMembers')
+      .withIndex('by_household', (q) => q.eq('householdId', householdId))
+      .collect()
+    const names = new Map(members.map((m) => [m.userId, m.name]))
+
     return {
       ...shoppingList,
-      items: items.toSorted((a, b) => a.name.localeCompare(b.name)),
+      /** Absent for a household of one: there is nobody to tell apart. */
+      sharedWith: members.length > 1 ? members.length : null,
+      items: items
+        .map((item) => ({
+          ...item,
+          checkedByName: item.checkedBy
+            ? (names.get(item.checkedBy) ?? null)
+            : null,
+        }))
+        .toSorted((a, b) => a.name.localeCompare(b.name)),
     }
   },
 })
@@ -255,9 +275,13 @@ export const restoreItems = mutation({
 export const toggleItem = mutation({
   args: { id: v.id('shoppingListItems'), checked: v.boolean() },
   handler: async (ctx, args) => {
-    const { householdId } = await requireHousehold(ctx)
+    const { userId, householdId } = await requireHousehold(ctx)
     assertHousehold(await ctx.db.get(args.id), householdId)
-    await ctx.db.patch(args.id, { checked: args.checked })
+    await ctx.db.patch(args.id, {
+      checked: args.checked,
+      // Unticking drops the name with it: nobody has it now.
+      ...(args.checked ? { checkedBy: userId } : { checkedBy: undefined }),
+    })
   },
 })
 

@@ -37,15 +37,17 @@ import {
 } from '../../../lib/units'
 import { useUnitOptions } from '../../../hooks/use-household'
 import { cn } from '../../../lib/cn'
-import type { Doc, Id } from '../../../../convex/_generated/dataModel'
+import type { Id } from '../../../../convex/_generated/dataModel'
+import type { CachedShoppingListItem } from '../../../lib/offline-lists'
 import { useOnlineStatus } from '../../../hooks/use-online-status'
+import { useHousehold } from '../../../hooks/use-household'
 import { defined } from '../../../../convex/lib/optional'
 
 export const Route = createFileRoute('/_app/lists/$id')({
   component: ListDetail,
 })
 
-type Item = Doc<'shoppingListItems'>
+type Item = CachedShoppingListItem
 type ItemId = Id<'shoppingListItems'>
 
 /** How long a ticked row stays where it is before it joins the done pile. */
@@ -63,6 +65,7 @@ function ListDetail() {
   const navigate = useNavigate()
   const list = useShoppingList(id as Id<'shoppingLists'>)
   const online = useOnlineStatus()
+  const household = useHousehold()
   const toggleItem = useToggleListItem()
   const deleteList = useDeleteList()
   const clearChecked = useClearChecked()
@@ -94,6 +97,9 @@ function ListDetail() {
   const pending = items.filter((item) => !item.checked || held.has(item._id))
   const done = items.filter((item) => item.checked && !held.has(item._id))
   const checkedCount = items.filter((item) => item.checked).length
+  // Nobody to tell apart in a household of one, so no names are shown.
+  const shared = Boolean(list?.sharedWith)
+  const meId = household?.userId
   const plural = checkedCount === 1 ? '' : 's'
 
   if (list === undefined) {
@@ -203,6 +209,8 @@ function ListDetail() {
                     <ItemRow
                       key={item._id}
                       item={item}
+                      shared={shared}
+                      meId={meId}
                       onToggle={handleToggle}
                       onEdit={online ? () => setEditing(item) : undefined}
                     />
@@ -226,6 +234,8 @@ function ListDetail() {
                       <ItemRow
                         key={item._id}
                         item={item}
+                        shared={shared}
+                        meId={meId}
                         onToggle={handleToggle}
                         onEdit={online ? () => setEditing(item) : undefined}
                       />
@@ -320,15 +330,25 @@ function ListDetail() {
  */
 function ItemRow({
   item,
+  shared,
+  meId,
   onToggle,
   onEdit,
 }: {
   item: Item
+  shared: boolean
+  meId: string | undefined
   onToggle: (id: ItemId, checked: boolean) => void
   onEdit: (() => void) | undefined
 }) {
   const amount = formatListItem(item)
   const approximate = amount.startsWith('≈')
+  /*
+   * Only when somebody else ticked it. You know what you put in the trolley,
+   * and a name against every row you touched is noise on the screen you are
+   * reading one-handed.
+   */
+  const byOther = shared && item.checkedByName && item.checkedBy !== meId
 
   return (
     <ListRow
@@ -346,13 +366,26 @@ function ItemRow({
           checked={item.checked}
           onChange={(event) => onToggle(item._id, event.target.checked)}
         />
-        <span
-          className={cn(
-            'min-w-0 flex-1 text-pretty break-words text-body',
-            item.checked ? 'text-ink-400 line-through' : 'text-ink-900',
+        <span className="min-w-0 flex-1">
+          <span
+            className={cn(
+              'block text-pretty break-words text-body',
+              item.checked ? 'text-ink-400 line-through' : 'text-ink-900',
+            )}
+          >
+            {item.name}
+          </span>
+          {/*
+           * Who has it, so the other person in the shop does not buy it
+           * again. A sibling of the name rather than a child, because
+           * text-decoration propagates and a strikethrough over somebody's
+           * name reads as though they were crossed off too.
+           */}
+          {byOther && (
+            <span className="block text-meta font-medium text-ink-400">
+              {item.checkedByName} got this
+            </span>
           )}
-        >
-          {item.name}
         </span>
         <span
           className={cn(
