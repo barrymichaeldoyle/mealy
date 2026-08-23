@@ -129,17 +129,20 @@ function ListDetail() {
           title={list.name}
           meta={`${checkedCount} of ${items.length} ticked`}
           action={
-            <Button disabled={!online} onClick={() => setAdding(true)}>
-              <Plus className="size-4" aria-hidden="true" />
-              Add
-            </Button>
+            online ? (
+              <Button onClick={() => setAdding(true)}>
+                <Plus className="size-4" aria-hidden="true" />
+                Add
+              </Button>
+            ) : null
           }
         />
 
         {!online && (
-          <output className="mt-4 block rounded-card border border-paper-300 bg-paper-100 px-4 py-3 text-meta font-medium text-ink-600">
-            Offline. You can keep ticking items. Changes will sync when your
-            connection returns.
+          <output className="mt-4 block rounded-card border border-line bg-paper-100 px-4 py-3 text-meta font-medium text-ink-600">
+            Offline. Keep ticking, and it will sync when your connection
+            returns. Adding, editing and deleting need a connection, so they are
+            not here until it comes back.
           </output>
         )}
 
@@ -199,8 +202,10 @@ function ListDetail() {
           </div>
         )}
 
+        {/* Destructive actions need the server, so offline they are absent
+            rather than present and unreachable. */}
         <div className="mt-8 space-y-3">
-          {checkedCount > 0 && (
+          {online && checkedCount > 0 && (
             /*
              * This deletes every ticked row for good. Deleting one item asks
              * first, so the button that deletes twelve of them has to ask
@@ -209,7 +214,6 @@ function ListDetail() {
             <ConfirmButton
               variant="secondary"
               className="w-full"
-              disabled={!online}
               title={`Delete ${checkedCount} ticked item${plural}?`}
               description={`They will be permanently deleted from “${list.name}”. The items you have not ticked stay.`}
               confirmLabel={`Delete ${checkedCount} item${plural}`}
@@ -220,19 +224,20 @@ function ListDetail() {
               Clear {checkedCount} ticked item{plural}
             </ConfirmButton>
           )}
-          <ConfirmButton
-            className="w-full"
-            disabled={!online}
-            title="Delete this list?"
-            description={`“${list.name}” and every item in it will be permanently deleted.`}
-            confirmLabel="Delete list"
-            onConfirm={async () => {
-              await deleteList({ id: list._id })
-              await navigate({ to: '/lists' })
-            }}
-          >
-            Delete list
-          </ConfirmButton>
+          {online && (
+            <ConfirmButton
+              className="w-full"
+              title="Delete this list?"
+              description={`“${list.name}” and every item in it will be permanently deleted.`}
+              confirmLabel="Delete list"
+              onConfirm={async () => {
+                await deleteList({ id: list._id })
+                await navigate({ to: '/lists' })
+              }}
+            >
+              Delete list
+            </ConfirmButton>
+          )}
         </div>
       </main>
 

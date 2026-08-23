@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
 /*
@@ -124,4 +125,41 @@ test('the recipe book renders when there is no cached list', async ({
   await expect(page.getByRole('link', { name: /Bunny chow/ })).toBeVisible()
   await page.setViewportSize({ width: 390, height: 844 })
   await page.screenshot({ path: 'test-results/offline-book.png' })
+})
+
+const wcagTags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
+
+/*
+ * The public suite cannot reach these: they only exist when localStorage
+ * holds a saved copy. They are real screens, read in a shop and a kitchen,
+ * so they get scanned like the rest.
+ */
+test('the offline screens meet the automated WCAG checks', async ({ page }) => {
+  const scan = async (name: string) => {
+    const results = await new AxeBuilder({ page }).withTags(wcagTags).analyze()
+    for (const violation of results.violations) {
+      console.log(`AXE ${name} [${violation.impact}] ${violation.id}`)
+    }
+    expect(results.violations, `${name} violations`).toEqual([])
+  }
+
+  await page.goto('/offline')
+  await expect(page.getByRole('heading', { name: /offline/i })).toBeVisible()
+  await scan('offline-empty')
+
+  await page.evaluate(
+    ([key, value]) => window.localStorage.setItem(key!, value!),
+    [BOOK_KEY, JSON.stringify(RECIPES)],
+  )
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Recipes' })).toBeVisible()
+  await scan('offline-book')
+
+  await page.evaluate(
+    ([key, value]) => window.localStorage.setItem(key!, value!),
+    [LIST_KEY, JSON.stringify(CACHED)],
+  )
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Weekly shop' })).toBeVisible()
+  await scan('offline-list')
 })
