@@ -450,14 +450,18 @@ function AddItemSheet({
  * Amounts here are the canonical metric values the list stores, so the unit
  * choices are limited to what a list line can actually hold.
  */
-const CANONICAL_OPTIONS: { value: Unit; label: string }[] = [
-  { value: 'g', label: 'g' },
-  { value: 'ml', label: 'ml' },
-  { value: 'item', label: 'item(s)' },
-  { value: 'tin', label: 'tin(s)' },
-  { value: 'pack', label: 'pack(s)' },
-  { value: 'none', label: 'no amount' },
-]
+/*
+ * A list item is stored canonically, so this is the whole set: grams,
+ * millilitres and the counts. Labels come from the shared map rather than
+ * being written out again, which is how this one ended up saying "ml"
+ * after the rest of the app moved to the cursive ell.
+ */
+const CANONICAL_UNITS: Unit[] = ['g', 'ml', 'item', 'tin', 'pack', 'none']
+
+function canonicalLabel(unit: Unit): string {
+  // On a list, an item with no amount is not "to taste", it is just an item.
+  return unit === 'none' ? 'no amount' : UNIT_OPTION_LABELS[unit]
+}
 
 function EditItemSheet({
   item,
@@ -554,9 +558,9 @@ function EditItemForm({
               value={unit}
               onChange={(event) => setUnit(event.target.value as Unit)}
             >
-              {CANONICAL_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
+              {CANONICAL_UNITS.map((unit) => (
+                <option key={unit} value={unit}>
+                  {canonicalLabel(unit)}
                 </option>
               ))}
             </Select>
