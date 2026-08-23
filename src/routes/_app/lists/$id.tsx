@@ -558,9 +558,9 @@ function EditItemForm({
               value={unit}
               onChange={(event) => setUnit(event.target.value as Unit)}
             >
-              {CANONICAL_UNITS.map((unit) => (
-                <option key={unit} value={unit}>
-                  {canonicalLabel(unit)}
+              {CANONICAL_UNITS.map((option) => (
+                <option key={option} value={option}>
+                  {canonicalLabel(option)}
                 </option>
               ))}
             </Select>
