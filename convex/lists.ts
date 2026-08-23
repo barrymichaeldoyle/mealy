@@ -6,6 +6,7 @@ import { unitValidator } from './schema'
 import { assertHousehold, getHouseholdId, requireHousehold } from './lib/auth'
 import { validateDate } from './lib/validation'
 import { consolidate, type ConsolidationInput } from './lib/units'
+import { ingredientInputs } from './lib/lists'
 import { formatShortDate } from './lib/dates'
 import { defined } from './lib/optional'
 
@@ -65,10 +66,6 @@ export const get = query({
 })
 
 /**
- * Turn consolidated lines into list rows. Shared by both generators so the
- * two entry points cannot drift apart.
- */
-/**
  * Two shops for the same week are allowed, but two lists called the same
  * thing are not tellable apart in the index, so the later one is numbered.
  */
@@ -121,21 +118,6 @@ async function insertConsolidated(
   }
 
   return listId
-}
-
-function ingredientInputs(
-  recipe: Doc<'recipes'>,
-  servings: number,
-): ConsolidationInput[] {
-  const scale = recipe.servings > 0 ? servings / recipe.servings : 1
-  return recipe.ingredients.map((ingredient) => ({
-    name: ingredient.name,
-    quantity: ingredient.quantity,
-    unit: ingredient.unit,
-    note: ingredient.note,
-    scale,
-    recipeId: recipe._id,
-  }))
 }
 
 export const generateFromPlan = mutation({

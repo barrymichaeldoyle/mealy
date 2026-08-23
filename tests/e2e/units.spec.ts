@@ -568,6 +568,12 @@ test.describe('finishing the shop and finding things', () => {
     await page.getByRole('button', { name: 'New list' }).click()
     const picker = page.getByRole('dialog')
     await picker.getByText('Thursday bake').first().click()
+    // The preview says what the list will hold, before it is built.
+    await expect(picker.getByText('1 item on the list')).toBeVisible()
+    await expect(
+      picker.getByText('free-range chicken thighs, skin on'),
+    ).toBeVisible()
+    await expect(picker.getByText('600g')).toBeVisible()
     await picker.getByRole('button', { name: /Generate list/ }).click()
 
     await expect(

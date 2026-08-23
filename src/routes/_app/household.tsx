@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import { Check, Copy, Download, Link2, UserPlus } from 'lucide-react'
+import { Check, Copy, Download, Link2, Share2, UserPlus } from 'lucide-react'
 import { AppHeader } from '../../components/app-header'
 import { SiteFooter } from '../../components/site-footer'
 import { Button } from '../../components/ui/button'
@@ -172,6 +172,12 @@ function InviteCard({
   const createInvite = useCreateInvite()
   const revokeInvite = useRevokeInvite()
   const [copied, setCopied] = useState(false)
+  // Read once on mount: the share sheet exists or it does not, and checking
+  // during render would differ between the server and the browser.
+  const [canShare, setCanShare] = useState(false)
+  useEffect(() => {
+    setCanShare(typeof navigator !== 'undefined' && 'share' in navigator)
+  }, [])
   const [busy, setBusy] = useState(false)
 
   async function copy(url: string) {
@@ -192,12 +198,38 @@ function InviteCard({
 
       {token ? (
         <div className="mt-4 space-y-3">
-          <p className="rounded-card border border-paper-200 bg-paper-50 px-3 py-2.5 font-mono text-meta break-all text-ink-600">
-            {inviteUrl(token)}
-          </p>
+          {/*
+           * Readonly rather than a paragraph, so the link can be selected,
+           * tapped and held, and picked up by a password manager. A phone
+           * had no way to get at it except the Copy button.
+           */}
+          <input
+            readOnly
+            value={inviteUrl(token)}
+            aria-label="Invite link"
+            onFocus={(event) => event.currentTarget.select()}
+            className="w-full rounded-card border border-line bg-paper-50 px-3 py-2.5 font-mono text-meta text-ink-600"
+          />
           <div className="flex flex-wrap gap-2">
+            {canShare && (
+              /* The share sheet is the natural way to send this on a phone. */
+              <Button
+                variant="accent"
+                onClick={() =>
+                  void navigator
+                    .share({
+                      title: `Join ${householdName} on Mealy`,
+                      url: inviteUrl(token),
+                    })
+                    .catch(() => undefined)
+                }
+              >
+                <Share2 className="size-4" aria-hidden="true" />
+                Share link
+              </Button>
+            )}
             <Button
-              variant="accent"
+              variant={canShare ? 'secondary' : 'accent'}
               onClick={() => void copy(inviteUrl(token))}
             >
               {copied ? (

@@ -307,15 +307,12 @@ function ItemRow({
         item.checked && 'bg-basil-100',
       )}
     >
-      {/*
-       * The label wraps the box, which is association enough. Adding
-       * `htmlFor` on top of that made a click on the box bubble to the
-       * label, which forwarded a second click back, and the two cancelled
-       * out: tapping the box did nothing while tapping the row's text
-       * worked. On the most repeated action in the app.
-       */}
-      <label className="flex min-h-[52px] flex-1 items-center gap-3 py-2">
+      <label
+        htmlFor={`item-${item._id}`}
+        className="flex min-h-[52px] flex-1 items-center gap-3 py-2"
+      >
         <Checkbox
+          id={`item-${item._id}`}
           checked={item.checked}
           onChange={(event) => onToggle(item._id, event.target.checked)}
         />

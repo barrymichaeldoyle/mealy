@@ -14,6 +14,7 @@ import { formatEquivalent, formatRecipeQuantity } from '../../../lib/units'
 import { cn } from '../../../lib/cn'
 import { useUnitSystems } from '../../../hooks/use-household'
 import { useOnlineStatus } from '../../../hooks/use-online-status'
+import { useWakeLock } from '../../../hooks/use-wake-lock'
 import type { Id } from '../../../../convex/_generated/dataModel'
 
 export const Route = createFileRoute('/_app/recipes/$id/')({
@@ -40,6 +41,8 @@ function RecipeDetail() {
   const systems = useUnitSystems()
   const [servings, setServings] = useState<number | null>(null)
   const online = useOnlineStatus()
+  // Cook mode: the screen stays on while a recipe is open.
+  useWakeLock(recipe !== undefined && recipe !== null)
 
   if (recipe === undefined) {
     return (

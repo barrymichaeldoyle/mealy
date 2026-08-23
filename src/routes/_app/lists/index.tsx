@@ -15,6 +15,8 @@ import {
 } from '../../../hooks/use-lists'
 import { useRecipes } from '../../../hooks/use-recipes'
 import { shortDateLabel } from '../../../lib/dates'
+import { consolidate, formatListItem } from '../../../lib/units'
+import { ingredientInputs } from '../../../../convex/lib/lists'
 import { cn } from '../../../lib/cn'
 import type { Id } from '../../../../convex/_generated/dataModel'
 
@@ -122,6 +124,17 @@ function RecipeMultiPicker({
     )
   }
 
+  /*
+   * The same arithmetic the mutation runs, from the same shared module, so
+   * the preview cannot drift from what actually gets built.
+   */
+  const chosen = (recipes ?? []).filter((recipe) =>
+    selected.includes(recipe._id),
+  )
+  const preview = consolidate(
+    chosen.flatMap((recipe) => ingredientInputs(recipe, recipe.servings)),
+  ).toSorted((a, b) => a.name.localeCompare(b.name))
+
   return (
     <Sheet open={open} onClose={onClose} title="Pick recipes">
       {recipes !== undefined && recipes.length === 0 ? (
@@ -165,6 +178,36 @@ function RecipeMultiPicker({
               )
             })}
           </ul>
+
+          {preview.length > 0 && (
+            /*
+             * What you are about to get. Generating used to create the list
+             * and navigate away, so what went in, and what merged into what,
+             * was only discoverable afterwards.
+             */
+            <section className="mt-4" aria-labelledby="list-preview">
+              <h3
+                id="list-preview"
+                className="text-meta font-semibold text-ink-600"
+              >
+                {preview.length} item{preview.length === 1 ? '' : 's'} on the
+                list
+              </h3>
+              <ul className="mt-2 space-y-1">
+                {preview.map((item) => (
+                  <li
+                    key={`${item.name}-${item.unit}`}
+                    className="flex justify-between gap-3 text-meta text-ink-600"
+                  >
+                    <span className="min-w-0 break-words">{item.name}</span>
+                    <span className="shrink-0 tabular-nums">
+                      {formatListItem({ ...item, quantity: item.quantity })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           <div className="sticky bottom-0 mt-4 bg-paper-100 pt-3">
             <Button
