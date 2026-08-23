@@ -1,5 +1,5 @@
 import { clerkSetup } from '@clerk/testing/playwright'
-import { createTestUser } from './clerk-user'
+import { createTestUser, deleteStaleTestUsers } from './clerk-user'
 
 /**
  * Exchanges the Clerk keys for a testing token, then makes the throwaway
@@ -8,6 +8,10 @@ import { createTestUser } from './clerk-user'
  */
 export default async function globalSetup() {
   await clerkSetup()
+  const swept = await deleteStaleTestUsers()
+  if (swept > 0) {
+    console.log(`Cleared ${swept} test account(s) left by an earlier run.`)
+  }
   const { id, email } = await createTestUser()
   process.env['E2E_CLERK_USER'] = email
   process.env['E2E_CLERK_USER_ID'] = id

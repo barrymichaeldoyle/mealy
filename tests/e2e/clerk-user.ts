@@ -44,6 +44,43 @@ export async function createTestUser(): Promise<{ id: string; email: string }> {
   return { id: body.id, email }
 }
 
+/**
+ * Clear out accounts left behind by runs that died before their teardown.
+ *
+ * A crashed dev server or a filtered run skips `afterAll`, and the leftovers
+ * accumulate against a development instance that rate limits. An hour is
+ * well past the longest a suite takes, so anything older is abandoned.
+ */
+export async function deleteStaleTestUsers(
+  olderThanMs = 60 * 60 * 1000,
+): Promise<number> {
+  const response = await fetch(`${API}?limit=100`, {
+    headers: { Authorization: `Bearer ${secret()}` },
+  })
+  if (!response.ok) {
+    return 0
+  }
+
+  const users = (await response.json()) as {
+    id: string
+    created_at: number
+    email_addresses: { email_address: string }[]
+  }[]
+  const cutoff = Date.now() - olderThanMs
+  const stale = users.filter(
+    (user) =>
+      user.created_at < cutoff &&
+      user.email_addresses.some((email) =>
+        email.email_address.startsWith('mealy+clerk_test_'),
+      ),
+  )
+
+  for (const user of stale) {
+    await deleteTestUser(user.id)
+  }
+  return stale.length
+}
+
 export async function deleteTestUser(id: string): Promise<void> {
   await fetch(`${API}/${id}`, {
     method: 'DELETE',
