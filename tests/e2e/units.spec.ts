@@ -602,5 +602,20 @@ test.describe('finishing the shop and finding things', () => {
 
     await page.setViewportSize({ width: 390, height: 844 })
     await page.screenshot({ path: 'test-results/shop-done.png' })
+
+    // Clearing deletes for good, so it offers the way back.
+    await page.getByRole('button', { name: /Clear 1 ticked item/ }).click()
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /Delete 1 item/ })
+      .click()
+    await expect(page.getByText('Deleted 1 item')).toBeVisible()
+    await expect(page.getByText('This list is empty')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Undo' }).click()
+    // Restored exactly as it went: ticked, so back in the Done drawer.
+    await expect(page.getByText('1 of 1 ticked')).toBeVisible()
+    await expect(page.getByText('Done (1)')).toBeVisible()
+    await expect(page.getByText('That is everything')).toBeVisible()
   })
 })

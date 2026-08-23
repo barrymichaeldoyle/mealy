@@ -82,6 +82,10 @@ export function useClearChecked() {
   return useMutation(api.lists.clearChecked)
 }
 
+export function useRestoreListItems() {
+  return useMutation(api.lists.restoreItems)
+}
+
 /**
  * Ticking an item is the single most repeated action in a shop, so it gets
  * an optimistic update: the row flips instantly, before the round trip.

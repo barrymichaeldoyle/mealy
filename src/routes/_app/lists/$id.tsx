@@ -13,6 +13,7 @@ import { Button, buttonClass } from '../../../components/ui/button'
 import { Card } from '../../../components/ui/card'
 import { Checkbox } from '../../../components/ui/checkbox'
 import { ConfirmButton } from '../../../components/ui/confirm-button'
+import { UndoBar } from '../../../components/ui/undo-bar'
 import { EmptyState } from '../../../components/ui/empty-state'
 import { Field, Input, Select } from '../../../components/ui/field'
 import { ListRow, ListRows } from '../../../components/ui/list-row'
@@ -22,6 +23,7 @@ import { SkeletonList } from '../../../components/ui/skeleton'
 import {
   useAddListItem,
   useClearChecked,
+  useRestoreListItems,
   useDeleteList,
   useRemoveListItem,
   useShoppingList,
@@ -64,6 +66,9 @@ function ListDetail() {
   const toggleItem = useToggleListItem()
   const deleteList = useDeleteList()
   const clearChecked = useClearChecked()
+  const restoreItems = useRestoreListItems()
+  // What was just cleared, held only long enough to offer it back.
+  const [cleared, setCleared] = useState<Item[] | null>(null)
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<Item | null>(null)
 
@@ -248,7 +253,9 @@ function ListDetail() {
               description={`They will be permanently deleted from “${list.name}”. The items you have not ticked stay.`}
               confirmLabel={`Delete ${checkedCount} item${plural}`}
               onConfirm={async () => {
+                const removed = items.filter((item) => item.checked)
                 await clearChecked({ listId: list._id })
+                setCleared(removed)
               }}
             >
               Clear {checkedCount} ticked item{plural}
@@ -270,6 +277,29 @@ function ListDetail() {
           )}
         </div>
       </main>
+
+      {cleared && (
+        <UndoBar
+          message={`Deleted ${cleared.length} item${cleared.length === 1 ? '' : 's'}`}
+          onDismiss={() => setCleared(null)}
+          onUndo={async () => {
+            const restoring = cleared
+            setCleared(null)
+            await restoreItems({
+              listId: list._id,
+              items: restoring.map((item) => ({
+                ...defined({ quantity: item.quantity }),
+                name: item.name,
+                unit: item.unit,
+                checked: item.checked,
+                manuallyAdded: item.manuallyAdded,
+                approximate: item.approximate,
+                sourceRecipeIds: item.sourceRecipeIds,
+              })),
+            })
+          }}
+        />
+      )}
 
       <AddItemSheet
         open={adding}

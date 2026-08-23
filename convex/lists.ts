@@ -212,6 +212,46 @@ export const remove = mutation({
   },
 })
 
+/**
+ * Put back rows that were just cleared. The ids are new, which nothing on
+ * screen can tell, and that is what lets clearing be undone rather than
+ * confirmed twice.
+ */
+export const restoreItems = mutation({
+  args: {
+    listId: v.id('shoppingLists'),
+    items: v.array(
+      v.object({
+        name: v.string(),
+        quantity: v.optional(v.number()),
+        unit: unitValidator,
+        checked: v.boolean(),
+        manuallyAdded: v.boolean(),
+        approximate: v.boolean(),
+        sourceRecipeIds: v.array(v.id('recipes')),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const { householdId } = await requireHousehold(ctx)
+    assertHousehold(await ctx.db.get(args.listId), householdId)
+
+    for (const item of args.items) {
+      await ctx.db.insert('shoppingListItems', {
+        ...defined({ quantity: item.quantity }),
+        householdId,
+        listId: args.listId,
+        name: item.name,
+        unit: item.unit,
+        checked: item.checked,
+        manuallyAdded: item.manuallyAdded,
+        approximate: item.approximate,
+        sourceRecipeIds: item.sourceRecipeIds,
+      })
+    }
+  },
+})
+
 export const toggleItem = mutation({
   args: { id: v.id('shoppingListItems'), checked: v.boolean() },
   handler: async (ctx, args) => {
