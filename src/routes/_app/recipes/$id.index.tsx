@@ -13,6 +13,8 @@ import { useDeleteRecipe, useRecipe } from '../../../hooks/use-recipes'
 import { formatEquivalent, formatRecipeQuantity } from '../../../lib/units'
 import { cn } from '../../../lib/cn'
 import { useUnitSystems } from '../../../hooks/use-household'
+import { usePlannedDatesForRecipe } from '../../../hooks/use-plan'
+import { weekdayLongLabel, type IsoDate } from '../../../lib/dates'
 import { useOnlineStatus } from '../../../hooks/use-online-status'
 import { useWakeLock } from '../../../hooks/use-wake-lock'
 import type { Id } from '../../../../convex/_generated/dataModel'
@@ -43,6 +45,7 @@ function RecipeDetail() {
   const online = useOnlineStatus()
   // Cook mode: the screen stays on while a recipe is open.
   useWakeLock(recipe !== undefined && recipe !== null)
+  const plannedDates = usePlannedDatesForRecipe(id as Id<'recipes'>)
 
   if (recipe === undefined) {
     return (
@@ -235,7 +238,7 @@ function RecipeDetail() {
           <ConfirmButton
             disabled={!online}
             title="Delete this recipe?"
-            description={`“${recipe.title}” will be permanently deleted. This cannot be undone.`}
+            description={plannedDescription(recipe.title, plannedDates)}
             confirmLabel="Delete recipe"
             onConfirm={async () => {
               await deleteRecipe({ id: recipe._id })
@@ -298,4 +301,27 @@ function ServingsStepper({
       </button>
     </div>
   )
+}
+
+/**
+ * Deleting a recipe takes its planned meals with it. Someone else in the
+ * household may have put it on Thursday, so the confirmation says which
+ * days go rather than leaving them to find out on the plan.
+ */
+function plannedDescription(
+  title: string,
+  dates: string[] | undefined,
+): string {
+  const base = `“${title}” will be permanently deleted. This cannot be undone.`
+  if (!dates || dates.length === 0) {
+    return base
+  }
+  const days = dates.map((date) => weekdayLongLabel(date as IsoDate))
+  const listed =
+    days.length === 1
+      ? days[0]
+      : `${days.slice(0, -1).join(', ')} and ${days.at(-1)}`
+  return `${base} It is planned for ${listed}, and ${
+    days.length === 1 ? 'that meal goes' : 'those meals go'
+  } with it.`
 }

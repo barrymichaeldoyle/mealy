@@ -12,6 +12,7 @@ import type * as households from "../households.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_dates from "../lib/dates.js";
+import type * as lib_lists from "../lib/lists.js";
 import type * as lib_optional from "../lib/optional.js";
 import type * as lib_svix from "../lib/svix.js";
 import type * as lib_units from "../lib/units.js";
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/auth": typeof lib_auth;
   "lib/dates": typeof lib_dates;
+  "lib/lists": typeof lib_lists;
   "lib/optional": typeof lib_optional;
   "lib/svix": typeof lib_svix;
   "lib/units": typeof lib_units;

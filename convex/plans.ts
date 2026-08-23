@@ -49,6 +49,29 @@ export const listRange = query({
   },
 })
 
+/**
+ * When this recipe is next due to be cooked. Deleting a recipe that is on
+ * the plan takes the meal with it, and in a shared kitchen that is the fact
+ * worth knowing before you confirm.
+ */
+export const forRecipe = query({
+  args: { recipeId: v.id('recipes') },
+  handler: async (ctx, args) => {
+    const householdId = await getHouseholdId(ctx)
+    if (!householdId) {
+      return []
+    }
+    const meals = await ctx.db
+      .query('plannedMeals')
+      .withIndex('by_household', (q) => q.eq('householdId', householdId))
+      .collect()
+    return meals
+      .filter((meal) => meal.recipeId === args.recipeId)
+      .map((meal) => meal.date)
+      .toSorted()
+  },
+})
+
 export const addMeal = mutation({
   args: {
     date: v.string(),

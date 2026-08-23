@@ -361,6 +361,13 @@ test.describe('cooking for a different number', () => {
     await page.getByRole('link', { name: 'Bobotie' }).click()
     await expect(page.getByRole('heading', { name: 'Bobotie' })).toBeVisible()
     await expect(page.getByText('750g')).toBeVisible()
+
+    // Deleting it would take that planned meal with it, and says so.
+    await page.getByRole('button', { name: 'Delete recipe' }).click()
+    await expect(
+      page.getByText(/It is planned for \w+, and that meal goes with it\./),
+    ).toBeVisible()
+    await page.screenshot({ path: 'test-results/delete-planned.png' })
   })
 })
 

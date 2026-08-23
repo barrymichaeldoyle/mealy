@@ -1,9 +1,15 @@
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import type { IsoDate } from '../lib/dates'
+import type { Id } from '../../convex/_generated/dataModel'
 
 export function usePlannedMeals(start: IsoDate, end: IsoDate) {
   return useQuery(api.plans.listRange, { start, end })
+}
+
+/** The dates this recipe is planned for, so deleting it can say so. */
+export function usePlannedDatesForRecipe(recipeId: Id<'recipes'> | undefined) {
+  return useQuery(api.plans.forRecipe, recipeId ? { recipeId } : 'skip')
 }
 
 export function useAddPlannedMeal() {
