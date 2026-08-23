@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@clerk/tanstack-react-start'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
+import { useOnlineStatus } from './use-online-status'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
 import {
   queueToggle,
@@ -51,25 +52,6 @@ export function useShoppingList(id: Id<'shoppingLists'> | undefined) {
   }, [remote, userId])
 
   return remote === undefined ? cached : remote
-}
-
-export function useOnlineStatus(): boolean {
-  const [online, setOnline] = useState(() =>
-    typeof navigator === 'undefined' ? true : navigator.onLine,
-  )
-
-  useEffect(() => {
-    const setOnlineState = () => setOnline(true)
-    const setOfflineState = () => setOnline(false)
-    window.addEventListener('online', setOnlineState)
-    window.addEventListener('offline', setOfflineState)
-    return () => {
-      window.removeEventListener('online', setOnlineState)
-      window.removeEventListener('offline', setOfflineState)
-    }
-  }, [])
-
-  return online
 }
 
 export function useGenerateListFromPlan() {

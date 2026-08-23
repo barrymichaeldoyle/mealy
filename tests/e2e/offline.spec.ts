@@ -76,3 +76,52 @@ test('it still stands alone when nothing is cached', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /offline/i })).toBeVisible()
   await expect(page.getByText(/needs a connection/)).toBeVisible()
 })
+
+const BOOK_KEY = 'mealy:offline-recipes:v1:user_test:book'
+
+const RECIPES = {
+  cachedAt: 3,
+  recipes: [
+    {
+      _id: 'recipe_1',
+      _creationTime: 1,
+      householdId: 'household_1',
+      title: 'Bobotie',
+      servings: 4,
+      tags: ['mince'],
+      ingredients: [
+        { name: 'mince', quantity: 500, unit: 'g' },
+        { name: 'milk', quantity: 250, unit: 'ml', note: 'full cream' },
+      ],
+      steps: ['Brown the mince.', 'Bake for 45 minutes.'],
+    },
+    {
+      _id: 'recipe_2',
+      _creationTime: 2,
+      householdId: 'household_1',
+      title: 'Bunny chow',
+      servings: 2,
+      tags: [],
+      ingredients: [],
+      steps: [],
+    },
+  ],
+}
+
+test('the recipe book renders when there is no cached list', async ({
+  page,
+}) => {
+  // No list on this device, so the book is what the page falls back to.
+  await page.addInitScript(
+    ([key, value]) => window.localStorage.setItem(key!, value!),
+    [BOOK_KEY, JSON.stringify(RECIPES)],
+  )
+  await page.goto('/offline')
+
+  await expect(page.getByRole('heading', { name: 'Recipes' })).toBeVisible()
+  await expect(page.getByText('2 saved on this phone')).toBeVisible()
+  await expect(page.getByRole('link', { name: /Bobotie/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Bunny chow/ })).toBeVisible()
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.screenshot({ path: 'test-results/offline-book.png' })
+})

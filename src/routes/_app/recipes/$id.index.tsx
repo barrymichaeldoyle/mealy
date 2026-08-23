@@ -13,6 +13,7 @@ import { useDeleteRecipe, useRecipe } from '../../../hooks/use-recipes'
 import { formatEquivalent, formatRecipeQuantity } from '../../../lib/units'
 import { cn } from '../../../lib/cn'
 import { useUnitSystems } from '../../../hooks/use-household'
+import { useOnlineStatus } from '../../../hooks/use-online-status'
 import type { Id } from '../../../../convex/_generated/dataModel'
 
 export const Route = createFileRoute('/_app/recipes/$id/')({
@@ -38,6 +39,7 @@ function RecipeDetail() {
   const deleteRecipe = useDeleteRecipe()
   const systems = useUnitSystems()
   const [servings, setServings] = useState<number | null>(null)
+  const online = useOnlineStatus()
 
   if (recipe === undefined) {
     return (
@@ -102,15 +104,24 @@ function RecipeDetail() {
               {meta}
             </p>
           </div>
-          <Link
-            to="/recipes/$id/edit"
-            params={{ id: recipe._id }}
-            className={buttonClass('secondary', 'md', 'mt-1 shrink-0')}
-          >
-            <Pencil className="size-4" aria-hidden="true" />
-            Edit
-          </Link>
+          {online && (
+            <Link
+              to="/recipes/$id/edit"
+              params={{ id: recipe._id }}
+              className={buttonClass('secondary', 'md', 'mt-1 shrink-0')}
+            >
+              <Pencil className="size-4" aria-hidden="true" />
+              Edit
+            </Link>
+          )}
         </div>
+
+        {!online && (
+          <output className="mt-4 block rounded-card border border-line bg-paper-100 px-4 py-3 text-meta font-medium text-ink-600">
+            Offline. This is your saved copy, so you can read and cook from it.
+            Editing needs a connection.
+          </output>
+        )}
 
         {recipe.description && (
           <p className="mt-3 max-w-[34ch] text-cook text-ink-600">
@@ -219,6 +230,7 @@ function RecipeDetail() {
 
         <div className="mt-12">
           <ConfirmButton
+            disabled={!online}
             title="Delete this recipe?"
             description={`“${recipe.title}” will be permanently deleted. This cannot be undone.`}
             confirmLabel="Delete recipe"

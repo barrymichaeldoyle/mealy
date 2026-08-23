@@ -474,9 +474,9 @@ The design specification governs. Specific decisions this feature adds:
 
 ## 13. Offline
 
-Nothing here is offline. The service worker caches shopping lists and
-nothing else of yours. Recipes have never been cached, so reading your
-own book already needs a connection, and that does not change here.
+Nothing here is offline. Your own shopping lists and your own recipe
+book are kept on the device and readable without a connection. Neither
+is writable without one.
 
 Whatever caching grows to cover, it must not reach other households'
 recipes, the public feed or explore search. Browsing somebody else's

@@ -24,7 +24,6 @@ import {
   useDeleteList,
   useRemoveListItem,
   useShoppingList,
-  useOnlineStatus,
   useToggleListItem,
   useUpdateListItem,
 } from '../../../hooks/use-lists'
@@ -36,6 +35,7 @@ import {
 import { useUnitOptions } from '../../../hooks/use-household'
 import { cn } from '../../../lib/cn'
 import type { Doc, Id } from '../../../../convex/_generated/dataModel'
+import { useOnlineStatus } from '../../../hooks/use-online-status'
 import { defined } from '../../../../convex/lib/optional'
 
 export const Route = createFileRoute('/_app/lists/$id')({

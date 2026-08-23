@@ -88,6 +88,30 @@ export function readLastCachedList(
   return best
 }
 
+/**
+ * A single list, whoever it belongs to, for when the offline page knows
+ * which one was asked for.
+ */
+export function findCachedList(
+  storage: StorageLike,
+  listId: Id<'shoppingLists'>,
+): { userId: string; list: CachedShoppingList } | undefined {
+  for (let index = 0; index < storage.length; index += 1) {
+    const key = storage.key(index)
+    if (!key?.startsWith(`${PREFIX}:`) || !key.endsWith(`:list:${listId}`)) {
+      continue
+    }
+    const list = parse<CachedShoppingList>(storage.getItem(key))
+    if (list) {
+      return {
+        userId: key.slice(PREFIX.length + 1, key.indexOf(':list:')),
+        list,
+      }
+    }
+  }
+  return undefined
+}
+
 /** Everything this device has cached for anyone. Used when signing out. */
 export function clearCachedLists(storage: StorageLike): void {
   const keys: string[] = []

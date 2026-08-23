@@ -354,12 +354,17 @@ contrast (don't rely on green alone for state), keyboard navigable.
 - Installable PWA (manifest, icons, service worker).
 - Shopping list view works offline: cached list data, check-offs queued
   locally and synced when back online.
+- Your own recipes are cached the same way and readable with no
+  connection, because a kitchen is a room with thick walls. Read only:
+  writing a recipe needs the server, so nothing is queued.
 - HTML is never cached, because pages are server rendered with the
   signed-in user's Clerk state and a cached copy would outlive the
-  session on a shared phone. The `/offline` route carries the last
-  cached list instead, read and tick only, so a phone that locks in a
-  shop and drops the tab still comes back to the list. Signing out
-  clears the cache.
+  session on a shared phone. The `/offline` route carries the saved copy
+  instead, and reads the requested URL to decide what to hand back: that
+  recipe, the book, or that list. A phone that locks in a shop and drops
+  the tab still comes back to the list.
+- Signing out clears both caches. They have to outlive the session to be
+  worth having, but not the person, on a shared family phone.
 - Rationale: shopping happens in stores with bad signal, and this is
   the gap users will notice most.
 

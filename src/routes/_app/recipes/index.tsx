@@ -10,6 +10,7 @@ import { PageHeader } from '../../../components/ui/page-header'
 import { SkeletonList } from '../../../components/ui/skeleton'
 import { buttonClass } from '../../../components/ui/button'
 import { useRecipes } from '../../../hooks/use-recipes'
+import { useOnlineStatus } from '../../../hooks/use-online-status'
 
 export const Route = createFileRoute('/_app/recipes/')({
   component: RecipeList,
@@ -17,6 +18,7 @@ export const Route = createFileRoute('/_app/recipes/')({
 
 function RecipeList() {
   const recipes = useRecipes()
+  const online = useOnlineStatus()
   const [search, setSearch] = useState('')
   const [activeTag, setActiveTag] = useState<string | null>(null)
 
@@ -42,7 +44,7 @@ function RecipeList() {
         <PageHeader
           title="Recipes"
           action={
-            recipes?.length === 0 ? null : (
+            recipes?.length === 0 || !online ? null : (
               <Link
                 to="/recipes/new"
                 className={buttonClass('primary', 'md')}
@@ -54,6 +56,13 @@ function RecipeList() {
             )
           }
         />
+
+        {!online && (
+          <output className="mt-4 block rounded-card border border-line bg-paper-100 px-4 py-3 text-meta font-medium text-ink-600">
+            Offline. This is your saved copy, so you can read and cook from it.
+            Writing a recipe needs a connection.
+          </output>
+        )}
 
         <div className="relative mt-4">
           <Search

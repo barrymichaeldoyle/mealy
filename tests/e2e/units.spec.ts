@@ -426,3 +426,78 @@ test.describe('changing the answer both ways', () => {
     expect(options).not.toContain('oz')
   })
 })
+
+test.describe('cooking with the wifi gone', () => {
+  let ownIdentifier = ''
+  let ownUserId = ''
+
+  test.beforeAll(async () => {
+    const user = await createTestUser()
+    ownIdentifier = user.email
+    ownUserId = user.id
+  })
+
+  test.afterAll(async () => {
+    if (ownUserId) {
+      await deleteTestUser(ownUserId)
+    }
+  })
+
+  test('a recipe stays readable when the connection drops', async ({
+    page,
+    context,
+  }) => {
+    await setupClerkTestingToken({ page })
+    await page.goto('/')
+    await clerk.loaded({ page })
+    await clerk.signIn({
+      page,
+      signInParams: { strategy: 'email_code', identifier: ownIdentifier },
+    })
+    await answerSetupIfAsked(page)
+
+    await page.goto('/recipes/new')
+    await page.getByLabel('Recipe name').fill('Bobotie')
+    await page.getByLabel('Serves').fill('4')
+    await addIngredient(page, { name: 'mince', quantity: '500', unit: 'g' })
+    await page.getByRole('button', { name: 'Save recipe' }).click()
+    await expect(page.getByRole('heading', { name: 'Bobotie' })).toBeVisible()
+
+    /*
+     * Everything from here is client-side navigation. A full page load
+     * discards the route chunks already fetched, and re-fetching one with no
+     * connection is the service worker's job, not the router's. The warm tab
+     * is the case this covers: the app is open and the wifi goes.
+     */
+    await page.getByRole('link', { name: 'Recipes' }).first().click()
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Recipes' }),
+    ).toBeVisible()
+    await page.getByRole('link', { name: /Bobotie/ }).click()
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Bobotie' }),
+    ).toBeVisible()
+
+    await context.setOffline(true)
+
+    await page.getByRole('link', { name: 'Recipes' }).first().click()
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Recipes' }),
+    ).toBeVisible()
+    await expect(page.getByRole('link', { name: /Bobotie/ })).toBeVisible()
+    await expect(
+      page.getByText(/Offline\. This is your saved copy/),
+    ).toBeVisible()
+    // Writing needs the server, so it is not offered.
+    await expect(page.getByRole('link', { name: 'Add a recipe' })).toBeHidden()
+
+    await page.getByRole('link', { name: /Bobotie/ }).click()
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Bobotie' }),
+    ).toBeVisible()
+    await expect(page.getByText('500g')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Edit' })).toBeHidden()
+
+    await context.setOffline(false)
+  })
+})
