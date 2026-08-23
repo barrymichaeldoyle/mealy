@@ -75,7 +75,7 @@ function ListsScreen() {
                           done ? 'bg-basil-100' : 'hover:border-paper-300',
                         )}
                       >
-                        <h2 className="truncate font-serif text-title font-medium text-ink-900">
+                        <h2 className="text-pretty break-words font-serif text-title font-medium text-ink-900">
                           {list.name}
                         </h2>
                         <p className="mt-1 text-meta font-medium text-ink-400 tabular-nums">

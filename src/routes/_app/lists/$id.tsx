@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import {
+  Check,
   ChevronRight,
   Pencil,
   Plus,
@@ -161,6 +162,35 @@ function ListDetail() {
           </div>
         ) : (
           <div className="mt-4 space-y-3">
+            {/*
+             * The end of the shop. Ticking the last item used to empty the
+             * screen and leave a collapsed drawer sitting above Clear and
+             * Delete, so the one satisfying moment in the app rendered as
+             * an empty state between two destructive buttons.
+             */}
+            {pending.length === 0 && (
+              <div className="rounded-card border border-basil-700 bg-basil-100/50 px-5 py-8 text-center">
+                <Check
+                  className="mx-auto size-8 text-basil-700"
+                  strokeWidth={2.5}
+                  aria-hidden="true"
+                />
+                <p className="mt-3 font-serif text-title font-medium text-ink-900">
+                  That is everything
+                </p>
+                <p className="mt-1 text-body text-ink-600">
+                  {items.length} item{items.length === 1 ? '' : 's'} ticked off{' '}
+                  {list.name}.
+                </p>
+                <Link
+                  to="/lists"
+                  className={buttonClass('secondary', 'md', 'mt-5')}
+                >
+                  Back to lists
+                </Link>
+              </div>
+            )}
+
             {pending.length > 0 && (
               <Card className="overflow-hidden">
                 <ListRows>
@@ -277,18 +307,21 @@ function ItemRow({
         item.checked && 'bg-basil-100',
       )}
     >
-      <label
-        htmlFor={`item-${item._id}`}
-        className="flex min-h-[52px] flex-1 items-center gap-3 py-2"
-      >
+      {/*
+       * The label wraps the box, which is association enough. Adding
+       * `htmlFor` on top of that made a click on the box bubble to the
+       * label, which forwarded a second click back, and the two cancelled
+       * out: tapping the box did nothing while tapping the row's text
+       * worked. On the most repeated action in the app.
+       */}
+      <label className="flex min-h-[52px] flex-1 items-center gap-3 py-2">
         <Checkbox
-          id={`item-${item._id}`}
           checked={item.checked}
           onChange={(event) => onToggle(item._id, event.target.checked)}
         />
         <span
           className={cn(
-            'min-w-0 flex-1 truncate text-body',
+            'min-w-0 flex-1 text-pretty break-words text-body',
             item.checked ? 'text-ink-400 line-through' : 'text-ink-900',
           )}
         >

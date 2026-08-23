@@ -318,12 +318,12 @@ function MealCard({
           to="/recipes/$id"
           params={{ id: recipeId }}
           search={{ servings }}
-          className="block min-w-0 truncate rounded-btn font-serif text-title font-medium text-ink-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-basil-700"
+          className="block min-w-0 text-pretty break-words rounded-btn font-serif text-title font-medium text-ink-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-basil-700"
         >
           {title}
         </Link>
       ) : (
-        <p className="min-w-0 truncate font-serif text-title font-medium text-ink-900">
+        <p className="min-w-0 text-pretty break-words font-serif text-title font-medium text-ink-900">
           {title}
         </p>
       )}

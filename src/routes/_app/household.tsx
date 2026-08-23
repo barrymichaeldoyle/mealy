@@ -128,7 +128,7 @@ function MembersCard({
               {member.name.slice(0, 1).toUpperCase()}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate font-medium text-ink-900">
+              <span className="block break-words font-medium text-ink-900">
                 {member.name}
                 {member.userId === meId && (
                   <span className="text-ink-400"> (you)</span>

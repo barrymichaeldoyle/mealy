@@ -501,3 +501,93 @@ test.describe('cooking with the wifi gone', () => {
     await context.setOffline(false)
   })
 })
+
+test.describe('finishing the shop and finding things', () => {
+  let ownIdentifier = ''
+  let ownUserId = ''
+
+  test.beforeAll(async () => {
+    const user = await createTestUser()
+    ownIdentifier = user.email
+    ownUserId = user.id
+  })
+
+  test.afterAll(async () => {
+    if (ownUserId) {
+      await deleteTestUser(ownUserId)
+    }
+  })
+
+  test.beforeEach(async ({ page }) => {
+    await setupClerkTestingToken({ page })
+    await page.goto('/')
+    await clerk.loaded({ page })
+    await clerk.signIn({
+      page,
+      signInParams: { strategy: 'email_code', identifier: ownIdentifier },
+    })
+    await answerSetupIfAsked(page)
+  })
+
+  test('search finds a recipe by an ingredient, and says why', async ({
+    page,
+  }) => {
+    await page.goto('/recipes/new')
+    await page.getByLabel('Recipe name').fill('Thursday bake')
+    await page.getByLabel('Serves').fill('4')
+    await addIngredient(page, {
+      name: 'free-range chicken thighs, skin on',
+      quantity: '600',
+      unit: 'g',
+    })
+    await page.getByRole('button', { name: 'Save recipe' }).click()
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Thursday bake' }),
+    ).toBeVisible()
+
+    await page.getByRole('link', { name: 'Recipes' }).first().click()
+    await page
+      .getByPlaceholder('Search by name, ingredient or tag')
+      .fill('chicken')
+    // The title has no "chicken" in it, so this only passes on ingredients.
+    await expect(
+      page.getByRole('link', { name: /Thursday bake/ }),
+    ).toBeVisible()
+    await expect(
+      page.getByText('has free-range chicken thighs, skin on'),
+    ).toBeVisible()
+
+    // And the long name is readable rather than cut off.
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.screenshot({ path: 'test-results/search-ingredient.png' })
+  })
+
+  test('ticking the last item ends the shop', async ({ page }) => {
+    // A list is generated from recipes, so it inherits the one above.
+    await page.goto('/lists')
+    await page.getByRole('button', { name: 'New list' }).click()
+    const picker = page.getByRole('dialog')
+    await picker.getByText('Thursday bake').first().click()
+    await picker.getByRole('button', { name: /Generate list/ }).click()
+
+    await expect(
+      page.getByRole('heading', { level: 1, name: /list/i }),
+    ).toBeVisible()
+    await expect(page.getByText('0 of 1 ticked')).toBeVisible()
+    await expect(page.getByText('That is everything')).toBeHidden()
+    // An unticked item must not look ticked.
+    await expect(page.getByRole('checkbox')).not.toBeChecked()
+
+    // Tapping the row, which is the whole 52px target and what a thumb hits.
+    await page.getByText('free-range chicken thighs, skin on').first().click()
+    await expect(page.getByText('1 of 1 ticked')).toBeVisible()
+
+    await expect(page.getByText('That is everything')).toBeVisible()
+    await expect(
+      page.getByRole('link', { name: 'Back to lists' }),
+    ).toBeVisible()
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.screenshot({ path: 'test-results/shop-done.png' })
+  })
+})

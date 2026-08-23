@@ -543,11 +543,11 @@ export function RecipeForm({
                   )}
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-body text-ink-900">
+                    <span className="block text-pretty break-words text-body text-ink-900">
                       {ingredient.name || 'Unnamed ingredient'}
                     </span>
                     {ingredient.note && (
-                      <span className="block truncate text-meta text-ink-400">
+                      <span className="block text-pretty break-words text-meta text-ink-400">
                         {ingredient.note}
                       </span>
                     )}

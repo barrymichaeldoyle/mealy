@@ -43,7 +43,7 @@ export function UndoBar({
          * is polite by default, which is right: the change already
          * happened and the user is looking at it.
          */}
-        <output className="min-w-0 flex-1 truncate text-body text-ink-900">
+        <output className="min-w-0 flex-1 text-pretty break-words text-body text-ink-900">
           {message}
         </output>
         <Button variant="secondary" size="sm" onClick={onUndo}>

@@ -30,9 +30,21 @@ function RecipeList() {
   }
   const tags = [...allTags].toSorted()
 
+  /*
+   * Ingredients and tags count, not just the title. "What can I do with
+   * mince" is the question people actually arrive with, and searching
+   * titles alone answered it only if somebody had thought to type mince as
+   * a tag. The whole book is already in memory, so this costs nothing.
+   */
   const needle = search.trim().toLowerCase()
   const filtered = (recipes ?? []).filter((recipe) => {
-    const matchesSearch = !needle || recipe.title.toLowerCase().includes(needle)
+    const matchesSearch =
+      !needle ||
+      recipe.title.toLowerCase().includes(needle) ||
+      recipe.tags.some((tag) => tag.includes(needle)) ||
+      recipe.ingredients.some((ingredient) =>
+        ingredient.name.toLowerCase().includes(needle),
+      )
     const matchesTag = !activeTag || recipe.tags.includes(activeTag)
     return matchesSearch && matchesTag
   })
@@ -73,7 +85,7 @@ function RecipeList() {
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search recipes"
+            placeholder="Search by name, ingredient or tag"
             aria-label="Search recipes by title"
             className="pl-9"
           />
@@ -128,7 +140,7 @@ function RecipeList() {
                     params={{ id: recipe._id }}
                     className="block rounded-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-basil-700"
                   >
-                    <RecipeCard recipe={recipe} />
+                    <RecipeCard recipe={recipe} needle={needle} />
                   </Link>
                 </li>
               ))}
@@ -146,9 +158,22 @@ function RecipeList() {
  */
 function RecipeCard({
   recipe,
+  needle,
 }: {
   recipe: NonNullable<ReturnType<typeof useRecipes>>[number]
+  needle: string
 }) {
+  /*
+   * Why this one came back. A recipe matching on an ingredient otherwise
+   * appears with nothing on the card mentioning the word that was typed,
+   * which reads like the search is broken.
+   */
+  const matchedIngredients =
+    needle && !recipe.title.toLowerCase().includes(needle)
+      ? recipe.ingredients
+          .map((ingredient) => ingredient.name)
+          .filter((name) => name.toLowerCase().includes(needle))
+      : []
   const totalTime =
     (recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0)
   const meta = [
@@ -166,6 +191,11 @@ function RecipeCard({
       <p className="mt-1 text-meta font-medium text-ink-400 tabular-nums">
         {meta}
       </p>
+      {matchedIngredients.length > 0 && (
+        <p className="mt-1 text-meta text-basil-700">
+          has {matchedIngredients.join(', ')}
+        </p>
+      )}
       {recipe.description && (
         <p className="mt-2 line-clamp-2 text-body text-ink-600">
           {recipe.description}
