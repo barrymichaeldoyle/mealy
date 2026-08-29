@@ -155,8 +155,14 @@ body {
   }
 }
 
-/* Bottom nav sits above the home indicator on notched phones. */
-.pb-safe {
+/*
+ * Bottom nav sits above the home indicator on notched phones. A `@utility`
+ * rather than a bare class, so it lands in Tailwind's utilities layer and
+ * takes variants. Unlayered CSS beats every layered rule whatever the
+ * specificity, which is how this quietly won against the sidebar's `md:p-5`
+ * and left the account row flush against the bottom of the screen.
+ */
+@utility pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 

@@ -22,7 +22,7 @@ export function AppNav() {
     <nav
       aria-label="Main"
       className={cn(
-        'fixed inset-x-0 bottom-0 z-30 bg-paper-50 pb-safe',
+        'fixed inset-x-0 bottom-0 z-30 bg-paper-50 max-md:pb-safe',
         'shadow-[0_-1px_0_var(--color-paper-200)]',
         'md:inset-y-0 md:right-auto md:left-0 md:flex md:w-64 md:flex-col',
         'md:p-5',
