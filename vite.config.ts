@@ -10,6 +10,18 @@ import { nitro } from 'nitro/vite'
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
+  build: {
+    rollupOptions: {
+      output: {
+        // Keep Clerk in one chunk. Split across two, the SSR chunks import
+        // each other, and Clerk's wrapper reads `ClerkProvider` into a
+        // module-level `var` while that binding is still undefined. The
+        // provider then renders as an undefined element and every server
+        // render fails with a 500.
+        manualChunks: (id) => (id.includes('@clerk/') ? 'clerk' : undefined),
+      },
+    },
+  },
   plugins: [
     devtools(),
     nitro({
