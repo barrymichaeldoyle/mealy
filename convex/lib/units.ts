@@ -229,24 +229,37 @@ export type ShoppingListItemLike = {
  * Full display string for a shopping list line, e.g.
  * "mince: ≈480g", "tin tomatoes x2", "salt: to taste".
  *
- * An amountless line only says "to taste" when it came from a recipe, where
- * that is the instruction. Nobody buys dish soap to taste, so a hand-added
- * item with no amount says nothing at all.
+ * "to taste" is a measurement the cook picked, not something we say about
+ * every blank quantity. Two chicken breasts entered without the two are
+ * still chicken breasts, so an amountless line of any other unit says
+ * nothing at all. Nobody buys dish soap to taste either, so a hand-added
+ * item stays blank whatever its unit.
  */
 export function formatListItem(item: ShoppingListItemLike): string {
-  const noAmount = item.manuallyAdded ? '' : 'to taste'
   const family = unitFamily(item.unit)
-  if (family === 'none' || item.quantity === undefined) {
-    return noAmount
+  if (family === 'none') {
+    return item.manuallyAdded ? '' : 'to taste'
+  }
+  if (item.quantity === undefined) {
+    return ''
   }
   const amount = formatCanonicalQuantity(
     item.quantity,
     canonicalUnitFor(family),
   )
-  if (!amount) {
-    return noAmount
-  }
   return item.approximate ? `≈${amount}` : amount
+}
+
+/**
+ * The unit to store beside a hand-typed amount.
+ *
+ * "no amount" is the resting state of the unit picker, so someone adding
+ * two steaks to a list types the 2 and never touches it. A number against
+ * no unit is a count, and storing it as one keeps the 2 instead of
+ * dropping it on the floor.
+ */
+export function unitForAmount(quantity: number | undefined, unit: Unit): Unit {
+  return quantity !== undefined && unit === 'none' ? 'item' : unit
 }
 
 /** Render a quantity the way the recipe author entered it. */
@@ -254,8 +267,11 @@ export function formatRecipeQuantity(
   quantity: number | undefined,
   unit: Unit,
 ): string {
-  if (quantity === undefined) {
+  if (unit === 'none') {
     return 'to taste'
+  }
+  if (quantity === undefined) {
+    return ''
   }
   const label = UNIT_LABELS[unit]
   const amount = formatNumber(quantity, 2)

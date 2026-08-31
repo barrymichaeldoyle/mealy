@@ -14,6 +14,9 @@ import {
   type UnitSystem,
 } from '../lib/units'
 import { useUnitOptions, useUnitSystems } from '../hooks/use-household'
+import { useIngredientNames } from '../hooks/use-recipes'
+import { NameSuggestions } from './name-suggestions'
+import type { NameCount } from '../lib/ingredient-names'
 import { defined, type Defined } from '../../convex/lib/optional'
 import { cn } from '../lib/cn'
 
@@ -205,6 +208,7 @@ function IngredientSheet({
   initial,
   units,
   systems,
+  vocabulary,
   onSave,
   onDelete,
   onClose,
@@ -213,6 +217,7 @@ function IngredientSheet({
   initial: IngredientDraft
   units: Unit[]
   systems: readonly UnitSystem[]
+  vocabulary: NameCount[]
   onSave: (ingredient: IngredientDraft) => void
   onDelete: (() => void) | undefined
   onClose: () => void
@@ -243,20 +248,34 @@ function IngredientSheet({
       title={onDelete ? 'Edit ingredient' : 'Add an ingredient'}
     >
       <div className="space-y-4">
-        <Field label="Name" error={error}>
-          {(id) => (
-            <Input
-              id={id}
-              value={value.name}
-              onChange={(event) => {
-                setError(undefined)
-                set({ name: event.target.value })
-              }}
-              placeholder="tin tomatoes"
-              autoComplete="off"
-            />
-          )}
-        </Field>
+        <div>
+          <Field label="Name" error={error}>
+            {(id) => (
+              <Input
+                id={id}
+                value={value.name}
+                onChange={(event) => {
+                  setError(undefined)
+                  set({ name: event.target.value })
+                }}
+                placeholder="tin tomatoes"
+                autoComplete="off"
+              />
+            )}
+          </Field>
+          {/*
+           * The cheapest fix for the same ingredient under two names is to
+           * offer the first spelling before the second one is finished.
+           */}
+          <NameSuggestions
+            vocabulary={vocabulary}
+            typed={value.name}
+            onPick={(name) => {
+              setError(undefined)
+              set({ name })
+            }}
+          />
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Quantity">
@@ -350,6 +369,9 @@ export function RecipeForm({
   const { units, defaultUnit, ready } = useUnitOptions(
     draft.ingredients.map((ingredient) => ingredient.unit),
   )
+  // The rows already typed into this draft count too: the recipe is not
+  // saved yet, and it is where the second spelling usually appears.
+  const vocabulary = useIngredientNames(draft.ingredients)
 
   const editing =
     sheet?.mode === 'edit'
@@ -645,6 +667,7 @@ export function RecipeForm({
           initial={sheetIngredient}
           units={units}
           systems={systems}
+          vocabulary={vocabulary}
           onClose={() => setSheet(null)}
           onSave={(ingredient) => {
             patch({

@@ -5,7 +5,11 @@ import type { MutationCtx } from './_generated/server'
 import { unitValidator } from './schema'
 import { assertHousehold, getHouseholdId, requireHousehold } from './lib/auth'
 import { validateDate } from './lib/validation'
-import { consolidate, type ConsolidationInput } from './lib/units'
+import {
+  consolidate,
+  type ConsolidationInput,
+  unitForAmount,
+} from './lib/units'
 import { ingredientInputs } from './lib/lists'
 import { formatShortDate } from './lib/dates'
 import { defined } from './lib/optional'
@@ -328,7 +332,7 @@ export const addItem = mutation({
       householdId,
       listId: args.listId,
       name,
-      unit: args.unit ?? 'none',
+      unit: unitForAmount(args.quantity, args.unit ?? 'none'),
       checked: false,
       manuallyAdded: true,
       approximate: false,
@@ -346,7 +350,8 @@ export const updateItem = mutation({
   },
   handler: async (ctx, args) => {
     const { householdId } = await requireHousehold(ctx)
-    assertHousehold(await ctx.db.get(args.id), householdId)
+    const existing = await ctx.db.get(args.id)
+    assertHousehold(existing, householdId)
 
     const patch: {
       name?: string
@@ -372,6 +377,13 @@ export const updateItem = mutation({
       patch.unit = args.unit
     }
 
+    // Judged on the row as it will stand, since either field can be the one
+    // being edited.
+    patch.unit = unitForAmount(
+      'quantity' in patch ? patch.quantity : existing!.quantity,
+      patch.unit ?? existing!.unit,
+    )
+
     await ctx.db.patch(args.id, patch)
   },
 })
@@ -382,6 +394,81 @@ export const removeItem = mutation({
     const { householdId } = await requireHousehold(ctx)
     assertHousehold(await ctx.db.get(args.id), householdId)
     await ctx.db.delete(args.id)
+  },
+})
+
+/**
+ * Fold rows that are one ingredient under two names into a single row.
+ *
+ * The client only ever suggests this, and the user confirms it, because a
+ * name that looks the same is a hint rather than a fact. Quantities go
+ * through the same `consolidate` the generated lists use, so a mass and a
+ * count under one name stay two lines rather than becoming nonsense.
+ */
+export const mergeItems = mutation({
+  args: { ids: v.array(v.id('shoppingListItems')) },
+  handler: async (ctx, args) => {
+    const { householdId } = await requireHousehold(ctx)
+    if (args.ids.length < 2) {
+      throw new Error('Merging needs two items or more')
+    }
+
+    const items = []
+    for (const id of args.ids) {
+      const item = await ctx.db.get(id)
+      assertHousehold(item, householdId)
+      items.push(item!)
+    }
+
+    const listId = items[0]!.listId
+    if (items.some((item) => item.listId !== listId)) {
+      throw new Error('Those items are on different lists')
+    }
+
+    /*
+     * The spelling the recipes lean on hardest wins, so merging settles on
+     * the household's own habit rather than on whichever row sorted first.
+     */
+    const winner = items.toSorted(
+      (a, b) =>
+        b.sourceRecipeIds.length - a.sourceRecipeIds.length ||
+        a.name.localeCompare(b.name),
+    )[0]!
+
+    const merged = consolidate(
+      items.map((item) => ({
+        name: winner.name,
+        ...defined({ quantity: item.quantity }),
+        unit: item.unit,
+      })),
+    )
+
+    for (const item of items) {
+      await ctx.db.delete(item._id)
+    }
+
+    const created: Id<'shoppingListItems'>[] = []
+    for (const item of merged) {
+      created.push(
+        await ctx.db.insert('shoppingListItems', {
+          ...defined({ quantity: item.quantity }),
+          householdId,
+          listId,
+          name: item.name,
+          unit: item.unit,
+          // Outstanding unless every row that went in was already in the
+          // basket. Half of it in the trolley is not the whole of it.
+          checked: items.every((source) => source.checked),
+          manuallyAdded: items.every((source) => source.manuallyAdded),
+          approximate: item.approximate,
+          sourceRecipeIds: [
+            ...new Set(items.flatMap((source) => source.sourceRecipeIds)),
+          ],
+        }),
+      )
+    }
+
+    return created
   },
 })
 

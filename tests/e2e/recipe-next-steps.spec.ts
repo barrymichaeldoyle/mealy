@@ -70,7 +70,7 @@ test.describe('after saving a recipe', () => {
     const saved = page.getByText('Saved to your recipes')
     await expect(saved).toBeVisible()
     await page.setViewportSize({ width: 390, height: 844 })
-    await page.screenshot({ path: 'shot-saved-phone.png' })
+    await page.screenshot({ path: 'test-results/saved-next-steps.png' })
     await page.setViewportSize({ width: 1280, height: 720 })
 
     // Straight back into an empty form, with the recipe kept.

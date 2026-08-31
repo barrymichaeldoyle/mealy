@@ -7,6 +7,7 @@ import {
   readCachedRecipes,
   writeCachedRecipes,
 } from '../lib/offline-recipes'
+import { ingredientVocabulary, type NameCount } from '../lib/ingredient-names'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
 
 /**
@@ -18,6 +19,19 @@ import type { Doc, Id } from '../../convex/_generated/dataModel'
  * `null` means the server answered "no such recipe", which is not something
  * the cache should override.
  */
+/**
+ * Every ingredient name this household has typed, for the suggestions under
+ * the name field. Derived from the recipes already on the client, so it
+ * costs no query and works from the offline copy.
+ */
+export function useIngredientNames(
+  /** Names typed into the recipe being written, which is not saved yet. */
+  drafted: { name: string }[] = [],
+): NameCount[] {
+  const recipes = useRecipes() ?? []
+  return ingredientVocabulary([...recipes, { ingredients: drafted }])
+}
+
 export function useRecipes(): Doc<'recipes'>[] | undefined {
   const { userId } = useAuth()
   const remote = useQuery(api.recipes.list)

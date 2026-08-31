@@ -23,6 +23,7 @@ import { SkeletonList } from '../../../components/ui/skeleton'
 import {
   useAddListItem,
   useClearChecked,
+  useMergeListItems,
   useRestoreListItems,
   useDeleteList,
   useRenameList,
@@ -35,6 +36,7 @@ import {
   UNIT_OPTION_LABELS,
   formatListItem,
   type Unit,
+  unitForAmount,
 } from '../../../lib/units'
 import { useUnitOptions } from '../../../hooks/use-household'
 import { cn } from '../../../lib/cn'
@@ -43,6 +45,17 @@ import type { CachedShoppingListItem } from '../../../lib/offline-lists'
 import { useOnlineStatus } from '../../../hooks/use-online-status'
 import { useHousehold } from '../../../hooks/use-household'
 import { defined } from '../../../../convex/lib/optional'
+import {
+  ingredientVocabulary,
+  similarNameGroups,
+  type NameCount,
+} from '../../../lib/ingredient-names'
+import {
+  dismissMerge,
+  isDismissed,
+  mergeKey,
+} from '../../../lib/dismissed-merges'
+import { NameSuggestions } from '../../../components/name-suggestions'
 
 export const Route = createFileRoute('/_app/lists/$id')({
   component: ListDetail,
@@ -71,8 +84,17 @@ function ListDetail() {
   const deleteList = useDeleteList()
   const clearChecked = useClearChecked()
   const restoreItems = useRestoreListItems()
+  const mergeItems = useMergeListItems()
+  const removeItem = useRemoveListItem()
   // What was just cleared, held only long enough to offer it back.
   const [cleared, setCleared] = useState<Item[] | null>(null)
+  // Prompts waved away in this session, on top of the ones stored per device.
+  const [ignored, setIgnored] = useState<string[]>([])
+  // A merge is undoable the same way a clear is: what went, and what came.
+  const [merged, setMerged] = useState<{
+    removed: Item[]
+    created: ItemId[]
+  } | null>(null)
   const [adding, setAdding] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [editing, setEditing] = useState<Item | null>(null)
@@ -95,6 +117,24 @@ function ListDetail() {
   }
 
   const items = list?.items ?? []
+  /*
+   * One ingredient under two spellings, which `consolidate` cannot merge
+   * because it matches on the exact name. Suggested, never done for you: a
+   * wrong merge is only discovered in front of the shelf.
+   */
+  const duplicates = online
+    ? similarNameGroups(items).filter((group) => {
+        const key = mergeKey(
+          id as Id<'shoppingLists'>,
+          group.map((i) => i.name),
+        )
+        return (
+          !ignored.includes(key) &&
+          (typeof window === 'undefined' ||
+            !isDismissed(window.localStorage, key))
+        )
+      })
+    : []
   const held = new Set(settling)
   const pending = items.filter((item) => !item.checked || held.has(item._id))
   const done = items.filter((item) => item.checked && !held.has(item._id))
@@ -168,6 +208,49 @@ function ListDetail() {
             returns. Adding, editing and deleting need a connection, so they are
             not here until it comes back.
           </output>
+        )}
+
+        {duplicates.length > 0 && (
+          <div className="mt-4 space-y-3">
+            {duplicates.map((group) => {
+              const key = mergeKey(
+                id as Id<'shoppingLists'>,
+                group.map((item) => item.name),
+              )
+              return (
+                <output
+                  key={key}
+                  className="block rounded-card border border-basil-700 bg-basil-100/50 px-4 py-3"
+                >
+                  <p className="text-body text-ink-900">
+                    {namesSentence(group.map((item) => item.name))} look like
+                    the same thing.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      onClick={async () => {
+                        const created = await mergeItems({
+                          ids: group.map((item) => item._id),
+                        })
+                        setMerged({ removed: group, created })
+                      }}
+                    >
+                      Merge them
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        dismissMerge(window.localStorage, key)
+                        setIgnored((current) => [...current, key])
+                      }}
+                    >
+                      Keep separate
+                    </Button>
+                  </div>
+                </output>
+              )
+            })}
+          </div>
         )}
 
         {items.length === 0 ? (
@@ -329,14 +412,50 @@ function ListDetail() {
         currentName={list.name}
         onClose={() => setRenaming(false)}
       />
+      {!cleared && merged && (
+        <UndoBar
+          message={`Merged ${merged.removed.length} items`}
+          onDismiss={() => setMerged(null)}
+          onUndo={async () => {
+            const { removed, created } = merged
+            setMerged(null)
+            await Promise.all(
+              created.map((itemId) => removeItem({ id: itemId })),
+            )
+            await restoreItems({
+              listId: list._id,
+              items: removed.map((item) => ({
+                ...defined({ quantity: item.quantity }),
+                name: item.name,
+                unit: item.unit,
+                checked: item.checked,
+                manuallyAdded: item.manuallyAdded,
+                approximate: item.approximate,
+                sourceRecipeIds: item.sourceRecipeIds,
+              })),
+            })
+          }}
+        />
+      )}
+
       <AddItemSheet
         open={adding}
         listId={list._id}
+        vocabulary={ingredientVocabulary([{ ingredients: items }])}
         onClose={() => setAdding(false)}
       />
       <EditItemSheet item={editing} onClose={() => setEditing(null)} />
     </>
   )
+}
+
+/** “on” and “ons”, or “a”, “b” and “c”. */
+function namesSentence(names: string[]): string {
+  const quoted = names.map((name) => `“${name}”`)
+  if (quoted.length <= 1) {
+    return quoted[0] ?? ''
+  }
+  return `${quoted.slice(0, -1).join(', ')} and ${quoted.at(-1)}`
 }
 
 /**
@@ -499,13 +618,29 @@ function RenameListForm({
   )
 }
 
+/**
+ * Typing an amount while the unit still reads "no amount" means a count:
+ * two steaks for the braai, with no recipe anywhere in sight. The picker
+ * follows the number, so what saves is what is on screen.
+ */
+function unitForTypedAmount(amount: string, unit: Unit): Unit {
+  const parsed = Number(amount)
+  return unitForAmount(
+    amount.trim() && Number.isFinite(parsed) ? parsed : undefined,
+    unit,
+  )
+}
+
 function AddItemSheet({
   open,
   listId,
+  vocabulary,
   onClose,
 }: {
   open: boolean
   listId: Id<'shoppingLists'>
+  /** What is already on this list, so a second spelling is caught here too. */
+  vocabulary: NameCount[]
   onClose: () => void
 }) {
   const addItem = useAddListItem()
@@ -539,18 +674,25 @@ function AddItemSheet({
           onClose()
         }}
       >
-        <Field label="Item">
-          {(id) => (
-            <Input
-              id={id}
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Dish soap"
-              autoComplete="off"
-              required
-            />
-          )}
-        </Field>
+        <div>
+          <Field label="Item">
+            {(id) => (
+              <Input
+                id={id}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Dish soap"
+                autoComplete="off"
+                required
+              />
+            )}
+          </Field>
+          <NameSuggestions
+            vocabulary={vocabulary}
+            typed={name}
+            onPick={setName}
+          />
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Amount" hint="Optional">
@@ -562,7 +704,10 @@ function AddItemSheet({
                 step="any"
                 min={0}
                 value={quantity}
-                onChange={(event) => setQuantity(event.target.value)}
+                onChange={(event) => {
+                  setQuantity(event.target.value)
+                  setUnit(unitForTypedAmount(event.target.value, unit))
+                }}
               />
             )}
           </Field>
@@ -695,7 +840,10 @@ function EditItemForm({
               step="any"
               min={0}
               value={quantity}
-              onChange={(event) => setQuantity(event.target.value)}
+              onChange={(event) => {
+                setQuantity(event.target.value)
+                setUnit(unitForTypedAmount(event.target.value, unit))
+              }}
             />
           )}
         </Field>

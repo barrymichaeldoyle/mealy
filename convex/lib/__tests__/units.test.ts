@@ -11,6 +11,7 @@ import {
   roundCanonical,
   toCanonical,
   unitFamily,
+  unitForAmount,
   unitsForSystems,
 } from '../units'
 
@@ -240,6 +241,21 @@ describe('consolidate', () => {
     ).toBe('')
   })
 
+  it('leaves a measured ingredient with no quantity blank', () => {
+    const item = single(
+      consolidate([{ name: 'chicken breasts', unit: 'item' }]),
+    )
+    expect(item.quantity).toBeUndefined()
+    expect(formatListItem(item)).toBe('')
+    expect(
+      formatListItem({
+        name: 'flour',
+        unit: 'g',
+        approximate: false,
+      }),
+    ).toBe('')
+  })
+
   it('tracks source recipes for traceability', () => {
     const item = single(
       consolidate([
@@ -249,6 +265,21 @@ describe('consolidate', () => {
       ]),
     )
     expect(item.sourceRecipeIds).toEqual(['a', 'b'])
+  })
+})
+
+describe('unitForAmount', () => {
+  it('reads a bare number as a count', () => {
+    expect(unitForAmount(2, 'none')).toBe('item')
+  })
+
+  it('leaves a chosen unit alone', () => {
+    expect(unitForAmount(2, 'g')).toBe('g')
+    expect(unitForAmount(2, 'tin')).toBe('tin')
+  })
+
+  it('leaves "to taste" alone when there is no number', () => {
+    expect(unitForAmount(undefined, 'none')).toBe('none')
   })
 })
 
@@ -262,6 +293,11 @@ describe('formatRecipeQuantity', () => {
     expect(formatRecipeQuantity(2, 'tin')).toBe('2 tin')
     expect(formatRecipeQuantity(3, 'item')).toBe('3')
     expect(formatRecipeQuantity(undefined, 'none')).toBe('to taste')
+  })
+
+  it('says nothing when a measured ingredient has no quantity', () => {
+    expect(formatRecipeQuantity(undefined, 'item')).toBe('')
+    expect(formatRecipeQuantity(undefined, 'g')).toBe('')
   })
 })
 

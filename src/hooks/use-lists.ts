@@ -86,6 +86,10 @@ export function useRemoveListItem() {
   return useMutation(api.lists.removeItem)
 }
 
+export function useMergeListItems() {
+  return useMutation(api.lists.mergeItems)
+}
+
 export function useClearChecked() {
   return useMutation(api.lists.clearChecked)
 }

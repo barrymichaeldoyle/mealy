@@ -33,10 +33,13 @@ async function answerSetupIfAsked(page: Page) {
   await expect(app).toBeVisible()
 }
 
-async function addItem(page: Page, name: string) {
+async function addItem(page: Page, name: string, amount?: string) {
   await page.getByRole('button', { name: 'Add', exact: true }).click()
   const sheet = page.getByRole('dialog', { name: 'Add an item' })
   await sheet.getByLabel('Item').fill(name)
+  if (amount) {
+    await sheet.getByLabel('Amount').fill(amount)
+  }
   await sheet.getByRole('button', { name: 'Add to list' }).click()
   await expect(sheet).toBeHidden()
 }
@@ -109,6 +112,30 @@ test.describe('a list for the shop you are about to do', () => {
     await expect(
       page.getByRole('checkbox', { name: 'Dish soap' }),
     ).toBeChecked()
+  })
+
+  test('takes an amount for the things no recipe covers', async ({ page }) => {
+    await page.goto('/lists')
+    await page.getByRole('link', { name: LIST }).click()
+
+    // A braai has no recipe behind it, so the number is typed straight in
+    // and the unit is left where it sits.
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
+    const sheet = page.getByRole('dialog', { name: 'Add an item' })
+    await sheet.getByLabel('Item').fill('Steaks')
+    await sheet.getByLabel('Amount').fill('2')
+    // Typing the number moves the picker off "no amount" on its own.
+    await expect(sheet.getByLabel('Unit')).toHaveValue('item')
+    await sheet.getByRole('button', { name: 'Add to list' }).click()
+    await expect(sheet).toBeHidden()
+
+    // The row reads as the name plus the count, which is also its label.
+    const steaks = page.getByRole('checkbox', { name: 'Steaks x2' })
+    await expect(steaks).toBeVisible()
+
+    // And it survives the trip to the shop.
+    await page.reload()
+    await expect(steaks).toBeVisible()
   })
 
   test('can be renamed once you know where you are going', async ({ page }) => {
