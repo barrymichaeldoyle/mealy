@@ -222,23 +222,29 @@ export type ShoppingListItemLike = {
   quantity?: number | undefined
   unit: Unit
   approximate: boolean
+  manuallyAdded?: boolean | undefined
 }
 
 /**
  * Full display string for a shopping list line, e.g.
  * "mince: ≈480g", "tin tomatoes x2", "salt: to taste".
+ *
+ * An amountless line only says "to taste" when it came from a recipe, where
+ * that is the instruction. Nobody buys dish soap to taste, so a hand-added
+ * item with no amount says nothing at all.
  */
 export function formatListItem(item: ShoppingListItemLike): string {
+  const noAmount = item.manuallyAdded ? '' : 'to taste'
   const family = unitFamily(item.unit)
   if (family === 'none' || item.quantity === undefined) {
-    return 'to taste'
+    return noAmount
   }
   const amount = formatCanonicalQuantity(
     item.quantity,
     canonicalUnitFor(family),
   )
   if (!amount) {
-    return 'to taste'
+    return noAmount
   }
   return item.approximate ? `≈${amount}` : amount
 }

@@ -25,6 +25,7 @@ import {
   useClearChecked,
   useRestoreListItems,
   useDeleteList,
+  useRenameList,
   useRemoveListItem,
   useShoppingList,
   useToggleListItem,
@@ -73,6 +74,7 @@ function ListDetail() {
   // What was just cleared, held only long enough to offer it back.
   const [cleared, setCleared] = useState<Item[] | null>(null)
   const [adding, setAdding] = useState(false)
+  const [renaming, setRenaming] = useState(false)
   const [editing, setEditing] = useState<Item | null>(null)
 
   /*
@@ -142,10 +144,20 @@ function ListDetail() {
           meta={`${checkedCount} of ${items.length} ticked`}
           action={
             online ? (
-              <Button onClick={() => setAdding(true)}>
-                <Plus className="size-4" aria-hidden="true" />
-                Add
-              </Button>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setRenaming(true)}
+                  aria-label={`Rename ${list.name}`}
+                  className="rounded-btn p-2 text-ink-400 hover:bg-paper-200 hover:text-ink-600"
+                >
+                  <Pencil className="size-4" aria-hidden="true" />
+                </button>
+                <Button onClick={() => setAdding(true)}>
+                  <Plus className="size-4" aria-hidden="true" />
+                  Add
+                </Button>
+              </div>
             ) : null
           }
         />
@@ -311,6 +323,12 @@ function ListDetail() {
         />
       )}
 
+      <RenameListSheet
+        open={renaming}
+        listId={list._id}
+        currentName={list.name}
+        onClose={() => setRenaming(false)}
+      />
       <AddItemSheet
         open={adding}
         listId={list._id}
@@ -408,6 +426,76 @@ function ItemRow({
         </button>
       )}
     </ListRow>
+  )
+}
+
+/**
+ * The name is what tells two lists apart in the shop, so it is editable
+ * from the list itself rather than only at the moment it was created.
+ */
+function RenameListSheet({
+  open,
+  listId,
+  currentName,
+  onClose,
+}: {
+  open: boolean
+  listId: Id<'shoppingLists'>
+  currentName: string
+  onClose: () => void
+}) {
+  const renameList = useRenameList()
+
+  return (
+    <Sheet open={open} onClose={onClose} title="Rename list">
+      {/* Keyed so reopening starts from the name as it now stands. */}
+      <RenameListForm
+        key={currentName}
+        currentName={currentName}
+        onSave={async (name) => {
+          await renameList({ id: listId, name })
+          onClose()
+        }}
+      />
+    </Sheet>
+  )
+}
+
+function RenameListForm({
+  currentName,
+  onSave,
+}: {
+  currentName: string
+  onSave: (name: string) => Promise<void>
+}) {
+  const [name, setName] = useState(currentName)
+
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={async (event) => {
+        event.preventDefault()
+        if (!name.trim()) {
+          return
+        }
+        await onSave(name)
+      }}
+    >
+      <Field label="Name">
+        {(id) => (
+          <Input
+            id={id}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            autoComplete="off"
+            required
+          />
+        )}
+      </Field>
+      <Button type="submit" variant="accent" className="w-full">
+        Save
+      </Button>
+    </form>
   )
 }
 

@@ -229,6 +229,17 @@ describe('consolidate', () => {
     expect(formatListItem({ ...item, unit: 'none' })).toBe('to taste')
   })
 
+  it('leaves a hand-added item with no amount blank, not "to taste"', () => {
+    expect(
+      formatListItem({
+        name: 'dish soap',
+        unit: 'none',
+        approximate: false,
+        manuallyAdded: true,
+      }),
+    ).toBe('')
+  })
+
   it('tracks source recipes for traceability', () => {
     const item = single(
       consolidate([

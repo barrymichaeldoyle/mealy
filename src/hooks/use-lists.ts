@@ -54,6 +54,14 @@ export function useShoppingList(id: Id<'shoppingLists'> | undefined) {
   return remote === undefined ? cached : remote
 }
 
+export function useCreateList() {
+  return useMutation(api.lists.create)
+}
+
+export function useRenameList() {
+  return useMutation(api.lists.rename)
+}
+
 export function useGenerateListFromPlan() {
   return useMutation(api.lists.generateFromPlan)
 }

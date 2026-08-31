@@ -140,6 +140,28 @@ async function insertConsolidated(
   return listId
 }
 
+/**
+ * A list that starts empty, named after wherever you are going. Every other
+ * way in builds the list out of recipes, which is no help when the shop is
+ * dish soap and nappies.
+ */
+export const create = mutation({
+  args: { name: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const { householdId } = await requireHousehold(ctx)
+    const name = await uniqueListName(
+      ctx,
+      householdId,
+      args.name?.trim() || 'Shopping list',
+    )
+    return await ctx.db.insert('shoppingLists', {
+      householdId,
+      name,
+      createdAt: Date.now(),
+    })
+  },
+})
+
 export const generateFromPlan = mutation({
   args: {
     start: v.string(),
