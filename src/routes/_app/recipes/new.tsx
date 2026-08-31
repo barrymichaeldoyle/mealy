@@ -22,7 +22,15 @@ function NewRecipe() {
           onCancel={() => navigate({ to: '/recipes' })}
           onSubmit={async (payload) => {
             const id = await createRecipe(defined(payload))
-            await navigate({ to: '/recipes/$id', params: { id } })
+            /*
+             * `created` is what puts the next steps on the recipe. Saving
+             * used to land you on a page whose only action was Delete.
+             */
+            await navigate({
+              to: '/recipes/$id',
+              params: { id },
+              search: { created: true },
+            })
           }}
         />
       </main>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { FileQuestion, Minus, Pencil, Plus } from 'lucide-react'
+import { CalendarPlus, FileQuestion, Minus, Pencil, Plus } from 'lucide-react'
 import { AppHeader } from '../../../components/app-header'
 import { Card } from '../../../components/ui/card'
 import { Chip } from '../../../components/ui/chip'
@@ -19,6 +19,8 @@ import { useOnlineStatus } from '../../../hooks/use-online-status'
 import { useWakeLock } from '../../../hooks/use-wake-lock'
 import type { Id } from '../../../../convex/_generated/dataModel'
 
+type RecipeSearch = { servings?: number; created?: boolean }
+
 export const Route = createFileRoute('/_app/recipes/$id/')({
   component: RecipeDetail,
   /*
@@ -26,11 +28,17 @@ export const Route = createFileRoute('/_app/recipes/$id/')({
    * showed the serves-four quantities anyway and left the arithmetic to you,
    * at the stove, with floury hands.
    */
-  validateSearch: (search: Record<string, unknown>) => {
+  validateSearch: (search: Record<string, unknown>): RecipeSearch => {
     const servings = Number(search['servings'])
-    return Number.isFinite(servings) && servings >= 1 && servings <= 100
-      ? { servings }
-      : {}
+    return {
+      ...(Number.isFinite(servings) && servings >= 1 && servings <= 100
+        ? { servings }
+        : {}),
+      // Set by the save that just happened, so the next steps show once.
+      ...(search['created'] === true || search['created'] === 'true'
+        ? { created: true }
+        : {}),
+    }
   },
 })
 
@@ -101,6 +109,8 @@ function RecipeDetail() {
        * 34ch. It should feel like a page, not a form.
        */}
       <main className="mx-auto max-w-3xl px-4 pt-4 pb-nav">
+        {search.created && <JustSaved recipeId={recipe._id} />}
+
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="font-serif text-display font-semibold text-ink-900">
@@ -234,7 +244,21 @@ function RecipeDetail() {
           )}
         </section>
 
-        <div className="mt-12">
+        {/*
+         * What a recipe is for, next to what ends it. Delete used to be the
+         * only thing you could do from the bottom of this page.
+         */}
+        <div className="mt-12 flex flex-wrap gap-3">
+          {online && (
+            <Link
+              to="/plan"
+              search={{ add: recipe._id }}
+              className={buttonClass('secondary', 'md')}
+            >
+              <CalendarPlus className="size-4" aria-hidden="true" />
+              Add to the plan
+            </Link>
+          )}
           <ConfirmButton
             disabled={!online}
             title="Delete this recipe?"
@@ -250,6 +274,44 @@ function RecipeDetail() {
         </div>
       </main>
     </>
+  )
+}
+
+/**
+ * Where to go now the recipe is saved. Two things people do next: cook it,
+ * which means putting it on a day, or keep typing while the book is open.
+ * The recipe itself is underneath, so this says what happened and gets out
+ * of the way rather than confirming in a dialog.
+ */
+function JustSaved({ recipeId }: { recipeId: Id<'recipes'> }) {
+  return (
+    <output className="mb-4 block rounded-card border border-basil-700 bg-basil-100/50 px-5 py-4">
+      <p className="font-serif text-title font-medium text-ink-900">
+        Saved to your recipes
+      </p>
+      {/*
+       * Two, side by side even on a phone. A third stacked row pushed the
+       * recipe itself off the screen, and the way back to all recipes is
+       * already in the nav.
+       */}
+      <div className="mt-3 flex gap-2">
+        <Link
+          to="/plan"
+          search={{ add: recipeId }}
+          className={buttonClass('primary', 'md', 'flex-1 whitespace-nowrap')}
+        >
+          <CalendarPlus className="size-4" aria-hidden="true" />
+          Add to the plan
+        </Link>
+        <Link
+          to="/recipes/new"
+          className={buttonClass('secondary', 'md', 'flex-1 whitespace-nowrap')}
+        >
+          <Plus className="size-4" aria-hidden="true" />
+          Add another
+        </Link>
+      </div>
+    </output>
   )
 }
 

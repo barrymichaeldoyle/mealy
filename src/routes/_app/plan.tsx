@@ -40,10 +40,19 @@ import {
 import { cn } from '../../lib/cn'
 import type { Id } from '../../../convex/_generated/dataModel'
 
-export const Route = createFileRoute('/_app/plan')({ component: PlanScreen })
+export const Route = createFileRoute('/_app/plan')({
+  component: PlanScreen,
+  /*
+   * `add` carries a recipe over from its own page, so "add to the plan" ends
+   * on a day rather than on a week grid where you have to find it again.
+   */
+  validateSearch: (search: Record<string, unknown>): { add?: string } =>
+    typeof search['add'] === 'string' ? { add: search['add'] } : {},
+})
 
 function PlanScreen() {
   const navigate = useNavigate()
+  const search = Route.useSearch()
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
   const [pickerDate, setPickerDate] = useState<IsoDate | null>(null)
   const [generating, setGenerating] = useState(false)
@@ -80,6 +89,28 @@ function PlanScreen() {
   const plannedCount =
     meals?.filter((meal) => meal.slot === 'dinner').length ?? 0
 
+  /*
+   * Arrived here to place one recipe. Resolved against the loaded recipes so
+   * a stale or foreign id in the URL just leaves the plan as it was.
+   */
+  const placing = search.add
+    ? ((recipes ?? []).find((recipe) => recipe._id === search.add) ?? null)
+    : null
+
+  function stopPlacing() {
+    return navigate({ to: '/plan', search: {} })
+  }
+
+  /** Tapping a day places the carried recipe, or opens the picker. */
+  async function chooseDay(date: IsoDate) {
+    if (!placing) {
+      setPickerDate(date)
+      return
+    }
+    await addMeal({ date, recipeId: placing._id })
+    await stopPlacing()
+  }
+
   return (
     <>
       <AppHeader />
@@ -108,6 +139,18 @@ function PlanScreen() {
 
         <WeekNav weekStart={weekStart} onChange={setWeekStart} />
 
+        {placing && (
+          <output className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-card border border-basil-700 bg-basil-100/50 px-4 py-3">
+            <p className="min-w-0 text-body text-ink-900">
+              Pick a day for{' '}
+              <span className="font-semibold">{placing.title}</span>
+            </p>
+            <Button variant="ghost" onClick={() => void stopPlacing()}>
+              Cancel
+            </Button>
+          </output>
+        )}
+
         {/*
          * Seven day rows, not a grid. This is a phone: a grid squeezes a
          * recipe title into three characters.
@@ -122,7 +165,7 @@ function PlanScreen() {
                 ) : (mealsByDate.get(date) ?? []).length === 0 ? (
                   <button
                     type="button"
-                    onClick={() => setPickerDate(date)}
+                    onClick={() => void chooseDay(date)}
                     className={cn(
                       'flex min-h-[52px] w-full items-center gap-2 rounded-card',
                       'border border-dashed border-paper-300 px-4',
@@ -132,8 +175,16 @@ function PlanScreen() {
                       'focus-visible:outline-basil-700',
                     )}
                   >
-                    <Plus className="size-4" aria-hidden="true" />
-                    Add dinner
+                    <Plus className="size-4 shrink-0" aria-hidden="true" />
+                    {/*
+                     * While a recipe is being placed the row says which one.
+                     * The banner that explains the mode scrolls away on a
+                     * phone, and "Add dinner" then says nothing about what
+                     * the tap is about to do.
+                     */}
+                    <span className="truncate">
+                      {placing ? `Add ${placing.title}` : 'Add dinner'}
+                    </span>
                     <span className="sr-only">
                       {' '}
                       for {weekdayLongLabel(date)}
@@ -166,10 +217,10 @@ function PlanScreen() {
                     ))}
                     <button
                       type="button"
-                      onClick={() => setPickerDate(date)}
+                      onClick={() => void chooseDay(date)}
                       className="flex min-h-[44px] items-center rounded-btn px-1 text-meta font-medium text-basil-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-basil-700"
                     >
-                      Add another
+                      {placing ? `Add ${placing.title}` : 'Add another'}
                       <span className="sr-only">
                         {' '}
                         dinner for {weekdayLongLabel(date)}

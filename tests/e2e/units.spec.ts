@@ -572,7 +572,9 @@ test.describe('finishing the shop and finding things', () => {
   test('ticking the last item ends the shop', async ({ page }) => {
     // A list is generated from recipes, so it inherits the one above.
     await page.goto('/lists')
-    await page.getByRole('button', { name: 'New list' }).click()
+    // Two buttons offer it while the screen is empty: the header action and
+    // the empty state. Either opens the same sheet.
+    await page.getByRole('button', { name: 'New list' }).first().click()
     const picker = page.getByRole('dialog')
     await picker.getByText('Thursday bake').first().click()
     // The preview says what the list will hold, before it is built.
@@ -581,7 +583,7 @@ test.describe('finishing the shop and finding things', () => {
       picker.getByText('free-range chicken thighs, skin on'),
     ).toBeVisible()
     await expect(picker.getByText('600g')).toBeVisible()
-    await picker.getByRole('button', { name: /Generate list/ }).click()
+    await picker.getByRole('button', { name: /Create list/ }).click()
 
     await expect(
       page.getByRole('heading', { level: 1, name: /list/i }),
@@ -659,10 +661,12 @@ test.describe('two people, one list', () => {
     ).toBeVisible()
 
     await page.goto('/lists')
-    await page.getByRole('button', { name: 'New list' }).click()
+    // Two buttons offer it while the screen is empty: the header action and
+    // the empty state. Either opens the same sheet.
+    await page.getByRole('button', { name: 'New list' }).first().click()
     const picker = page.getByRole('dialog')
     await picker.getByText('Shared bake').first().click()
-    await picker.getByRole('button', { name: /Generate list/ }).click()
+    await picker.getByRole('button', { name: /Create list/ }).click()
     await expect(page.getByText('0 of 1 ticked')).toBeVisible()
     const listUrl = page.url()
 
