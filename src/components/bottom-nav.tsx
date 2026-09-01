@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { UserButton } from '@clerk/tanstack-react-start'
-import { Book, CalendarDays, ShoppingBasket } from 'lucide-react'
+import { Book, CalendarDays, ShoppingBasket, Users } from 'lucide-react'
 import { cn } from '../lib/cn'
 import { Logo } from './ui/logo'
 
@@ -69,6 +69,12 @@ export function AppNav() {
       </ul>
 
       <div className="mt-auto hidden items-center gap-3 border-t border-paper-200 px-2 pt-5 md:flex">
+        {/*
+         * The account menu is the only way to the household screen, and the
+         * phone header was the only place that carried the link. On a desktop
+         * the measurements, the invite link and the export were all reachable
+         * only by typing the URL.
+         */}
         <UserButton
           appearance={{
             elements: {
@@ -77,7 +83,15 @@ export function AppNav() {
             },
           }}
           aria-label="Open account menu"
-        />
+        >
+          <UserButton.MenuItems>
+            <UserButton.Link
+              label="Household"
+              labelIcon={<Users className="size-4" aria-hidden="true" />}
+              href="/household"
+            />
+          </UserButton.MenuItems>
+        </UserButton>
         <span className="text-meta font-medium text-ink-600">Your account</span>
       </div>
     </nav>

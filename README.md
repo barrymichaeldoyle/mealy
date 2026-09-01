@@ -1,9 +1,10 @@
 # Mealy 🥕
 
 A mobile-first cooking helper: store recipes, plan the week's dinners, and
-generate one consolidated shopping list with merged quantities. Everything
-belongs to a household, so the people you cook with see the same recipes,
-plan and lists as you do.
+generate the shopping lists it takes, split by shop and grouped by aisle.
+Quantities merge, so two recipes wanting mince come out as one line.
+Everything belongs to a household, so the people you cook with see the same
+recipes, plan and lists as you do.
 
 Built to the specs in `docs/`: `MVP_Specification.md` for scope,
 `DESIGN_Specification.md` for the visual language and
@@ -262,8 +263,11 @@ convex/
   recipes.ts         recipe CRUD
   plans.ts           weekly planned meals
   lists.ts           shopping lists + generation
+  shops.ts           shops, aisles and the catalogue of what goes where
   migrations.ts      one-off backfill for pre-household data
   lib/units.ts       units, conversions, consolidation (pure, tested)
+  lib/shops.ts       routing items to shops, grouping by aisle (pure, tested)
+  lib/seed.ts        the aisles a new household starts with
   lib/svix.ts        webhook signature verification (pure, tested)
   lib/validation.ts  server-side input rules
   lib/auth.ts        identity + household guards
@@ -331,6 +335,40 @@ top of that file.
   conversion (`oz`, `lb`, `fl oz`, `pint`, `cup`), it displays with a
   leading **≈**. The symbol stands on its own, there is no legend on the
   list screen.
+
+## Shops and aisles
+
+A household names the shops it goes to (`stores`) and the parts of a shop it
+walks through (`categories`). Both are ordered, and both are editable on the
+Household screen. New households are seeded with nine aisles, from
+`DEFAULT_CATEGORIES` in `convex/lib/shops.ts`, so the first list groups itself
+without a trip to a settings screen.
+
+What ties them to the food is the catalogue, `groceryItems`: one row per thing
+the household buys, keyed by `normalizeName(name)`, holding the shops that
+sell it and the aisle it sits in. It is filled in two ways.
+
+- Told directly, by editing an item on a list or filing it from the Household
+  screen.
+- Learned, by adding something to a list that belongs to a shop. Writing
+  shampoo on the Clicks list is the answer to where shampoo comes from, so it
+  is recorded as one.
+
+Generating from a plan or from recipes then splits the shop into one list per
+store, named `Woolworths, Week of 31 Aug`. Something sold at two shops goes on
+the list for whichever shop is ranked higher, and the row says "Also at
+Checkers" so you can decide to get it where you are. Anything the household
+has not filed lands on one list with no shop attached, which for a new
+household is the only list there is.
+
+The list screen groups rows into aisle sections in the household's own order,
+with the unfiled ones under "Everything else" at the bottom. `categoryId` is
+copied onto the list row rather than read through the catalogue, so the
+offline copy still knows which aisle to send you to.
+
+Deleting a shop or an aisle never deletes shopping. A list made for a closed
+shop becomes a list for no shop in particular, and items filed under a deleted
+aisle move to the unsorted section.
 
 ## The mark
 

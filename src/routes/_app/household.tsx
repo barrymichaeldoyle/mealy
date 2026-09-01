@@ -20,6 +20,7 @@ import { SkeletonList } from '../../components/ui/skeleton'
 import { SaveNotice } from '../../components/ui/save-notice'
 import { useSaveState } from '../../hooks/use-save-state'
 import { UnitSystemCard } from '../../components/unit-picker'
+import { CatalogueCard, ShopsCard } from '../../components/shops-manager'
 import {
   useCreateInvite,
   useDisplayName,
@@ -62,6 +63,8 @@ function HouseholdScreen() {
               isOwner={household.role === 'owner'}
             />
             <UnitSystemCard />
+            <ShopsCard />
+            <CatalogueCard />
             <InviteCard
               token={household.inviteToken}
               expiresAt={household.inviteExpiresAt}

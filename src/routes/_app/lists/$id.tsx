@@ -40,7 +40,8 @@ import {
 } from '../../../lib/units'
 import { useUnitOptions } from '../../../hooks/use-household'
 import { cn } from '../../../lib/cn'
-import type { Id } from '../../../../convex/_generated/dataModel'
+import type { Doc, Id } from '../../../../convex/_generated/dataModel'
+import { chipClass } from '../../../components/ui/chip'
 import type { CachedShoppingListItem } from '../../../lib/offline-lists'
 import { useOnlineStatus } from '../../../hooks/use-online-status'
 import { useHousehold } from '../../../hooks/use-household'
@@ -56,6 +57,8 @@ import {
   mergeKey,
 } from '../../../lib/dismissed-merges'
 import { NameSuggestions } from '../../../components/name-suggestions'
+import { groupByCategory } from '../../../../convex/lib/shops'
+import { useSetPlacement } from '../../../hooks/use-shops'
 
 export const Route = createFileRoute('/_app/lists/$id')({
   component: ListDetail,
@@ -63,6 +66,8 @@ export const Route = createFileRoute('/_app/lists/$id')({
 
 type Item = CachedShoppingListItem
 type ItemId = Id<'shoppingListItems'>
+type Store = Doc<'stores'>
+type Category = Doc<'categories'>
 
 /** How long a ticked row stays where it is before it joins the done pile. */
 const SETTLE_MS = 300
@@ -137,6 +142,22 @@ function ListDetail() {
     : []
   const held = new Set(settling)
   const pending = items.filter((item) => !item.checked || held.has(item._id))
+  const categories = list?.categories ?? []
+  const stores = list?.stores ?? []
+  const sections = groupByCategory(pending, categories)
+
+  /**
+   * The other shops that sell it, which is the answer to "can I just get
+   * this here instead". Only ever the shops this list is not for.
+   */
+  function elsewhere(item: Item): string[] {
+    return (item.storeIds ?? [])
+      .filter((storeId) => storeId !== list?.storeId)
+      .flatMap((storeId) => {
+        const store = stores.find((row) => row._id === storeId)
+        return store ? [store.name] : []
+      })
+  }
   const done = items.filter((item) => item.checked && !held.has(item._id))
   const checkedCount = items.filter((item) => item.checked).length
   // Nobody to tell apart in a household of one, so no names are shown.
@@ -181,7 +202,11 @@ function ListDetail() {
       <main className="mx-auto max-w-3xl px-4 pt-4 pb-nav">
         <PageHeader
           title={list.name}
-          meta={`${checkedCount} of ${items.length} ticked`}
+          meta={
+            list.storeName
+              ? `${list.storeName} · ${checkedCount} of ${items.length} ticked`
+              : `${checkedCount} of ${items.length} ticked`
+          }
           action={
             online ? (
               <div className="flex items-center gap-1">
@@ -297,22 +322,37 @@ function ListDetail() {
               </div>
             )}
 
-            {pending.length > 0 && (
-              <Card className="overflow-hidden">
+            {sections.map((section) => (
+              <Card
+                key={section.categoryId ?? 'unsorted'}
+                className="overflow-hidden"
+              >
+                {/*
+                 * A list where nothing is filed is one run of rows, with no
+                 * heading saying "Everything else" over the whole of it. A
+                 * named aisle earns its heading even when it is the only
+                 * one, since it is telling you where to walk.
+                 */}
+                {(sections.length > 1 || section.categoryId !== null) && (
+                  <h2 className="border-b border-paper-200 px-4 py-2 text-meta font-semibold text-ink-600">
+                    {section.name}
+                  </h2>
+                )}
                 <ListRows>
-                  {pending.map((item) => (
+                  {section.items.map((item) => (
                     <ItemRow
                       key={item._id}
                       item={item}
                       shared={shared}
                       meId={meId}
+                      elsewhere={elsewhere(item)}
                       onToggle={handleToggle}
                       onEdit={online ? () => setEditing(item) : undefined}
                     />
                   ))}
                 </ListRows>
               </Card>
-            )}
+            ))}
 
             {done.length > 0 && (
               <Card className="overflow-hidden">
@@ -331,6 +371,7 @@ function ListDetail() {
                         item={item}
                         shared={shared}
                         meId={meId}
+                        elsewhere={elsewhere(item)}
                         onToggle={handleToggle}
                         onEdit={online ? () => setEditing(item) : undefined}
                       />
@@ -393,7 +434,10 @@ function ListDetail() {
             await restoreItems({
               listId: list._id,
               items: restoring.map((item) => ({
-                ...defined({ quantity: item.quantity }),
+                ...defined({
+                  quantity: item.quantity,
+                  categoryId: item.categoryId,
+                }),
                 name: item.name,
                 unit: item.unit,
                 checked: item.checked,
@@ -425,7 +469,10 @@ function ListDetail() {
             await restoreItems({
               listId: list._id,
               items: removed.map((item) => ({
-                ...defined({ quantity: item.quantity }),
+                ...defined({
+                  quantity: item.quantity,
+                  categoryId: item.categoryId,
+                }),
                 name: item.name,
                 unit: item.unit,
                 checked: item.checked,
@@ -444,7 +491,12 @@ function ListDetail() {
         vocabulary={ingredientVocabulary([{ ingredients: items }])}
         onClose={() => setAdding(false)}
       />
-      <EditItemSheet item={editing} onClose={() => setEditing(null)} />
+      <EditItemSheet
+        item={editing}
+        stores={stores}
+        categories={categories}
+        onClose={() => setEditing(null)}
+      />
     </>
   )
 }
@@ -469,12 +521,15 @@ function ItemRow({
   item,
   shared,
   meId,
+  elsewhere,
   onToggle,
   onEdit,
 }: {
   item: Item
   shared: boolean
   meId: string | undefined
+  /** Other shops that sell it, so you can get it here or leave it. */
+  elsewhere: string[]
   onToggle: (id: ItemId, checked: boolean) => void
   onEdit: (() => void) | undefined
 }) {
@@ -521,6 +576,11 @@ function ItemRow({
           {byOther && (
             <span className="block text-meta font-medium text-ink-400">
               {item.checkedByName} got this
+            </span>
+          )}
+          {!byOther && elsewhere.length > 0 && !item.checked && (
+            <span className="block text-meta text-ink-400">
+              Also at {elsewhere.join(', ')}
             </span>
           )}
         </span>
@@ -758,13 +818,18 @@ function canonicalLabel(unit: Unit): string {
 
 function EditItemSheet({
   item,
+  stores,
+  categories,
   onClose,
 }: {
   item: Item | null
+  stores: Store[]
+  categories: Category[]
   onClose: () => void
 }) {
   const updateItem = useUpdateListItem()
   const removeItem = useRemoveListItem()
+  const setPlacement = useSetPlacement()
 
   return (
     <Sheet open={item !== null} onClose={onClose} title="Edit item">
@@ -772,8 +837,20 @@ function EditItemSheet({
         <EditItemForm
           key={item._id}
           item={item}
-          onSave={async (changes) => {
+          stores={stores}
+          categories={categories}
+          onSave={async ({ storeIds, categoryId, ...changes }) => {
             await updateItem({ id: item._id, ...changes })
+            /*
+             * Filed against the name, so the answer holds for next week's
+             * list too. Saved after the rename, or it would file the old
+             * name and leave the new one unknown.
+             */
+            await setPlacement({
+              name: changes.name,
+              storeIds,
+              categoryId,
+            })
             onClose()
           }}
           onDelete={async () => {
@@ -788,20 +865,30 @@ function EditItemSheet({
 
 function EditItemForm({
   item,
+  stores,
+  categories,
   onSave,
   onDelete,
 }: {
   item: Item
+  stores: Store[]
+  categories: Category[]
   onSave: (changes: {
     name: string
     quantity: number | null
     unit: Unit
+    storeIds: Id<'stores'>[]
+    categoryId: Id<'categories'> | null
   }) => Promise<void>
   onDelete: () => Promise<void>
 }) {
   const [name, setName] = useState(item.name)
   const [quantity, setQuantity] = useState(item.quantity?.toString() ?? '')
   const [unit, setUnit] = useState<Unit>(item.unit)
+  const [storeIds, setStoreIds] = useState<Id<'stores'>[]>(item.storeIds ?? [])
+  const [categoryId, setCategoryId] = useState<Id<'categories'> | ''>(
+    item.categoryId ?? '',
+  )
 
   return (
     <form
@@ -816,6 +903,8 @@ function EditItemForm({
           name,
           quantity: quantity.trim() && Number.isFinite(parsed) ? parsed : null,
           unit,
+          storeIds,
+          categoryId: categoryId || null,
         })
       }}
     >
@@ -863,6 +952,74 @@ function EditItemForm({
           )}
         </Field>
       </div>
+
+      {categories.length > 0 && (
+        <Field label="Aisle" hint="Where in the shop to look for it.">
+          {(id) => (
+            <Select
+              id={id}
+              value={categoryId}
+              onChange={(event) =>
+                setCategoryId(event.target.value as Id<'categories'> | '')
+              }
+            >
+              <option value="">Not filed</option>
+              {categories.map((category) => (
+                <option key={category._id} value={category._id}>
+                  {category.name}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+      )}
+
+      {stores.length > 0 && (
+        <fieldset>
+          <legend className="text-meta font-medium text-ink-600">
+            Sold at
+          </legend>
+          <p className="mt-0.5 text-meta text-ink-400">
+            Pick every shop that has it. Next time it goes on the list for the
+            first one you shop.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {stores.map((store) => {
+              const on = storeIds.includes(store._id)
+              return (
+                <label
+                  key={store._id}
+                  className={chipClass(
+                    on,
+                    cn(
+                      'cursor-pointer',
+                      // The checkbox itself is off screen, so the ring has
+                      // to be drawn by the chip that stands in for it.
+                      'has-[:focus-visible]:outline-2',
+                      'has-[:focus-visible]:outline-offset-2',
+                      'has-[:focus-visible]:outline-basil-700',
+                    ),
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={on}
+                    onChange={() =>
+                      setStoreIds((current) =>
+                        on
+                          ? current.filter((value) => value !== store._id)
+                          : [...current, store._id],
+                      )
+                    }
+                  />
+                  {store.name}
+                </label>
+              )
+            })}
+          </div>
+        </fieldset>
+      )}
 
       <div className="flex gap-3">
         <ConfirmButton

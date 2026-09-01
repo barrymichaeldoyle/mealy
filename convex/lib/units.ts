@@ -423,6 +423,22 @@ export const UNIT_SYSTEM_UNITS: Record<UnitSystem, readonly Unit[]> = {
   imperial: UNITS.filter((unit) => SYSTEMS_BY_UNIT[unit].includes('imperial')),
 }
 
+/**
+ * How the granular picker lays the units out. Derived from the families
+ * rather than listed again, so a new unit cannot go missing from the screen
+ * that turns it on.
+ */
+export const UNIT_GROUPS: { label: string; units: Unit[] }[] = [
+  {
+    label: 'Weight',
+    units: UNITS.filter((unit) => unitFamily(unit) === 'mass'),
+  },
+  {
+    label: 'Volume',
+    units: UNITS.filter((unit) => unitFamily(unit) === 'volume'),
+  },
+]
+
 /** Offered whatever the household picked. */
 export const UNIVERSAL_UNITS: readonly Unit[] = UNITS.filter(
   (unit) => SYSTEMS_BY_UNIT[unit].length === 0,
@@ -463,14 +479,85 @@ export function unitsForSystems(
   )
 }
 
-/** The unit a fresh ingredient row starts on. */
-export function defaultUnitFor(systems: readonly UnitSystem[]): Unit {
-  return systems.includes('metric') ? 'g' : 'oz'
+/** Counts and "to taste": offered whatever the household picked. */
+export function isUniversalUnit(unit: Unit): boolean {
+  return SYSTEMS_BY_UNIT[unit].length === 0
 }
 
-/** The system whose units the household reads amounts in. */
-function preferredSystem(systems: readonly UnitSystem[]): UnitSystem {
-  return systems.includes('metric') ? 'metric' : 'imperial'
+/**
+ * The systems a set of units stands for, so the preset tick-boxes and the
+ * answered-or-not flag stay in step with a granular choice. Units that sit
+ * in both systems do not vote: a kitchen of nothing but cups and spoons has
+ * said nothing either way, so it keeps the default.
+ */
+export function systemsForUnits(units: readonly Unit[]): UnitSystem[] {
+  const voted = UNIT_SYSTEMS.filter((system) =>
+    units.some((unit) => exclusiveSystem(unit) === system),
+  )
+  return voted.length > 0 ? voted : [...DEFAULT_UNIT_SYSTEMS]
+}
+
+/**
+ * The units a picker offers, given the ones the household has chosen.
+ *
+ * Counts and "to taste" are always in, since they belong to no system.
+ * `keep` holds units already saved on the row being edited, so a recipe
+ * written in ounces stays editable after ounces are switched off.
+ */
+export function unitsForChoice(
+  chosen: readonly Unit[],
+  keep: readonly Unit[] = [],
+): Unit[] {
+  return UNITS.filter(
+    (unit) =>
+      SYSTEMS_BY_UNIT[unit].length === 0 ||
+      chosen.includes(unit) ||
+      keep.includes(unit),
+  )
+}
+
+/** The unit a fresh ingredient row starts on. */
+export function defaultUnitFor(chosen: readonly Unit[]): Unit {
+  return (
+    (['g', 'oz', 'ml', 'fl oz'] as const).find((unit) =>
+      chosen.includes(unit),
+    ) ??
+    chosen.find((unit) => SYSTEMS_BY_UNIT[unit].length > 0) ??
+    'item'
+  )
+}
+
+/** The system a unit belongs to alone, or null when it sits in both. */
+function exclusiveSystem(unit: Unit): UnitSystem | null {
+  const owners = SYSTEMS_BY_UNIT[unit]
+  return owners.length === 1 ? (owners[0] ?? null) : null
+}
+
+/**
+ * Which system to restate an amount in, for one family of units.
+ *
+ * A kitchen can be split: grams for weight, pints for milk. So the family is
+ * asked first, and only falls back to the rest of the kitchen when nothing
+ * in that family says either way. Spoons and cups never decide it, since
+ * they sit in both systems.
+ */
+function targetSystemFor(
+  chosen: readonly Unit[],
+  family: UnitFamily,
+): UnitSystem {
+  const inFamily = new Set(
+    chosen.filter((unit) => unitFamily(unit) === family).map(exclusiveSystem),
+  )
+  if (inFamily.has('metric')) {
+    return 'metric'
+  }
+  if (inFamily.has('imperial')) {
+    return 'imperial'
+  }
+  const overall = new Set(chosen.map(exclusiveSystem))
+  return overall.has('imperial') && !overall.has('metric')
+    ? 'imperial'
+    : 'metric'
 }
 
 /** Render a canonical amount in imperial units, promoting oz to lb, fl oz to pints. */
@@ -490,30 +577,33 @@ function formatImperial(quantity: number, unit: CanonicalUnit): string {
 }
 
 /**
+ * Spoons and cups get restated whatever the household picked: "2 cups" says
+ * nothing about how much to buy, and a spoon is a spoon in both systems.
+ */
+const ALWAYS_RESTATED = new Set<Unit>(['tsp', 'tbsp', 'cup'])
+
+/**
  * The same amount said again in the household's own units, or null when the
- * entered unit already is one of them.
+ * recipe already reads in one of them.
  *
- * Spoons and cups always get one, since "2 cups" tells you nothing about how
- * much to buy. So does an ounce in a metric kitchen.
+ * This is what makes a granular choice worth making. Untick pints and every
+ * pint you meet from then on carries millilitres beside it.
  */
 export function formatEquivalent(
   quantity: number | undefined,
   unit: Unit,
-  systems: readonly UnitSystem[],
+  chosen: readonly Unit[],
 ): string | null {
   const family = unitFamily(unit)
   if (quantity === undefined || family === 'none' || isCountFamily(family)) {
     return null
   }
 
-  const target = preferredSystem(systems)
-  // A unit that belongs to the target system and to it alone already reads
-  // natively. tsp, tbsp and cup belong to both, so they fall through.
-  const owners = SYSTEMS_BY_UNIT[unit]
-  if (owners.length === 1 && owners[0] === target) {
+  if (chosen.includes(unit) && !ALWAYS_RESTATED.has(unit)) {
     return null
   }
 
+  const target = targetSystemFor(chosen, family)
   const canonical = toCanonical(quantity, unit)
   const amount =
     target === 'metric'

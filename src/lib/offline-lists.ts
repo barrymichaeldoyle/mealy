@@ -7,10 +7,21 @@ import type { Doc, Id } from '../../convex/_generated/dataModel'
  */
 export type CachedShoppingListItem = Doc<'shoppingListItems'> & {
   checkedByName?: string | null
+  /** Every shop that sells it, so the row can say where else to look. */
+  storeIds?: Id<'stores'>[]
 }
 
 export type CachedShoppingList = Doc<'shoppingLists'> & {
   items: CachedShoppingListItem[]
+  /** The shop this list is for, resolved, or null when it is for no shop. */
+  storeName?: string | null
+  /*
+   * The household's shops and aisles ride along with the list so the copy
+   * in a shop with no signal still groups itself and still knows the name
+   * of the shop you are standing in.
+   */
+  stores?: Doc<'stores'>[]
+  categories?: Doc<'categories'>[]
   /** How many people share this list, or null when it is yours alone. */
   sharedWith?: number | null
   /** When this copy was taken, so "your last list" means something. */

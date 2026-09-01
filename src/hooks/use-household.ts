@@ -6,9 +6,10 @@ import { defined } from '../../convex/lib/optional'
 import {
   DEFAULT_UNIT_SYSTEMS,
   defaultUnitFor,
+  isUniversalUnit,
+  unitsForChoice,
   unitsForSystems,
   type Unit,
-  type UnitSystem,
 } from '../lib/units'
 
 export function useHousehold() {
@@ -23,14 +24,8 @@ export function useSetUnitSystems() {
   return useMutation(api.households.setUnitSystems)
 }
 
-/**
- * The measurement systems this household writes recipes in. Falls back to
- * metric while the household query is in flight, and for the moment between
- * a new household being created and the setup screen being answered.
- */
-export function useUnitSystems(): readonly UnitSystem[] {
-  const household = useHousehold()
-  return household?.household.unitSystems ?? DEFAULT_UNIT_SYSTEMS
+export function useSetUnits() {
+  return useMutation(api.households.setUnits)
 }
 
 export type UnitSetupState = 'unknown' | 'needed' | 'answered'
@@ -52,6 +47,22 @@ export function useUnitSetupState(): UnitSetupState {
 }
 
 /**
+ * The units this household has chosen, one by one.
+ *
+ * A household that answered before the granular list existed has only its
+ * systems, so those stand in: everything the preset offers. Universal units
+ * are not in here, since nothing chooses them.
+ */
+export function useChosenUnits(): Unit[] {
+  const household = useHousehold()
+  const chosen = household?.household.units
+  return (
+    chosen ??
+    unitsForSystems(household?.household.unitSystems ?? DEFAULT_UNIT_SYSTEMS)
+  ).filter((unit) => !isUniversalUnit(unit))
+}
+
+/**
  * The units to offer in a picker. `keep` holds units already chosen on the
  * rows being edited, so an imported recipe stays editable whatever the
  * household has since turned off.
@@ -67,10 +78,10 @@ export function useUnitOptions(keep: readonly Unit[] = []): {
   ready: boolean
 } {
   const household = useHousehold()
-  const systems = useUnitSystems()
+  const chosen = useChosenUnits()
   return {
-    units: unitsForSystems(systems, keep),
-    defaultUnit: defaultUnitFor(systems),
+    units: unitsForChoice(chosen, keep),
+    defaultUnit: defaultUnitFor(chosen),
     ready: household !== undefined,
   }
 }

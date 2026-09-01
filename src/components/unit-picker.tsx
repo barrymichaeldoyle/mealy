@@ -6,19 +6,25 @@ import { SaveNotice } from './ui/save-notice'
 import { Checkbox } from './ui/checkbox'
 import { Logo } from './ui/logo'
 import {
+  UNITS,
+  UNIT_GROUPS,
   UNIT_OPTION_LABELS,
   UNIT_SYSTEMS,
   UNIT_SYSTEM_LABELS,
   UNIT_SYSTEM_UNITS,
   UNIVERSAL_UNITS,
+  isUniversalUnit,
+  unitsForSystems,
   type Unit,
   type UnitSystem,
 } from '../lib/units'
 import {
+  useChosenUnits,
   useSetUnitSystems,
+  useSetUnits,
   useUnitSetupState,
-  useUnitSystems,
 } from '../hooks/use-household'
+import { chipClass } from './ui/chip'
 import { useSaveState } from '../hooks/use-save-state'
 import { cn } from '../lib/cn'
 
@@ -174,36 +180,126 @@ export function UnitSetupGate({ children }: { children: React.ReactNode }) {
   return setupState === 'needed' ? <UnitSetup /> : children
 }
 
-/** The household screen's copy of the question, for changing the answer. */
+/**
+ * The household screen's copy of the question, unit by unit.
+ *
+ * A system is a preset here rather than the answer: tapping Metric ticks
+ * everything metric, and then you turn off the ones you never use. A kitchen
+ * that weighs in grams and buys milk in pints is a real kitchen, and the two
+ * tick-boxes could not describe it.
+ */
 export function UnitSystemCard() {
-  const saved = useUnitSystems()
-  const setSystems = useSetUnitSystems()
-  const [draft, setDraft] = useState<UnitSystem[] | null>(null)
+  const saved = useChosenUnits()
+  const setUnits = useSetUnits()
+  const [draft, setDraft] = useState<Unit[] | null>(null)
   const { status, error, save, reset } = useSaveState()
-  const systems = draft ?? [...saved]
+  const units = draft ?? saved
   const dirty =
-    systems.length > 0 &&
-    UNIT_SYSTEMS.some(
-      (system) => systems.includes(system) !== saved.includes(system),
-    )
+    units.length > 0 &&
+    UNITS.some((unit) => units.includes(unit) !== saved.includes(unit))
+
+  function change(next: Unit[]) {
+    reset()
+    setDraft(next)
+  }
 
   return (
     <Card className="p-5">
       <h2 className="font-serif text-title font-medium text-ink-900">
         Measurements
       </h2>
-      <p className="mt-1 mb-3 text-meta text-ink-400">
-        What the unit picker offers when you write a recipe. Recipes you have
-        already saved keep the units they were written in.
+      <p className="mt-1 text-meta text-ink-400">
+        What the unit picker offers when you write a recipe. Anything you turn
+        off still gets read out in the units you keep, so a recipe in cups is
+        never a sum you have to do. Recipes you have already saved keep the
+        units they were written in.
       </p>
-      <UnitSystemChoice
-        value={systems}
-        onChange={(next) => {
-          reset()
-          setDraft(next)
-        }}
-      />
-      <div className="mt-3 flex items-center justify-between gap-3">
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <span className="text-meta font-medium text-ink-600">Start from</span>
+        {UNIT_SYSTEMS.map((system) => (
+          <button
+            key={system}
+            type="button"
+            onClick={() =>
+              change(
+                unitsForSystems([system]).filter(
+                  (unit) => !isUniversalUnit(unit),
+                ),
+              )
+            }
+            className={chipClass(
+              false,
+              'min-h-[36px] px-4 hover:border-basil-700 hover:bg-basil-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-basil-700',
+            )}
+          >
+            {UNIT_SYSTEM_LABELS[system]}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() =>
+            change(
+              unitsForSystems([...UNIT_SYSTEMS]).filter(
+                (unit) => !isUniversalUnit(unit),
+              ),
+            )
+          }
+          className={chipClass(
+            false,
+            'min-h-[36px] px-4 hover:border-basil-700 hover:bg-basil-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-basil-700',
+          )}
+        >
+          Both
+        </button>
+      </div>
+
+      <div className="mt-4 space-y-4">
+        {UNIT_GROUPS.map((group) => (
+          <fieldset key={group.label}>
+            <legend className="text-meta font-semibold text-ink-600">
+              {group.label}
+            </legend>
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {group.units.map((unit) => {
+                const checked = units.includes(unit)
+                return (
+                  <li key={unit}>
+                    <label
+                      htmlFor={`unit-${unit}`}
+                      className={cn(
+                        'flex min-h-[44px] cursor-pointer items-center gap-2',
+                        'rounded-card border px-3',
+                        'transition-colors duration-150 ease-out',
+                        checked
+                          ? 'border-basil-700 bg-basil-100/40'
+                          : 'border-line bg-paper-50 hover:bg-paper-100',
+                      )}
+                    >
+                      <Checkbox
+                        id={`unit-${unit}`}
+                        checked={checked}
+                        onChange={(event) =>
+                          change(
+                            event.target.checked
+                              ? [...units, unit]
+                              : units.filter((held) => held !== unit),
+                          )
+                        }
+                      />
+                      <span className="text-body text-ink-900">
+                        {UNIT_OPTION_LABELS[unit]}
+                      </span>
+                    </label>
+                  </li>
+                )
+              })}
+            </ul>
+          </fieldset>
+        ))}
+      </div>
+
+      <div className="mt-4 flex items-center justify-between gap-3">
         <UnitSystemFootnote />
         <Button
           disabled={!dirty || status === 'saving'}
@@ -217,7 +313,7 @@ export function UnitSystemCard() {
            * the card briefly showed the old answer as if the save had not
            * happened. `saved` catching up turns `dirty` false on its own.
            */
-          onClick={() => void save(() => setSystems({ systems }))}
+          onClick={() => void save(() => setUnits({ units }))}
         >
           {status === 'saving' ? 'Saving…' : 'Save'}
         </Button>

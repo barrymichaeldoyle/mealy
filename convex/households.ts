@@ -1,6 +1,6 @@
 import { ConvexError, v } from 'convex/values'
 import { internalMutation, mutation, query } from './_generated/server'
-import { unitSystemValidator } from './schema'
+import { unitSystemValidator, unitValidator } from './schema'
 import type { Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 import {
@@ -9,6 +9,13 @@ import {
   getUserId,
   requireHousehold,
 } from './lib/auth'
+import {
+  isUniversalUnit,
+  normalizeName,
+  systemsForUnits,
+  unitsForSystems,
+} from './lib/units'
+import { seedCategories } from './lib/seed'
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -101,6 +108,9 @@ export const ensureCurrent = mutation({
       if (existing.name !== name) {
         await ctx.db.patch(existing._id, { name })
       }
+      // Households that predate aisles get them on their next visit rather
+      // than on a migration nobody would remember to run.
+      await seedCategories(ctx, existing.householdId)
       return existing.householdId
     }
 
@@ -122,7 +132,37 @@ export const setUnitSystems = mutation({
     if (systems.length === 0) {
       throw new ConvexError('Pick at least one set of measurements')
     }
-    await ctx.db.patch(householdId, { unitSystems: systems })
+    // A system is a preset: picking one fills the unit list in, and anything
+    // switched off by hand before is switched back on.
+    await ctx.db.patch(householdId, {
+      unitSystems: systems,
+      units: unitsForSystems(systems).filter((unit) => !isUniversalUnit(unit)),
+    })
+  },
+})
+
+/**
+ * The granular answer: exactly which units to offer, and which to restate
+ * amounts into. Counts and "to taste" are not in the list, because they are
+ * offered whatever anyone picks.
+ *
+ * `unitSystems` is kept in step so the setup gate still reads as answered
+ * and so a household that later taps a preset starts from a sane place.
+ */
+export const setUnits = mutation({
+  args: { units: v.array(unitValidator) },
+  handler: async (ctx, args) => {
+    const { householdId } = await requireHousehold(ctx)
+    const units = [...new Set(args.units)].filter(
+      (unit) => !isUniversalUnit(unit),
+    )
+    if (units.length === 0) {
+      throw new ConvexError('Pick at least one unit')
+    }
+    await ctx.db.patch(householdId, {
+      units,
+      unitSystems: systemsForUnits(units),
+    })
   },
 })
 
@@ -258,12 +298,67 @@ export const invite = query({
   },
 })
 
+/**
+ * Fold one household's shops and aisles into another's, by name.
+ *
+ * Two households that both call it Woolworths mean the same shop, so the
+ * arriving lists point at the one already there rather than at a second copy
+ * of the same name. Anything the target has never heard of moves across
+ * intact.
+ */
+async function mergeShopsInto(
+  ctx: MutationCtx,
+  from: Id<'households'>,
+  to: Id<'households'>,
+): Promise<{
+  stores: Map<Id<'stores'>, Id<'stores'>>
+  categories: Map<Id<'categories'>, Id<'categories'>>
+}> {
+  const stores = new Map<Id<'stores'>, Id<'stores'>>()
+  const categories = new Map<Id<'categories'>, Id<'categories'>>()
+
+  for (const table of ['stores', 'categories'] as const) {
+    const [mine, theirs] = await Promise.all([
+      ctx.db
+        .query(table)
+        .withIndex('by_household', (q) => q.eq('householdId', from))
+        .collect(),
+      ctx.db
+        .query(table)
+        .withIndex('by_household', (q) => q.eq('householdId', to))
+        .collect(),
+    ])
+    const byName = new Map(
+      theirs.map((row) => [normalizeName(row.name), row._id]),
+    )
+
+    for (const row of mine) {
+      const match = byName.get(normalizeName(row.name))
+      if (match) {
+        await ctx.db.delete(row._id)
+      } else {
+        await ctx.db.patch(row._id, { householdId: to })
+      }
+      const target = match ?? row._id
+      if (table === 'stores') {
+        stores.set(row._id as Id<'stores'>, target as Id<'stores'>)
+      } else {
+        categories.set(row._id as Id<'categories'>, target as Id<'categories'>)
+      }
+    }
+  }
+
+  return { stores, categories }
+}
+
 /** Reassign everything one household owns to another. */
 async function moveHouseholdData(
   ctx: MutationCtx,
   from: Id<'households'>,
   to: Id<'households'>,
 ): Promise<void> {
+  const mapping = await mergeShopsInto(ctx, from, to)
+
   const tables = [
     'recipes',
     'plannedMeals',
@@ -278,7 +373,53 @@ async function moveHouseholdData(
       .collect()
     for (const row of rows) {
       await ctx.db.patch(row._id, { householdId: to })
+
+      if (table === 'shoppingLists' && 'storeId' in row && row.storeId) {
+        await ctx.db.patch(row._id, {
+          storeId: mapping.stores.get(row.storeId),
+        })
+      }
+      if (
+        table === 'shoppingListItems' &&
+        'categoryId' in row &&
+        row.categoryId
+      ) {
+        await ctx.db.patch(row._id, {
+          categoryId: mapping.categories.get(row.categoryId),
+        })
+      }
     }
+  }
+
+  /*
+   * The catalogue merges by name too, and the household being joined wins a
+   * disagreement: they are the ones who know where their shops are.
+   */
+  const entries = await ctx.db
+    .query('groceryItems')
+    .withIndex('by_household', (q) => q.eq('householdId', from))
+    .collect()
+  for (const entry of entries) {
+    const existing = await ctx.db
+      .query('groceryItems')
+      .withIndex('by_household_and_key', (q) =>
+        q.eq('householdId', to).eq('key', entry.key),
+      )
+      .unique()
+    if (existing) {
+      await ctx.db.delete(entry._id)
+      continue
+    }
+    await ctx.db.patch(entry._id, {
+      householdId: to,
+      storeIds: entry.storeIds.flatMap((storeId) => {
+        const mapped = mapping.stores.get(storeId)
+        return mapped ? [mapped] : []
+      }),
+      categoryId: entry.categoryId
+        ? mapping.categories.get(entry.categoryId)
+        : undefined,
+    })
   }
 }
 
@@ -293,6 +434,9 @@ async function discardHousehold(
     'shoppingLists',
     'shoppingListItems',
     'householdInvites',
+    'stores',
+    'categories',
+    'groceryItems',
   ] as const
 
   for (const table of tables) {
@@ -523,25 +667,42 @@ export const exportData = query({
     }
     const householdId = membership.householdId
 
-    const [recipes, meals, lists, items] = await Promise.all([
-      ctx.db
-        .query('recipes')
-        .withIndex('by_household', (q) => q.eq('householdId', householdId))
-        .collect(),
-      ctx.db
-        .query('plannedMeals')
-        .withIndex('by_household', (q) => q.eq('householdId', householdId))
-        .collect(),
-      ctx.db
-        .query('shoppingLists')
-        .withIndex('by_household', (q) => q.eq('householdId', householdId))
-        .collect(),
-      ctx.db
-        .query('shoppingListItems')
-        .withIndex('by_household', (q) => q.eq('householdId', householdId))
-        .collect(),
-    ])
+    const [recipes, meals, lists, items, stores, categories, filed] =
+      await Promise.all([
+        ctx.db
+          .query('recipes')
+          .withIndex('by_household', (q) => q.eq('householdId', householdId))
+          .collect(),
+        ctx.db
+          .query('plannedMeals')
+          .withIndex('by_household', (q) => q.eq('householdId', householdId))
+          .collect(),
+        ctx.db
+          .query('shoppingLists')
+          .withIndex('by_household', (q) => q.eq('householdId', householdId))
+          .collect(),
+        ctx.db
+          .query('shoppingListItems')
+          .withIndex('by_household', (q) => q.eq('householdId', householdId))
+          .collect(),
+        ctx.db
+          .query('stores')
+          .withIndex('by_household', (q) => q.eq('householdId', householdId))
+          .collect(),
+        ctx.db
+          .query('categories')
+          .withIndex('by_household', (q) => q.eq('householdId', householdId))
+          .collect(),
+        ctx.db
+          .query('groceryItems')
+          .withIndex('by_household', (q) => q.eq('householdId', householdId))
+          .collect(),
+      ])
 
+    const storeNames = new Map(stores.map((store) => [store._id, store.name]))
+    const aisleNames = new Map(
+      categories.map((category) => [category._id, category.name]),
+    )
     const titles = new Map(recipes.map((recipe) => [recipe._id, recipe.title]))
 
     return {
@@ -571,9 +732,26 @@ export const exportData = query({
         servings: meal.servings,
         recipe: titles.get(meal.recipeId) ?? null,
       })),
+      stores: stores
+        .toSorted((a, b) => a.sortOrder - b.sortOrder)
+        .map((store) => store.name),
+      categories: categories
+        .toSorted((a, b) => a.sortOrder - b.sortOrder)
+        .map((category) => category.name),
+      groceryItems: filed.map((entry) => ({
+        name: entry.name,
+        stores: entry.storeIds.flatMap((storeId) => {
+          const name = storeNames.get(storeId)
+          return name ? [name] : []
+        }),
+        category: entry.categoryId
+          ? (aisleNames.get(entry.categoryId) ?? null)
+          : null,
+      })),
       shoppingLists: lists.map((list) => ({
         name: list.name,
         createdAt: list.createdAt,
+        store: list.storeId ? (storeNames.get(list.storeId) ?? null) : null,
         items: items
           .filter((item) => item.listId === list._id)
           .map((item) => ({
@@ -583,6 +761,9 @@ export const exportData = query({
             checked: item.checked,
             manuallyAdded: item.manuallyAdded,
             approximate: item.approximate,
+            category: item.categoryId
+              ? (aisleNames.get(item.categoryId) ?? null)
+              : null,
           })),
       })),
     }

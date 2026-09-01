@@ -49,8 +49,17 @@ export default defineSchema({
     /**
      * Which measurement systems the recipe form offers. Absent means nobody
      * has answered yet, which is what puts the setup screen in front of them.
+     * Kept in step with `units` below, and still the answered-or-not flag.
      */
     unitSystems: v.optional(v.array(unitSystemValidator)),
+    /**
+     * The units themselves, which is what the pickers and the restated
+     * amounts actually read. A system is a preset that fills this in, so a
+     * kitchen can keep grams and pints and drop the rest. Absent on
+     * households that answered before the granular choice existed: they fall
+     * back to everything their systems offer.
+     */
+    units: v.optional(v.array(unitValidator)),
   }),
 
   householdMembers: defineTable({
@@ -101,10 +110,60 @@ export default defineSchema({
     .index('by_household', ['householdId'])
     .index('by_household_and_date', ['householdId', 'date']),
 
+  /**
+   * Where you can buy a thing, in the order you would rather buy it. A
+   * household writes its own: Woolworths and Checkers for food, Clicks for
+   * the toiletries, whatever the shops near you are actually called.
+   */
+  stores: defineTable({
+    householdId: v.id('households'),
+    name: v.string(),
+    /**
+     * Lower sorts first, and it decides more than display order: an item
+     * sold at two shops is put on the list for whichever of them you ranked
+     * higher.
+     */
+    sortOrder: v.number(),
+  }).index('by_household', ['householdId']),
+
+  /**
+   * The parts of a shop you walk through: fruit & veg, dairy, frozen. Seeded
+   * on the first shop so nobody starts at an empty screen, then reordered to
+   * match the store people actually walk around.
+   */
+  categories: defineTable({
+    householdId: v.id('households'),
+    name: v.string(),
+    sortOrder: v.number(),
+  }).index('by_household', ['householdId']),
+
+  /**
+   * What the household knows about a thing it buys, kept apart from any one
+   * list so the answer survives the shop it was given in. Say once that milk
+   * is dairy and sold at both shops, and every list built after that puts it
+   * in the right place on its own.
+   */
+  groceryItems: defineTable({
+    householdId: v.id('households'),
+    /** As last typed, which is what the catalogue screen shows. */
+    name: v.string(),
+    /** `normalizeName(name)`, which is what lookups match on. */
+    key: v.string(),
+    storeIds: v.array(v.id('stores')),
+    categoryId: v.optional(v.id('categories')),
+  })
+    .index('by_household', ['householdId'])
+    .index('by_household_and_key', ['householdId', 'key']),
+
   shoppingLists: defineTable({
     householdId: v.id('households'),
     name: v.string(),
     createdAt: v.number(),
+    /**
+     * The shop this list is for. Absent on a list for no shop in
+     * particular, which is where items with no known store land.
+     */
+    storeId: v.optional(v.id('stores')),
   }).index('by_household', ['householdId']),
 
   shoppingListItems: defineTable({
@@ -124,6 +183,12 @@ export default defineSchema({
     manuallyAdded: v.boolean(),
     approximate: v.boolean(),
     sourceRecipeIds: v.array(v.id('recipes')),
+    /**
+     * Copied from the catalogue when the row is written, so a list renders
+     * grouped without reading the catalogue, and so the offline copy in a
+     * shop with no signal still knows which aisle to send you to.
+     */
+    categoryId: v.optional(v.id('categories')),
   })
     .index('by_household', ['householdId'])
     .index('by_list', ['listId']),

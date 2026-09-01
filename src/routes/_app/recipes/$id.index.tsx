@@ -12,7 +12,7 @@ import { ConfirmButton } from '../../../components/ui/confirm-button'
 import { useDeleteRecipe, useRecipe } from '../../../hooks/use-recipes'
 import { formatEquivalent, formatRecipeQuantity } from '../../../lib/units'
 import { cn } from '../../../lib/cn'
-import { useUnitSystems } from '../../../hooks/use-household'
+import { useChosenUnits } from '../../../hooks/use-household'
 import { usePlannedDatesForRecipe } from '../../../hooks/use-plan'
 import { weekdayLongLabel, type IsoDate } from '../../../lib/dates'
 import { useOnlineStatus } from '../../../hooks/use-online-status'
@@ -48,7 +48,7 @@ function RecipeDetail() {
   const navigate = useNavigate()
   const recipe = useRecipe(id as Id<'recipes'>)
   const deleteRecipe = useDeleteRecipe()
-  const systems = useUnitSystems()
+  const chosenUnits = useChosenUnits()
   const [servings, setServings] = useState<number | null>(null)
   const online = useOnlineStatus()
   // Cook mode: the screen stays on while a recipe is open.
@@ -188,7 +188,7 @@ function RecipeDetail() {
                   const equivalent = formatEquivalent(
                     quantity,
                     ingredient.unit,
-                    systems,
+                    chosenUnits,
                   )
                   return (
                     <ListRow key={index} className="justify-between">

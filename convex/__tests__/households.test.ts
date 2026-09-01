@@ -401,4 +401,77 @@ describe('measurement systems', () => {
     const sam = await t.withIdentity(SAM).query(api.households.current)
     expect(sam?.household.unitSystems).toEqual(['metric'])
   })
+
+  test('picking a system fills the units in, as a preset', async () => {
+    const t = setup()
+    const as = t.withIdentity(BARRY)
+    await as.mutation(api.households.ensureCurrent, {})
+
+    await as.mutation(api.households.setUnitSystems, { systems: ['metric'] })
+
+    const current = await as.query(api.households.current)
+    expect(current?.household.units).toEqual([
+      'g',
+      'kg',
+      'ml',
+      'l',
+      'tsp',
+      'tbsp',
+      'cup',
+    ])
+  })
+})
+
+describe('choosing units one by one', () => {
+  test('saves the list and reads the systems back off it', async () => {
+    const t = setup()
+    const as = t.withIdentity(BARRY)
+    await as.mutation(api.households.ensureCurrent, {})
+
+    // Weighs in grams, buys milk in pints. Two tick-boxes could not say this.
+    await as.mutation(api.households.setUnits, {
+      units: ['g', 'kg', 'pint'],
+    })
+
+    const current = await as.query(api.households.current)
+    expect(current?.household.units).toEqual(['g', 'kg', 'pint'])
+    // Still answered, so the setup screen stays gone.
+    expect(current?.household.unitSystems).toEqual(['metric', 'imperial'])
+  })
+
+  test('drops the counts, which nobody chooses', async () => {
+    const t = setup()
+    const as = t.withIdentity(BARRY)
+    await as.mutation(api.households.ensureCurrent, {})
+
+    await as.mutation(api.households.setUnits, {
+      units: ['g', 'item', 'tin', 'pack', 'none'],
+    })
+
+    const current = await as.query(api.households.current)
+    expect(current?.household.units).toEqual(['g'])
+  })
+
+  test('a preset puts back what was switched off by hand', async () => {
+    const t = setup()
+    const as = t.withIdentity(BARRY)
+    await as.mutation(api.households.ensureCurrent, {})
+
+    await as.mutation(api.households.setUnits, { units: ['g'] })
+    await as.mutation(api.households.setUnitSystems, { systems: ['metric'] })
+
+    const current = await as.query(api.households.current)
+    expect(current?.household.units).toContain('kg')
+    expect(current?.household.units).toContain('ml')
+  })
+
+  test('an empty list is refused', async () => {
+    const t = setup()
+    const as = t.withIdentity(BARRY)
+    await as.mutation(api.households.ensureCurrent, {})
+
+    await expect(
+      as.mutation(api.households.setUnits, { units: ['item'] }),
+    ).rejects.toThrow('at least one unit')
+  })
 })

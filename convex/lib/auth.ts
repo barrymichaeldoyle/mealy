@@ -1,6 +1,7 @@
 import { ConvexError } from 'convex/values'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import type { Doc, Id } from '../_generated/dataModel'
+import { seedCategories } from './seed'
 
 /**
  * The signed-in user's Clerk subject. Every query and mutation derives the
@@ -87,6 +88,7 @@ export async function createHousehold(
     role: 'owner',
     joinedAt: Date.now(),
   })
+  await seedCategories(ctx, householdId)
   return householdId
 }
 

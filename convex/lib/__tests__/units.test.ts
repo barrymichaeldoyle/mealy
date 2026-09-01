@@ -12,7 +12,10 @@ import {
   toCanonical,
   unitFamily,
   unitForAmount,
+  unitsForChoice,
   unitsForSystems,
+  systemsForUnits,
+  type Unit,
 } from '../units'
 
 /** Return an indexed item or fail the test with a useful bounds error. */
@@ -356,15 +359,51 @@ describe('unitsForSystems', () => {
 
 describe('defaultUnitFor', () => {
   it('starts a metric kitchen on grams and an imperial one on ounces', () => {
-    expect(defaultUnitFor(['metric'])).toBe('g')
-    expect(defaultUnitFor(['metric', 'imperial'])).toBe('g')
-    expect(defaultUnitFor(['imperial'])).toBe('oz')
+    expect(defaultUnitFor(unitsForSystems(['metric']))).toBe('g')
+    expect(defaultUnitFor(unitsForSystems(['metric', 'imperial']))).toBe('g')
+    expect(defaultUnitFor(unitsForSystems(['imperial']))).toBe('oz')
+  })
+
+  it('falls to whatever is left when the usual openers are off', () => {
+    expect(defaultUnitFor(['kg', 'l'])).toBe('kg')
+    // Nothing but counts chosen, which the picker still has to start on.
+    expect(defaultUnitFor([])).toBe('item')
+  })
+})
+
+describe('unitsForChoice', () => {
+  it('offers exactly what was chosen, plus the counts nobody chooses', () => {
+    expect(unitsForChoice(['g', 'pint'])).toEqual([
+      'g',
+      'pint',
+      'item',
+      'tin',
+      'pack',
+      'none',
+    ])
+  })
+
+  it('keeps a unit a saved row still uses', () => {
+    expect(unitsForChoice(['g'], ['lb'])).toContain('lb')
+  })
+})
+
+describe('systemsForUnits', () => {
+  it('reads the systems back off a granular choice', () => {
+    expect(systemsForUnits(['g', 'kg'])).toEqual(['metric'])
+    expect(systemsForUnits(['oz', 'pint'])).toEqual(['imperial'])
+    expect(systemsForUnits(['g', 'pint'])).toEqual(['metric', 'imperial'])
+  })
+
+  it('keeps the default when only the shared units are chosen', () => {
+    // Cups and spoons sit in both systems, so they cast no vote.
+    expect(systemsForUnits(['cup', 'tsp'])).toEqual(['metric'])
   })
 })
 
 describe('formatEquivalent', () => {
-  const metric = ['metric'] as const
-  const imperial = ['imperial'] as const
+  const metric = unitsForSystems(['metric'])
+  const imperial = unitsForSystems(['imperial'])
 
   it('restates spoons and cups in metric', () => {
     expect(formatEquivalent(1, 'tbsp', metric)).toBe('15mℓ')
@@ -396,5 +435,29 @@ describe('formatEquivalent', () => {
     expect(formatEquivalent(2, 'tin', metric)).toBeNull()
     expect(formatEquivalent(1, 'none', metric)).toBeNull()
     expect(formatEquivalent(undefined, 'cup', metric)).toBeNull()
+  })
+
+  /*
+   * The point of choosing units one by one. A kitchen that keeps grams but
+   * drops kilograms is not a thing anyone wants, but a kitchen that keeps
+   * grams and pints is, and both halves have to read right.
+   */
+  it('restates a unit switched off inside a system that is otherwise on', () => {
+    const noKilos: Unit[] = ['g', 'ml', 'l', 'tsp', 'tbsp']
+    expect(formatEquivalent(2, 'kg', noKilos)).toBe('2kg')
+    expect(formatEquivalent(200, 'g', noKilos)).toBeNull()
+  })
+
+  it('follows the family, so weight and volume can disagree', () => {
+    const gramsAndPints: Unit[] = ['g', 'kg', 'pint', 'fl oz']
+    // Weight is metric here, so an ounce comes back in grams.
+    expect(formatEquivalent(8, 'oz', gramsAndPints)).toBe('≈226.8g')
+    // Volume is imperial, so millilitres come back in pints.
+    expect(formatEquivalent(500, 'ml', gramsAndPints)).toBe('≈1.1 pint')
+  })
+
+  it('restates spoons and cups even when they are chosen', () => {
+    // "2 cups" says nothing about how much to buy, whoever ticked it.
+    expect(formatEquivalent(2, 'cup', [...metric, 'cup'])).toBe('≈500mℓ')
   })
 })

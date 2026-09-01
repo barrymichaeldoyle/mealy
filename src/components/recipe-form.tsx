@@ -11,9 +11,8 @@ import {
   formatEquivalent,
   formatRecipeQuantity,
   type Unit,
-  type UnitSystem,
 } from '../lib/units'
-import { useUnitOptions, useUnitSystems } from '../hooks/use-household'
+import { useChosenUnits, useUnitOptions } from '../hooks/use-household'
 import { useIngredientNames } from '../hooks/use-recipes'
 import { NameSuggestions } from './name-suggestions'
 import type { NameCount } from '../lib/ingredient-names'
@@ -169,16 +168,16 @@ function draftToPayload(draft: RecipeDraft): {
 function IngredientEquivalent({
   quantity,
   unit,
-  systems,
+  chosenUnits,
 }: {
   quantity: string
   unit: Unit
-  systems: readonly UnitSystem[]
+  chosenUnits: readonly Unit[]
 }) {
   const parsed = Number(quantity.trim())
   const equivalent =
     quantity.trim() && Number.isFinite(parsed) && parsed > 0
-      ? formatEquivalent(parsed, unit, systems)
+      ? formatEquivalent(parsed, unit, chosenUnits)
       : null
 
   if (!equivalent) {
@@ -207,7 +206,7 @@ function IngredientSheet({
   open,
   initial,
   units,
-  systems,
+  chosenUnits,
   vocabulary,
   onSave,
   onDelete,
@@ -216,7 +215,7 @@ function IngredientSheet({
   open: boolean
   initial: IngredientDraft
   units: Unit[]
-  systems: readonly UnitSystem[]
+  chosenUnits: readonly Unit[]
   vocabulary: NameCount[]
   onSave: (ingredient: IngredientDraft) => void
   onDelete: (() => void) | undefined
@@ -316,7 +315,7 @@ function IngredientSheet({
         <IngredientEquivalent
           quantity={value.quantity}
           unit={value.unit}
-          systems={systems}
+          chosenUnits={chosenUnits}
         />
 
         <Field label="Note" hint="Optional, e.g. finely chopped">
@@ -363,7 +362,7 @@ export function RecipeForm({
   const [saving, setSaving] = useState(false)
   const [sheet, setSheet] = useState<SheetState>(null)
   const formRef = useRef<HTMLFormElement>(null)
-  const systems = useUnitSystems()
+  const chosenUnits = useChosenUnits()
   // A recipe already written in a unit the household has since switched off
   // keeps offering it, so editing the row cannot silently change what it says.
   const { units, defaultUnit, ready } = useUnitOptions(
@@ -666,7 +665,7 @@ export function RecipeForm({
           open
           initial={sheetIngredient}
           units={units}
-          systems={systems}
+          chosenUnits={chosenUnits}
           vocabulary={vocabulary}
           onClose={() => setSheet(null)}
           onSave={(ingredient) => {

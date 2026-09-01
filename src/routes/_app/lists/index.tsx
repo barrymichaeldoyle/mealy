@@ -6,7 +6,7 @@ import { Button, buttonClass } from '../../../components/ui/button'
 import { Card } from '../../../components/ui/card'
 import { Checkbox } from '../../../components/ui/checkbox'
 import { EmptyState } from '../../../components/ui/empty-state'
-import { Field, Input } from '../../../components/ui/field'
+import { Field, Input, Select } from '../../../components/ui/field'
 import { PageHeader } from '../../../components/ui/page-header'
 import { Sheet } from '../../../components/ui/sheet'
 import { SkeletonList } from '../../../components/ui/skeleton'
@@ -16,6 +16,7 @@ import {
   useShoppingLists,
 } from '../../../hooks/use-lists'
 import { useRecipes } from '../../../hooks/use-recipes'
+import { useShops } from '../../../hooks/use-shops'
 import { shortDateLabel } from '../../../lib/dates'
 import { consolidate, formatListItem } from '../../../lib/units'
 import { ingredientInputs } from '../../../../convex/lib/lists'
@@ -84,6 +85,9 @@ function ListsScreen() {
                           {list.name}
                         </h2>
                         <p className="mt-1 text-meta font-medium text-ink-400 tabular-nums">
+                          {/* The shop first: in a stack of lists it is the
+                              word you are looking for. */}
+                          {list.storeName && `${list.storeName} · `}
                           {done
                             ? 'all ticked'
                             : `${list.checkedCount} of ${list.itemCount} ticked`}
@@ -121,7 +125,9 @@ function NewListSheet({
   const recipes = useRecipes()
   const createList = useCreateList()
   const generate = useGenerateListFromRecipes()
+  const shops = useShops()
   const [name, setName] = useState('')
+  const [storeId, setStoreId] = useState<Id<'stores'> | ''>('')
   const [selected, setSelected] = useState<Id<'recipes'>[]>([])
   const [busy, setBusy] = useState(false)
 
@@ -148,17 +154,31 @@ function NewListSheet({
     setBusy(true)
     try {
       const trimmed = name.trim()
-      const listId =
+      const listIds =
         selected.length > 0
           ? await generate({
               ...defined({ name: trimmed || undefined }),
               recipeIds: selected,
             })
-          : await createList(defined({ name: trimmed || undefined }))
+          : [
+              await createList(
+                defined({
+                  name: trimmed || undefined,
+                  storeId: storeId || undefined,
+                }),
+              ),
+            ]
       setName('')
+      setStoreId('')
       setSelected([])
       onClose()
-      await navigate({ to: '/lists/$id', params: { id: listId } })
+      // Recipes split across two shops make two lists, and there is no one
+      // of them to open.
+      await navigate(
+        listIds.length === 1
+          ? { to: '/lists/$id', params: { id: listIds[0]! } }
+          : { to: '/lists' },
+      )
     } finally {
       setBusy(false)
     }
@@ -184,6 +204,35 @@ function NewListSheet({
             />
           )}
         </Field>
+
+        {/*
+         * Only offered once the household has named a shop, and only for a
+         * list built by hand: a list from recipes splits itself by shop, so
+         * asking here would be asking a question the answer overrides.
+         */}
+        {selected.length === 0 && (shops?.stores.length ?? 0) > 0 && (
+          <Field
+            label="Shop"
+            hint="Adding something to a shop’s list teaches it that they sell it."
+          >
+            {(id) => (
+              <Select
+                id={id}
+                value={storeId}
+                onChange={(event) =>
+                  setStoreId(event.target.value as Id<'stores'> | '')
+                }
+              >
+                <option value="">No shop in particular</option>
+                {(shops?.stores ?? []).map((store) => (
+                  <option key={store._id} value={store._id}>
+                    {store.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+        )}
 
         {recipes !== undefined && recipes.length > 0 && (
           <section aria-labelledby="new-list-recipes">

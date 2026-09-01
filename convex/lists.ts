@@ -8,9 +8,12 @@ import { validateDate } from './lib/validation'
 import {
   consolidate,
   type ConsolidationInput,
+  normalizeName,
   unitForAmount,
 } from './lib/units'
 import { ingredientInputs } from './lib/lists'
+import { bucketOrder, catalogueIndex, routeByStore } from './lib/shops'
+import { fileItem } from './shops'
 import { formatShortDate } from './lib/dates'
 import { defined } from './lib/optional'
 
@@ -27,6 +30,12 @@ export const list = query({
       .withIndex('by_household', (q) => q.eq('householdId', householdId))
       .collect()
 
+    const stores = await ctx.db
+      .query('stores')
+      .withIndex('by_household', (q) => q.eq('householdId', householdId))
+      .collect()
+    const storeNames = new Map(stores.map((store) => [store._id, store.name]))
+
     const withCounts = await Promise.all(
       lists.map(async (shoppingList) => {
         const items = await ctx.db
@@ -35,6 +44,9 @@ export const list = query({
           .collect()
         return {
           ...shoppingList,
+          storeName: shoppingList.storeId
+            ? (storeNames.get(shoppingList.storeId) ?? null)
+            : null,
           itemCount: items.length,
           checkedCount: items.filter((item) => item.checked).length,
         }
@@ -73,8 +85,39 @@ export const get = query({
       .collect()
     const names = new Map(members.map((m) => [m.userId, m.name]))
 
+    /*
+     * The catalogue rides along so a row can say where else the thing is
+     * sold. Moving it to the other shop is then a tap, which is the whole
+     * point of having said milk is at both.
+     */
+    const [stores, categories, entries] = await Promise.all([
+      ctx.db
+        .query('stores')
+        .withIndex('by_household', (q) => q.eq('householdId', householdId))
+        .collect(),
+      ctx.db
+        .query('categories')
+        .withIndex('by_household', (q) => q.eq('householdId', householdId))
+        .collect(),
+      ctx.db
+        .query('groceryItems')
+        .withIndex('by_household', (q) => q.eq('householdId', householdId))
+        .collect(),
+    ])
+    const filed = catalogueIndex(entries)
+
     return {
       ...shoppingList,
+      storeName: shoppingList.storeId
+        ? (stores.find((store) => store._id === shoppingList.storeId)?.name ??
+          null)
+        : null,
+      stores: stores.toSorted(
+        (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
+      ),
+      categories: categories.toSorted(
+        (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
+      ),
       /** Absent for a household of one: there is nobody to tell apart. */
       sharedWith: members.length > 1 ? members.length : null,
       items: items
@@ -83,6 +126,8 @@ export const get = query({
           checkedByName: item.checkedBy
             ? (names.get(item.checkedBy) ?? null)
             : null,
+          storeIds: (filed.get(normalizeName(item.name))?.storeIds ??
+            []) as Id<'stores'>[],
         }))
         .toSorted((a, b) => a.name.localeCompare(b.name)),
     }
@@ -115,33 +160,74 @@ async function uniqueListName(
   return `${wanted} (${suffix})`
 }
 
+/**
+ * Turn a week of cooking into the shops it actually takes.
+ *
+ * One list per shop, because that is how the trip goes: you are in
+ * Woolworths or you are in Checkers, and a list holding both is a list you
+ * have to read twice. Anything the household has not filed yet lands on an
+ * unnamed list, which for a new household is the only list there is, and
+ * which is exactly the old behaviour until stores exist.
+ */
 async function insertConsolidated(
   ctx: MutationCtx,
   householdId: Id<'households'>,
   name: string,
   inputs: ConsolidationInput[],
-): Promise<Id<'shoppingLists'>> {
-  const listId = await ctx.db.insert('shoppingLists', {
-    householdId,
-    name,
-    createdAt: Date.now(),
-  })
+): Promise<Id<'shoppingLists'>[]> {
+  const [stores, entries] = await Promise.all([
+    ctx.db
+      .query('stores')
+      .withIndex('by_household', (q) => q.eq('householdId', householdId))
+      .collect(),
+    ctx.db
+      .query('groceryItems')
+      .withIndex('by_household', (q) => q.eq('householdId', householdId))
+      .collect(),
+  ])
+  const filed = catalogueIndex(entries)
 
-  for (const item of consolidate(inputs)) {
-    await ctx.db.insert('shoppingListItems', {
-      ...defined({ quantity: item.quantity }),
+  const buckets = routeByStore(consolidate(inputs), filed, stores)
+  const order = bucketOrder([...buckets.keys()], stores)
+
+  const created: Id<'shoppingLists'>[] = []
+  for (const key of order) {
+    const store = stores.find((row) => row._id === key)
+    const listId = await ctx.db.insert('shoppingLists', {
+      ...defined({ storeId: store?._id }),
       householdId,
-      listId,
-      name: item.name,
-      unit: item.unit,
-      checked: false,
-      manuallyAdded: false,
-      approximate: item.approximate,
-      sourceRecipeIds: item.sourceRecipeIds as Id<'recipes'>[],
+      // The shop goes first, since in a list of lists that is the word you
+      // are looking for.
+      name: await uniqueListName(
+        ctx,
+        householdId,
+        store ? `${store.name}, ${name}` : name,
+      ),
+      createdAt: Date.now(),
     })
+    created.push(listId)
+
+    for (const item of buckets.get(key) ?? []) {
+      await ctx.db.insert('shoppingListItems', {
+        ...defined({
+          quantity: item.quantity,
+          categoryId: filed.get(normalizeName(item.name))?.categoryId as
+            | Id<'categories'>
+            | undefined,
+        }),
+        householdId,
+        listId,
+        name: item.name,
+        unit: item.unit,
+        checked: false,
+        manuallyAdded: false,
+        approximate: item.approximate,
+        sourceRecipeIds: item.sourceRecipeIds as Id<'recipes'>[],
+      })
+    }
   }
 
-  return listId
+  return created
 }
 
 /**
@@ -150,15 +236,22 @@ async function insertConsolidated(
  * dish soap and nappies.
  */
 export const create = mutation({
-  args: { name: v.optional(v.string()) },
+  args: { name: v.optional(v.string()), storeId: v.optional(v.id('stores')) },
   handler: async (ctx, args) => {
     const { householdId } = await requireHousehold(ctx)
+
+    const store = args.storeId ? await ctx.db.get(args.storeId) : null
+    if (args.storeId) {
+      assertHousehold(store, householdId)
+    }
+
     const name = await uniqueListName(
       ctx,
       householdId,
-      args.name?.trim() || 'Shopping list',
+      args.name?.trim() || store?.name || 'Shopping list',
     )
     return await ctx.db.insert('shoppingLists', {
+      ...defined({ storeId: store?._id }),
       householdId,
       name,
       createdAt: Date.now(),
@@ -193,11 +286,9 @@ export const generateFromPlan = mutation({
       inputs.push(...ingredientInputs(recipe, meal.servings))
     }
 
-    const name = await uniqueListName(
-      ctx,
-      householdId,
-      args.name?.trim() || `Week of ${formatShortDate(start)}`,
-    )
+    // Uniquifying is left to `insertConsolidated`, which knows how many
+    // lists this is about to become and what each one ends up called.
+    const name = args.name?.trim() || `Week of ${formatShortDate(start)}`
 
     return await insertConsolidated(ctx, householdId, name, inputs)
   },
@@ -218,11 +309,7 @@ export const generateFromRecipes = mutation({
       inputs.push(...ingredientInputs(recipe!, recipe!.servings))
     }
 
-    const name = await uniqueListName(
-      ctx,
-      householdId,
-      args.name?.trim() || 'Shopping list',
-    )
+    const name = args.name?.trim() || 'Shopping list'
 
     return await insertConsolidated(ctx, householdId, name, inputs)
   },
@@ -275,6 +362,7 @@ export const restoreItems = mutation({
         manuallyAdded: v.boolean(),
         approximate: v.boolean(),
         sourceRecipeIds: v.array(v.id('recipes')),
+        categoryId: v.optional(v.id('categories')),
       }),
     ),
   },
@@ -284,7 +372,10 @@ export const restoreItems = mutation({
 
     for (const item of args.items) {
       await ctx.db.insert('shoppingListItems', {
-        ...defined({ quantity: item.quantity }),
+        ...defined({
+          quantity: item.quantity,
+          categoryId: item.categoryId,
+        }),
         householdId,
         listId: args.listId,
         name: item.name,
@@ -327,8 +418,30 @@ export const addItem = mutation({
       throw new Error('Item name is required')
     }
 
+    const shoppingList = (await ctx.db.get(args.listId))!
+    const filed = await ctx.db
+      .query('groceryItems')
+      .withIndex('by_household_and_key', (q) =>
+        q.eq('householdId', householdId).eq('key', normalizeName(name)),
+      )
+      .unique()
+
+    /*
+     * Writing shampoo on the Clicks list is itself the answer to where
+     * shampoo comes from, so it is recorded as one. Nothing is taken away:
+     * a thing already known to be at two shops stays at two shops.
+     */
+    if (shoppingList.storeId) {
+      const storeIds = filed?.storeIds ?? []
+      if (!storeIds.includes(shoppingList.storeId)) {
+        await fileItem(ctx, householdId, name, {
+          storeIds: [...storeIds, shoppingList.storeId],
+        })
+      }
+    }
+
     return await ctx.db.insert('shoppingListItems', {
-      ...defined({ quantity: args.quantity }),
+      ...defined({ quantity: args.quantity, categoryId: filed?.categoryId }),
       householdId,
       listId: args.listId,
       name,
@@ -358,6 +471,7 @@ export const updateItem = mutation({
       quantity?: number | undefined
       unit?: Doc<'shoppingListItems'>['unit']
       approximate?: boolean
+      categoryId?: Id<'categories'>
     } = {}
     if (args.name !== undefined) {
       const name = args.name.trim()
@@ -365,6 +479,21 @@ export const updateItem = mutation({
         throw new Error('Item name is required')
       }
       patch.name = name
+
+      // Renamed to something the household has filed is renamed into that
+      // aisle. Renamed to something new leaves the aisle alone rather than
+      // quietly emptying it.
+      if (normalizeName(name) !== normalizeName(existing!.name)) {
+        const filed = await ctx.db
+          .query('groceryItems')
+          .withIndex('by_household_and_key', (q) =>
+            q.eq('householdId', householdId).eq('key', normalizeName(name)),
+          )
+          .unique()
+        if (filed?.categoryId) {
+          patch.categoryId = filed.categoryId
+        }
+      }
     }
     if (args.quantity !== undefined) {
       // `null` from the client means "clear the amount", which Convex spells
@@ -461,6 +590,7 @@ export const mergeItems = mutation({
           checked: items.every((source) => source.checked),
           manuallyAdded: items.every((source) => source.manuallyAdded),
           approximate: item.approximate,
+          ...defined({ categoryId: winner.categoryId }),
           sourceRecipeIds: [
             ...new Set(items.flatMap((source) => source.sourceRecipeIds)),
           ],

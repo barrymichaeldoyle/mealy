@@ -125,8 +125,14 @@ function PlanScreen() {
               onClick={async () => {
                 setGenerating(true)
                 try {
-                  const listId = await generateList({ start, end })
-                  await navigate({ to: '/lists/$id', params: { id: listId } })
+                  const listIds = await generateList({ start, end })
+                  // A week that takes two shops lands on the index, where
+                  // both lists are, rather than on whichever came first.
+                  await navigate(
+                    listIds.length === 1
+                      ? { to: '/lists/$id', params: { id: listIds[0]! } }
+                      : { to: '/lists' },
+                  )
                 } finally {
                   setGenerating(false)
                 }

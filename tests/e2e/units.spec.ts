@@ -140,8 +140,8 @@ test.describe('measurements', () => {
     page,
   }) => {
     await page.goto('/household')
-    await page.getByRole('checkbox', { name: /Imperial and US/ }).check()
-    await page.getByRole('checkbox', { name: /Metric/ }).uncheck()
+    // The systems are presets now: one tap fills the unit list in.
+    await page.getByRole('button', { name: 'Imperial and US' }).click()
     await page.getByRole('button', { name: 'Save measurements' }).click()
     // "Saved" is the signal the write landed. The button's disabled state is
     // not: it is also disabled while the write is still going.
@@ -151,10 +151,10 @@ test.describe('measurements', () => {
     // below is the picker's fault and not the save's.
     await page.reload()
     await expect(
-      page.getByRole('checkbox', { name: /Imperial and US/ }),
+      page.getByRole('checkbox', { name: 'oz', exact: true }),
     ).toBeChecked()
     await expect(
-      page.getByRole('checkbox', { name: /Metric/ }),
+      page.getByRole('checkbox', { name: 'g', exact: true }),
     ).not.toBeChecked()
 
     await page.goto('/recipes/new')
@@ -397,29 +397,30 @@ test.describe('changing the answer both ways', () => {
     })
     await answerSetupIfAsked(page)
 
-    const metric = page.getByRole('checkbox', { name: /Metric/ })
-    const imperial = page.getByRole('checkbox', { name: /Imperial and US/ })
+    // The presets, and the units they stand for.
+    const metric = page.getByRole('button', { name: 'Metric', exact: true })
+    const imperial = page.getByRole('button', { name: 'Imperial and US' })
+    const grams = page.getByRole('checkbox', { name: 'g', exact: true })
+    const ounces = page.getByRole('checkbox', { name: 'oz', exact: true })
     const save = page.getByRole('button', { name: 'Save measurements' })
 
     // Metric to imperial.
     await page.goto('/household')
-    await expect(metric).toBeChecked()
-    await imperial.check()
-    await metric.uncheck()
+    await expect(grams).toBeChecked()
+    await imperial.click()
     await save.click()
     await expect(savedNotice(page)).toBeVisible()
     await page.reload()
-    await expect(imperial).toBeChecked()
-    await expect(metric).not.toBeChecked()
+    await expect(ounces).toBeChecked()
+    await expect(grams).not.toBeChecked()
 
     // And back. This direction was never confirmed until now.
-    await metric.check()
-    await imperial.uncheck()
+    await metric.click()
     await save.click()
     await expect(savedNotice(page)).toBeVisible()
     await page.reload()
-    await expect(metric).toBeChecked()
-    await expect(imperial).not.toBeChecked()
+    await expect(grams).toBeChecked()
+    await expect(ounces).not.toBeChecked()
 
     // The picker follows, which is the whole point of the setting.
     await page.goto('/recipes/new')
@@ -636,6 +637,14 @@ test.describe('two people, one list', () => {
   })
 
   test('a ticked row says who got it', async ({ page, browser }) => {
+    /*
+     * Twice the sign-in of any other test here, in two browser contexts, and
+     * a development Clerk instance rate limits. It finishes in about half a
+     * minute with room to spare, and spent its whole 90s budget queueing on
+     * the busiest runs, so this one gets its own.
+     */
+    test.setTimeout(180_000)
+
     const [owner, joiner] = users as [
       { id: string; email: string },
       { id: string; email: string },

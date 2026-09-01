@@ -195,6 +195,7 @@ describe('exportData', () => {
     expect(data?.shoppingLists).toHaveLength(1)
     expect(data?.shoppingLists[0]?.items).toEqual([
       {
+        category: null,
         name: 'mince',
         quantity: 500,
         unit: 'g',
