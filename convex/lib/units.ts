@@ -1,3 +1,7 @@
+import { stemKey } from './ingredient-names'
+
+export { normalizeName } from './ingredient-names'
+
 /**
  * Units, conversions and shopping-list consolidation.
  *
@@ -159,11 +163,6 @@ export function toCanonical(quantity: number, unit: Unit): CanonicalQuantity {
   }
 }
 
-/** Names merge case-insensitively, ignoring surrounding and repeated space. */
-export function normalizeName(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, ' ')
-}
-
 const EPSILON = 1e-9
 
 /**
@@ -307,9 +306,10 @@ export type ConsolidatedItem = {
 /**
  * Merge ingredients into shopping list lines.
  *
- * Ingredients merge when their normalized name AND unit family match.
- * Incompatible families for the same name (200g flour + 1 cup flour) stay as
- * separate lines. Volume and mass are never guessed at.
+ * Ingredients merge when their stem key AND unit family match, so "roast veg"
+ * and "roasted veg" add up. Incompatible families for the same name (200g
+ * flour + 1 cup flour) stay as separate lines. Volume and mass are never
+ * guessed at.
  */
 export function consolidate(inputs: ConsolidationInput[]): ConsolidatedItem[] {
   type Bucket = {
@@ -325,7 +325,7 @@ export function consolidate(inputs: ConsolidationInput[]): ConsolidatedItem[] {
 
   for (const input of inputs) {
     const family = unitFamily(input.unit)
-    const key = `${normalizeName(input.name)}|${family}`
+    const key = `${stemKey(input.name)}|${family}`
     let bucket = buckets.get(key)
     if (!bucket) {
       bucket = {
