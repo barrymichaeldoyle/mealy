@@ -123,9 +123,9 @@ function ListDetail() {
 
   const items = list?.items ?? []
   /*
-   * One ingredient under two spellings, which `consolidate` cannot merge
-   * because it matches on the exact name. Suggested, never done for you: a
-   * wrong merge is only discovered in front of the shelf.
+   * One ingredient under two spellings that landed on the list by hand,
+   * after generation already merged recipe spellings. Suggested, never done
+   * for you: a wrong merge is only discovered in front of the shelf.
    */
   const duplicates = online
     ? similarNameGroups(items).filter((group) => {

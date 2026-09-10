@@ -101,6 +101,17 @@ describe('formatCanonicalQuantity', () => {
 })
 
 describe('consolidate', () => {
+  it('merges stem-equivalent names into one quantity', () => {
+    const item = single(
+      consolidate([
+        { name: 'Roast Veg Pack', quantity: 200, unit: 'g' },
+        { name: 'Roasted Veg Pack', quantity: 300, unit: 'g' },
+      ]),
+    )
+    expect(item.quantity).toBe(500)
+    expect(item.name).toBe('Roast Veg Pack')
+  })
+
   it('merges identical mass ingredients exactly', () => {
     const item = single(
       consolidate([
