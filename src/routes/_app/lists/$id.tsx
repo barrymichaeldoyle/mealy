@@ -421,9 +421,9 @@ function ListDetail() {
                  * before navigate can run, so you stay stuck there. Replace
                  * so Back cannot reopen the dead URL.
                  */
-                const id = list._id
+                const listId = list._id
                 await navigate({ to: '/lists', replace: true })
-                await deleteList({ id })
+                await deleteList({ id: listId })
               }}
             >
               Delete list

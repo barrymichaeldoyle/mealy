@@ -272,9 +272,9 @@ function RecipeDetail() {
                * before navigate can run, so you stay stuck there. Replace
                * so Back cannot reopen the dead URL.
                */
-              const id = recipe._id
+              const recipeId = recipe._id
               await navigate({ to: '/recipes', replace: true })
-              await deleteRecipe({ id })
+              await deleteRecipe({ id: recipeId })
             }}
           >
             Delete recipe
