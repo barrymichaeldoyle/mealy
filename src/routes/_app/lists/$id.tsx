@@ -414,8 +414,16 @@ function ListDetail() {
               description={`“${list.name}” and every item in it will be permanently deleted.`}
               confirmLabel="Delete list"
               onConfirm={async () => {
-                await deleteList({ id: list._id })
-                await navigate({ to: '/lists' })
+                /*
+                 * Leave first. Deleting while still on this route makes the
+                 * detail query return null, which swaps this screen for the
+                 * "isn't here" empty state and tears down the confirm sheet
+                 * before navigate can run, so you stay stuck there. Replace
+                 * so Back cannot reopen the dead URL.
+                 */
+                const listId = list._id
+                await navigate({ to: '/lists', replace: true })
+                await deleteList({ id: listId })
               }}
             >
               Delete list

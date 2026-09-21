@@ -265,8 +265,16 @@ function RecipeDetail() {
             description={plannedDescription(recipe.title, plannedDates)}
             confirmLabel="Delete recipe"
             onConfirm={async () => {
-              await deleteRecipe({ id: recipe._id })
-              await navigate({ to: '/recipes' })
+              /*
+               * Leave first. Deleting while still on this route makes the
+               * detail query return null, which swaps this screen for the
+               * "isn't here" empty state and tears down the confirm sheet
+               * before navigate can run, so you stay stuck there. Replace
+               * so Back cannot reopen the dead URL.
+               */
+              const recipeId = recipe._id
+              await navigate({ to: '/recipes', replace: true })
+              await deleteRecipe({ id: recipeId })
             }}
           >
             Delete recipe
