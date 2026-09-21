@@ -103,6 +103,13 @@ function ListDetail() {
   const [adding, setAdding] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [editing, setEditing] = useState<Item | null>(null)
+  /*
+   * Delete clears the query before navigate finishes, which would flash the
+   * "isn't here" empty state. Hold a leaving flag so we keep the skeleton
+   * up until /lists takes over, and replace history so Back cannot reopen
+   * the dead URL.
+   */
+  const [leaving, setLeaving] = useState(false)
 
   /*
    * A row you have just ticked holds its place for a moment before dropping
@@ -165,7 +172,7 @@ function ListDetail() {
   const meId = household?.userId
   const plural = checkedCount === 1 ? '' : 's'
 
-  if (list === undefined) {
+  if (list === undefined || (list === null && leaving)) {
     return (
       <>
         <AppHeader />
@@ -414,8 +421,14 @@ function ListDetail() {
               description={`“${list.name}” and every item in it will be permanently deleted.`}
               confirmLabel="Delete list"
               onConfirm={async () => {
-                await deleteList({ id: list._id })
-                await navigate({ to: '/lists' })
+                setLeaving(true)
+                try {
+                  await deleteList({ id: list._id })
+                  await navigate({ to: '/lists', replace: true })
+                } catch (error) {
+                  setLeaving(false)
+                  throw error
+                }
               }}
             >
               Delete list
