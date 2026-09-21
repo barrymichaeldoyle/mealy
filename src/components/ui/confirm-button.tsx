@@ -60,10 +60,16 @@ export function ConfirmButton({
               setBusy(true)
               setError(false)
               try {
-                await onConfirm()
+                /*
+                 * Close before the action. If onConfirm navigates away (list
+                 * or recipe delete), an open modal sheet would unmount mid
+                 * flight and leave the detail page stuck on the empty state.
+                 */
                 setOpen(false)
+                await onConfirm()
               } catch {
                 setError(true)
+                setOpen(true)
               } finally {
                 setBusy(false)
               }
