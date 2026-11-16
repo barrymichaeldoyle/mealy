@@ -11,7 +11,7 @@ import {
   normalizeName,
   unitForAmount,
 } from './lib/units'
-import { ingredientInputs } from './lib/lists'
+import { compareListItems, ingredientInputs } from './lib/lists'
 import { bucketOrder, catalogueIndex, routeByStore } from './lib/shops'
 import { fileItem } from './shops'
 import { formatShortDate } from './lib/dates'
@@ -129,7 +129,7 @@ export const get = query({
           storeIds: (filed.get(normalizeName(item.name))?.storeIds ??
             []) as Id<'stores'>[],
         }))
-        .toSorted((a, b) => a.name.localeCompare(b.name)),
+        .toSorted(compareListItems),
     }
   },
 })
@@ -363,6 +363,7 @@ export const restoreItems = mutation({
         approximate: v.boolean(),
         sourceRecipeIds: v.array(v.id('recipes')),
         categoryId: v.optional(v.id('categories')),
+        sortOrder: v.optional(v.number()),
       }),
     ),
   },
@@ -375,6 +376,7 @@ export const restoreItems = mutation({
         ...defined({
           quantity: item.quantity,
           categoryId: item.categoryId,
+          sortOrder: item.sortOrder,
         }),
         householdId,
         listId: args.listId,
@@ -517,6 +519,30 @@ export const updateItem = mutation({
   },
 })
 
+/**
+ * Reorder by handing back the ids in the order you want them, usually one
+ * aisle's worth. Rows not named keep whatever place they already had.
+ */
+export const reorderItems = mutation({
+  args: {
+    listId: v.id('shoppingLists'),
+    ids: v.array(v.id('shoppingListItems')),
+  },
+  handler: async (ctx, args) => {
+    const { householdId } = await requireHousehold(ctx)
+    assertHousehold(await ctx.db.get(args.listId), householdId)
+
+    for (const [index, id] of args.ids.entries()) {
+      const item = await ctx.db.get(id)
+      assertHousehold(item, householdId)
+      if (item?.listId !== args.listId) {
+        throw new Error('That item is on a different list')
+      }
+      await ctx.db.patch(id, { sortOrder: index * 10 })
+    }
+  },
+})
+
 export const removeItem = mutation({
   args: { id: v.id('shoppingListItems') },
   handler: async (ctx, args) => {
@@ -590,7 +616,11 @@ export const mergeItems = mutation({
           checked: items.every((source) => source.checked),
           manuallyAdded: items.every((source) => source.manuallyAdded),
           approximate: item.approximate,
-          ...defined({ categoryId: winner.categoryId }),
+          // The merged row keeps the place of the spelling that won.
+          ...defined({
+            categoryId: winner.categoryId,
+            sortOrder: winner.sortOrder,
+          }),
           sourceRecipeIds: [
             ...new Set(items.flatMap((source) => source.sourceRecipeIds)),
           ],

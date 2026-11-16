@@ -12,6 +12,7 @@ import {
   toggleCachedItem,
   writeCachedList,
 } from '../lib/offline-lists'
+import { compareListItems } from '../../convex/lib/lists'
 
 export function useShoppingLists() {
   return useQuery(api.lists.list)
@@ -80,6 +81,36 @@ export function useAddListItem() {
 
 export function useUpdateListItem() {
   return useMutation(api.lists.updateItem)
+}
+
+/**
+ * Moving a row up is several taps in a row, so like ticking it lands before
+ * the round trip. Otherwise the second tap hits a row that has not moved yet.
+ */
+export function useReorderListItems() {
+  return useMutation(api.lists.reorderItems).withOptimisticUpdate(
+    (localStore, args) => {
+      const value = localStore.getQuery(api.lists.get, { id: args.listId })
+      if (!value) {
+        return
+      }
+      const placed = new Map(args.ids.map((id, index) => [id, index * 10]))
+      const items = value.items
+        .map((item) => {
+          const sortOrder = placed.get(item._id)
+          return sortOrder === undefined ? item : { ...item, sortOrder }
+        })
+        .toSorted(compareListItems)
+      localStore.setQuery(
+        api.lists.get,
+        { id: args.listId },
+        {
+          ...value,
+          items,
+        },
+      )
+    },
+  )
 }
 
 export function useRemoveListItem() {

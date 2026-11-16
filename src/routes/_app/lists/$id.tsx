@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import {
+  ArrowUpDown,
   Check,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   Pencil,
   Plus,
   ShoppingBasket,
@@ -28,6 +31,7 @@ import {
   useDeleteList,
   useRenameList,
   useRemoveListItem,
+  useReorderListItems,
   useShoppingList,
   useToggleListItem,
   useUpdateListItem,
@@ -58,6 +62,7 @@ import {
 } from '../../../lib/dismissed-merges'
 import { NameSuggestions } from '../../../components/name-suggestions'
 import { groupByCategory } from '../../../../convex/lib/shops'
+import { moveBy } from '../../../../convex/lib/lists'
 import { useSetPlacement } from '../../../hooks/use-shops'
 
 export const Route = createFileRoute('/_app/lists/$id')({
@@ -91,6 +96,7 @@ function ListDetail() {
   const restoreItems = useRestoreListItems()
   const mergeItems = useMergeListItems()
   const removeItem = useRemoveListItem()
+  const reorderItems = useReorderListItems()
   // What was just cleared, held only long enough to offer it back.
   const [cleared, setCleared] = useState<Item[] | null>(null)
   // Prompts waved away in this session, on top of the ones stored per device.
@@ -103,6 +109,12 @@ function ListDetail() {
   const [adding, setAdding] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [editing, setEditing] = useState<Item | null>(null)
+  /*
+   * Moving rows is its own mode, so the up and down buttons are not sitting
+   * beside every row while you shop. They are the taps most likely to be
+   * hit by a thumb reaching for the checkbox.
+   */
+  const [arranging, setArranging] = useState(false)
 
   /*
    * A row you have just ticked holds its place for a moment before dropping
@@ -145,6 +157,20 @@ function ListDetail() {
   const categories = list?.categories ?? []
   const stores = list?.stores ?? []
   const sections = groupByCategory(pending, categories)
+  // Nothing to put in order with one row left, and no way to save it offline.
+  const canArrange = online && pending.length > 1
+  const showArrange = arranging && canArrange
+
+  function move(rows: Item[], index: number, by: number) {
+    const ids = moveBy(
+      rows.map((row) => row._id),
+      index,
+      by,
+    )
+    if (ids && list) {
+      void reorderItems({ listId: list._id, ids })
+    }
+  }
 
   /**
    * The other shops that sell it, which is the answer to "can I just get
@@ -210,6 +236,20 @@ function ListDetail() {
           action={
             online ? (
               <div className="flex items-center gap-1">
+                {canArrange && (
+                  <button
+                    type="button"
+                    onClick={() => setArranging((current) => !current)}
+                    aria-pressed={showArrange}
+                    aria-label="Reorder items"
+                    className={cn(
+                      'rounded-btn p-2 text-ink-400 hover:bg-paper-200 hover:text-ink-600',
+                      showArrange && 'bg-paper-200 text-ink-900',
+                    )}
+                  >
+                    <ArrowUpDown className="size-4" aria-hidden="true" />
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setRenaming(true)}
@@ -233,6 +273,18 @@ function ListDetail() {
             returns. Adding, editing and deleting need a connection, so they are
             not here until it comes back.
           </output>
+        )}
+
+        {showArrange && (
+          <div className="mt-4 flex items-center gap-3 rounded-card border border-line bg-paper-100 px-4 py-3">
+            <p className="flex-1 text-meta text-ink-600">
+              Put each aisle in the order you pick things up. Everyone on this
+              list sees the new order.
+            </p>
+            <Button variant="secondary" onClick={() => setArranging(false)}>
+              Done
+            </Button>
+          </div>
         )}
 
         {duplicates.length > 0 && (
@@ -339,7 +391,7 @@ function ListDetail() {
                   </h2>
                 )}
                 <ListRows>
-                  {section.items.map((item) => (
+                  {section.items.map((item, index) => (
                     <ItemRow
                       key={item._id}
                       item={item}
@@ -347,7 +399,25 @@ function ListDetail() {
                       meId={meId}
                       elsewhere={elsewhere(item)}
                       onToggle={handleToggle}
-                      onEdit={online ? () => setEditing(item) : undefined}
+                      onEdit={
+                        online && !showArrange
+                          ? () => setEditing(item)
+                          : undefined
+                      }
+                      onMove={
+                        showArrange
+                          ? {
+                              up:
+                                index > 0
+                                  ? () => move(section.items, index, -1)
+                                  : undefined,
+                              down:
+                                index < section.items.length - 1
+                                  ? () => move(section.items, index, 1)
+                                  : undefined,
+                            }
+                          : undefined
+                      }
                     />
                   ))}
                 </ListRows>
@@ -374,6 +444,7 @@ function ListDetail() {
                         elsewhere={elsewhere(item)}
                         onToggle={handleToggle}
                         onEdit={online ? () => setEditing(item) : undefined}
+                        onMove={undefined}
                       />
                     ))}
                   </ListRows>
@@ -445,6 +516,7 @@ function ListDetail() {
                 ...defined({
                   quantity: item.quantity,
                   categoryId: item.categoryId,
+                  sortOrder: item.sortOrder,
                 }),
                 name: item.name,
                 unit: item.unit,
@@ -480,6 +552,7 @@ function ListDetail() {
                 ...defined({
                   quantity: item.quantity,
                   categoryId: item.categoryId,
+                  sortOrder: item.sortOrder,
                 }),
                 name: item.name,
                 unit: item.unit,
@@ -532,6 +605,7 @@ function ItemRow({
   elsewhere,
   onToggle,
   onEdit,
+  onMove,
 }: {
   item: Item
   shared: boolean
@@ -540,6 +614,10 @@ function ItemRow({
   elsewhere: string[]
   onToggle: (id: ItemId, checked: boolean) => void
   onEdit: (() => void) | undefined
+  /** Present while reordering. A missing direction is the end of the aisle. */
+  onMove:
+    | { up: (() => void) | undefined; down: (() => void) | undefined }
+    | undefined
 }) {
   const amount = formatListItem(item)
   const approximate = amount.startsWith('≈')
@@ -611,6 +689,28 @@ function ItemRow({
         >
           <Pencil className="size-4" aria-hidden="true" />
         </button>
+      )}
+      {onMove && (
+        <div className="flex shrink-0 items-center">
+          <button
+            type="button"
+            disabled={!onMove.up}
+            onClick={onMove.up}
+            aria-label={`Move ${item.name} up`}
+            className="rounded-btn p-2 text-ink-400 hover:bg-paper-200 hover:text-ink-600 disabled:opacity-30 disabled:hover:bg-transparent"
+          >
+            <ChevronUp className="size-4" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            disabled={!onMove.down}
+            onClick={onMove.down}
+            aria-label={`Move ${item.name} down`}
+            className="rounded-btn p-2 text-ink-400 hover:bg-paper-200 hover:text-ink-600 disabled:opacity-30 disabled:hover:bg-transparent"
+          >
+            <ChevronDown className="size-4" aria-hidden="true" />
+          </button>
+        </div>
       )}
     </ListRow>
   )

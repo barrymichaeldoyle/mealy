@@ -189,6 +189,12 @@ export default defineSchema({
      * shop with no signal still knows which aisle to send you to.
      */
     categoryId: v.optional(v.id('categories')),
+    /**
+     * Where someone moved it to within its aisle, lower first. Absent
+     * until the list is reordered, and absent on anything added after, so
+     * an untouched list stays alphabetical and a new item lands at the end.
+     */
+    sortOrder: v.optional(v.number()),
   })
     .index('by_household', ['householdId'])
     .index('by_list', ['listId']),

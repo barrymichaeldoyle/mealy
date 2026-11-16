@@ -18,6 +18,7 @@ import {
   useShops,
 } from '../hooks/use-shops'
 import type { Id } from '../../convex/_generated/dataModel'
+import { moveBy } from '../../convex/lib/lists'
 
 type Row = { _id: string; name: string }
 
@@ -123,16 +124,14 @@ function OrderedList({
   const [adding, setAdding] = useState('')
 
   async function move(index: number, by: number) {
-    const ids = rows.map((row) => row._id)
-    const target = index + by
-    const moved = ids[index]
-    const displaced = ids[target]
-    if (moved === undefined || displaced === undefined) {
-      return
+    const ids = moveBy(
+      rows.map((row) => row._id),
+      index,
+      by,
+    )
+    if (ids) {
+      await onReorder(ids)
     }
-    ids[index] = displaced
-    ids[target] = moved
-    await onReorder(ids)
   }
 
   return (
